@@ -113,26 +113,26 @@ export const Step5: React.FC<Step5Props> = ({
       </div>
 
       {/* Contenido Principal */}
-      <div style={{ flex: 1, padding: '4px 8px 12px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ flex: 1, padding: '2px 8px 4px 8px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {/* Título Principal - Fuera del box */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '10px',
-          marginBottom: '16px',
+          gap: '8px',
+          marginBottom: '8px',
           padding: '0 16px'
         }}>
           <div style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '6px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            padding: '4px',
+            borderRadius: '6px',
+            boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
           }}>
-            <Shield style={{ height: '16px', width: '16px', color: 'white' }} />
+            <Shield style={{ height: '14px', width: '14px', color: 'white' }} />
           </div>
           <h2 style={{
-            fontSize: '28px',
+            fontSize: '22px',
             fontWeight: 'bold',
             color: '#1f2937',
             margin: 0
@@ -142,8 +142,8 @@ export const Step5: React.FC<Step5Props> = ({
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
-          padding: '24px',
-          minHeight: 'calc(100vh - 220px)',
+          padding: '12px',
+          flex: 1,
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
@@ -151,19 +151,21 @@ export const Step5: React.FC<Step5Props> = ({
           width: 'calc(100% - 16px)',
           background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
           boxSizing: 'border-box',
-          margin: '0 auto'
+          margin: '0 auto',
+          overflow: 'hidden',
+          minHeight: 0
         }}>
           
-          {/* Contenido con scroll */}
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+          {/* Contenido sin scroll */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             
             {/* Pregunta principal */}
             <div style={{
               textAlign: 'center',
-              marginBottom: '32px'
+              marginBottom: '12px'
             }}>
               <p style={{
-                fontSize: '20px',
+                fontSize: '16px',
                 color: '#374151',
                 fontWeight: '500',
                 margin: 0
@@ -175,8 +177,8 @@ export const Step5: React.FC<Step5Props> = ({
             {/* Opciones principales - Layout horizontal */}
             <div style={{
               display: 'flex',
-              gap: '20px',
-              marginBottom: '24px'
+              gap: '12px',
+              marginBottom: '8px'
             }}>
               
               {/* Opción SÍ */}
@@ -184,8 +186,8 @@ export const Step5: React.FC<Step5Props> = ({
                 onClick={() => onDeclassifyChange('Sí')}
                 style={{
                   flex: 1,
-                  padding: '28px',
-                  borderRadius: '16px',
+                  padding: '16px',
+                  borderRadius: '12px',
                   border: `3px solid ${declassify === 'Sí' ? '#166534' : '#22c55e'}`,
                   backgroundColor: declassify === 'Sí' ? '#dcfce7' : '#f0fdf4',
                   cursor: 'pointer',
@@ -196,18 +198,18 @@ export const Step5: React.FC<Step5Props> = ({
                 }}
               >
                 <div style={{
-                  width: '80px',
-                  height: '80px',
+                  width: '60px',
+                  height: '60px',
                   backgroundColor: declassify === 'Sí' ? '#166534' : '#22c55e',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 20px auto',
+                  margin: '0 auto 12px auto',
                   transition: 'all 0.3s ease'
                 }}>
                   <span style={{
-                    fontSize: '32px',
+                    fontSize: '24px',
                     fontWeight: 'bold',
                     color: 'white'
                   }}>
@@ -215,28 +217,28 @@ export const Step5: React.FC<Step5Props> = ({
                   </span>
                 </div>
                 <div style={{
-                  fontSize: '28px',
+                  fontSize: '24px',
                   fontWeight: 'bold',
                   color: declassify === 'Sí' ? '#166534' : '#22c55e',
-                  marginBottom: '12px'
+                  marginBottom: '8px'
                 }}>
                   SÍ
                 </div>
                 <div style={{
-                  fontSize: '18px',
+                  fontSize: '14px',
                   color: declassify === 'Sí' ? '#166534' : '#16a34a',
                   fontWeight: '500',
-                  marginBottom: '12px'
+                  marginBottom: '6px'
                 }}>
                   Requiere desclasificación
                 </div>
                 <div style={{
-                  fontSize: '14px',
+                  fontSize: '12px',
                   color: declassify === 'Sí' ? '#166534' : '#16a34a',
                   fontStyle: 'italic',
-                  lineHeight: '1.3'
+                  lineHeight: '1.2'
                 }}>
-                  ⏱️ Puede demorar más tiempo en procesamiento
+                  ⏱️ Puede demorar más
                 </div>
               </button>
 
@@ -245,8 +247,8 @@ export const Step5: React.FC<Step5Props> = ({
                 onClick={() => onDeclassifyChange('No')}
                 style={{
                   flex: 1,
-                  padding: '28px',
-                  borderRadius: '16px',
+                  padding: '16px',
+                  borderRadius: '12px',
                   border: `3px solid ${declassify === 'No' ? '#991b1b' : '#ef4444'}`,
                   backgroundColor: declassify === 'No' ? '#fee2e2' : '#fef2f2',
                   cursor: 'pointer',
@@ -257,18 +259,18 @@ export const Step5: React.FC<Step5Props> = ({
                 }}
               >
                 <div style={{
-                  width: '80px',
-                  height: '80px',
+                  width: '60px',
+                  height: '60px',
                   backgroundColor: declassify === 'No' ? '#991b1b' : '#ef4444',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  margin: '0 auto 20px auto',
+                  margin: '0 auto 12px auto',
                   transition: 'all 0.3s ease'
                 }}>
                   <span style={{
-                    fontSize: '32px',
+                    fontSize: '24px',
                     fontWeight: 'bold',
                     color: 'white'
                   }}>
@@ -276,28 +278,28 @@ export const Step5: React.FC<Step5Props> = ({
                   </span>
                 </div>
                 <div style={{
-                  fontSize: '28px',
+                  fontSize: '24px',
                   fontWeight: 'bold',
                   color: declassify === 'No' ? '#991b1b' : '#ef4444',
-                  marginBottom: '12px'
+                  marginBottom: '8px'
                 }}>
                   NO
                 </div>
                 <div style={{
-                  fontSize: '18px',
+                  fontSize: '14px',
                   color: declassify === 'No' ? '#991b1b' : '#dc2626',
                   fontWeight: '500',
-                  marginBottom: '12px'
+                  marginBottom: '6px'
                 }}>
                   Proceso estándar
                 </div>
                 <div style={{
-                  fontSize: '14px',
+                  fontSize: '12px',
                   color: declassify === 'No' ? '#991b1b' : '#dc2626',
                   fontStyle: 'italic',
-                  lineHeight: '1.3'
+                  lineHeight: '1.2'
                 }}>
-                  ⚡ Tiempo de procesamiento normal
+                  ⚡ Tiempo normal
                 </div>
               </button>
             </div>
@@ -306,24 +308,24 @@ export const Step5: React.FC<Step5Props> = ({
             {isValid && (
               <div style={{
                 background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                border: '2px solid #22c55e',
-                borderRadius: '6px',
-                padding: '6px 8px',
-                marginBottom: '8px',
-                boxShadow: '0 1px 3px rgba(34, 197, 94, 0.1)'
+                border: '1px solid #22c55e',
+                borderRadius: '4px',
+                padding: '4px 6px',
+                marginBottom: '4px',
+                boxShadow: '0 1px 2px rgba(34, 197, 94, 0.1)'
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '6px'
+                  gap: '4px'
                 }}>
                   <span style={{
-                    fontSize: '12px',
+                    fontSize: '11px',
                     fontWeight: 'bold',
                     color: '#065f46'
                   }}>
-                    ✓ Seleccionado: {declassify === 'Sí' ? 'Requiere desclasificación' : 'Proceso estándar'}
+                    ✓ {declassify === 'Sí' ? 'Requiere desclasificación' : 'Proceso estándar'}
                   </span>
                 </div>
               </div>
@@ -332,8 +334,8 @@ export const Step5: React.FC<Step5Props> = ({
 
           {/* Botón fijo en la parte inferior */}
           <div style={{ 
-            marginTop: '12px', 
-            paddingTop: '12px',
+            marginTop: '8px', 
+            paddingTop: '8px',
             borderTop: '1px solid #e5e7eb',
             backgroundColor: 'white',
             position: 'sticky',
@@ -344,10 +346,10 @@ export const Step5: React.FC<Step5Props> = ({
               disabled={!isValid}
               style={{
                 width: '100%',
-                padding: '20px 24px',
-                borderRadius: '16px',
+                padding: '16px 20px',
+                borderRadius: '12px',
                 fontWeight: 'bold',
-                fontSize: '20px',
+                fontSize: '18px',
                 background: isValid 
                   ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
                   : '#d1d5db',
@@ -357,7 +359,7 @@ export const Step5: React.FC<Step5Props> = ({
                 boxShadow: isValid ? '0 8px 24px rgba(102, 126, 234, 0.3)' : 'none',
                 transition: 'all 0.3s',
                 outline: 'none',
-                minHeight: '70px'
+                minHeight: '60px'
               }}
               onMouseOver={(e) => {
                 if (isValid) {
@@ -376,10 +378,10 @@ export const Step5: React.FC<Step5Props> = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '12px'
+                gap: '8px'
               }}>
                 <span>Continuar a Servicios</span>
-                <ArrowRight style={{ height: '24px', width: '24px' }} />
+                <ArrowRight style={{ height: '20px', width: '20px' }} />
               </div>
             </button>
           </div>
