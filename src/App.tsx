@@ -1,12 +1,29 @@
 // BiopsyTracker v2.0 - Optimizado para Tablet - Deployed 2025-07-29
 import React, { useState, useEffect, useCallback } from 'react';
-import { DoctorInfo, BiopsyForm, SyncAction, HistoryEntry } from './types';
+import { DoctorInfo, BiopsyForm } from './types';
 import { LoginScreen } from './components/LoginScreen';
 import { MainScreen } from './components/MainScreen';
 import { NewBiopsyScreen } from './components/NewBiopsyScreen';
 import { TodayListScreen } from './components/TodayListScreen';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AdminPanel } from './components/AdminPanel';
+
+// Tipos locales para la app
+interface HistoryEntry {
+  id: string;
+  date: string;
+  timestamp: string;
+  biopsies: BiopsyForm[];
+  doctorInfo: DoctorInfo;
+}
+
+interface SyncAction {
+  id: string;
+  type: string;
+  data: any;
+  timestamp: string;
+  [key: string]: any; // Permitir cualquier propiedad adicional
+}
 
 type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin';
 
@@ -171,11 +188,13 @@ function App() {
   }, [saveData]);
 
   // Función para agregar a cola de sincronización
-  const addToSyncQueue = useCallback((action: Omit<SyncAction, 'id' | 'timestamp'>) => {
+  const addToSyncQueue = useCallback((action: Partial<SyncAction>) => {
     const newAction: SyncAction = {
-      ...action,
+      type: action.type || 'sync',
+      data: action.data || {},
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      ...action
     };
 
     setSyncQueue(prev => [...prev, newAction]);
@@ -339,10 +358,10 @@ function App() {
       // Convertir el formato de remito a formato de administrador
       const adminRemito = {
         id: `R${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ID único
-        medico: `${remito.doctorInfo.firstName} ${remito.doctorInfo.lastName}`,
+        medico: `${(remito.doctorInfo as any).firstName || ''} ${(remito.doctorInfo as any).lastName || ''}`,
         email: remito.doctorInfo.email || '',
         fecha: remito.date,
-        hospital: remito.doctorInfo.hospitalName || '',
+        hospital: (remito.doctorInfo as any).hospitalName || remito.doctorInfo.hospital || '',
         biopsias: remito.biopsies.map(biopsy => {
           // Convertir servicios del formato de la app al formato del admin
           const servicios = {
@@ -381,7 +400,7 @@ function App() {
       adminRemitos.push(adminRemito);
       
       // Ordenar por timestamp (más reciente primero)
-      adminRemitos.sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
+      adminRemitos.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       
       localStorage.setItem('adminRemitos', JSON.stringify(adminRemitos));
       console.log('App - Remito guardado para administrador:', adminRemito);
