@@ -7,7 +7,7 @@ interface LoginScreenProps {
   onGoToAdmin: () => void;
 }
 
-export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [hospitalName, setHospitalName] = useState('');
