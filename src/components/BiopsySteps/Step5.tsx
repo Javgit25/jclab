@@ -307,19 +307,19 @@ export const Step5: React.FC<Step5Props> = ({
               <div style={{
                 background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
                 border: '2px solid #22c55e',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                marginBottom: '12px',
-                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.1)'
+                borderRadius: '6px',
+                padding: '6px 8px',
+                marginBottom: '8px',
+                boxShadow: '0 1px 3px rgba(34, 197, 94, 0.1)'
               }}>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '8px'
+                  gap: '6px'
                 }}>
                   <span style={{
-                    fontSize: '14px',
+                    fontSize: '12px',
                     fontWeight: 'bold',
                     color: '#065f46'
                   }}>
@@ -332,8 +332,8 @@ export const Step5: React.FC<Step5Props> = ({
 
           {/* Botón fijo en la parte inferior */}
           <div style={{ 
-            marginTop: '16px', 
-            paddingTop: '16px',
+            marginTop: '12px', 
+            paddingTop: '12px',
             borderTop: '1px solid #e5e7eb',
             backgroundColor: 'white',
             position: 'sticky',
