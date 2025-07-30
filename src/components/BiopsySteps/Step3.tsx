@@ -378,3 +378,4 @@ export const Step3: React.FC<Step3Props> = ({
     </div>
   );
 };
+export default Step3;

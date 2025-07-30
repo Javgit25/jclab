@@ -47,3 +47,4 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     </div>
   );
 };
+export default ConnectionStatus;

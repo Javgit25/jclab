@@ -1519,3 +1519,4 @@ export const Step2: React.FC<Step2Props> = ({
             }}
             onMouseOut={(e) => {
               if
+export default Step2_old;

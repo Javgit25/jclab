@@ -988,3 +988,4 @@ export const Step1: React.FC<Step1Props> = ({
     </div>
   );
 };
+export default Step1;

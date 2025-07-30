@@ -1610,3 +1610,4 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     </div>
   );
 };
+export default AdminPanel;

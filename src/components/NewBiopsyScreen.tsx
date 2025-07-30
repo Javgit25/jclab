@@ -691,3 +691,4 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     </div>
   );
 };
+export default NewBiopsyScreen;

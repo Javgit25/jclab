@@ -218,3 +218,4 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     </div>
   );
 };
+export default VirtualKeyboard;

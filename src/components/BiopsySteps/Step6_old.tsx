@@ -981,3 +981,4 @@ export const Step6: React.FC<Step6Props> = ({
     </div>
   );
 };
+export default Step6_old;

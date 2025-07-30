@@ -662,3 +662,5 @@ export const Step2: React.FC<Step2Props> = ({
     </div>
   );
 };
+
+export default Step2;

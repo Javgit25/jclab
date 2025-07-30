@@ -672,3 +672,4 @@ export const Step4: React.FC<Step4Props> = ({
     </div>
   );
 };
+export default Step4_old;

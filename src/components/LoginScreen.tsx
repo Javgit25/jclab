@@ -58,10 +58,10 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }
 
     try {
       const doctorInfo: DoctorInfo = {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        hospitalName: hospitalName.trim() || undefined,
-        email: email.trim(), // Email ahora es obligatorio
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        hospital: hospitalName.trim() || 'No especificado',
+        email: email.trim(),
+        selectedDate: new Date().toDateString(),
         loginDate: new Date().toDateString()
       };
 
@@ -285,3 +285,5 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }
     </div>
   );
 };
+
+export default LoginScreen;

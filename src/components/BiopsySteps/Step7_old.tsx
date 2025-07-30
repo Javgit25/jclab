@@ -818,3 +818,4 @@ export const Step7: React.FC<Step7Props> = ({
     </div>
   );
 };
+export default Step7_old;

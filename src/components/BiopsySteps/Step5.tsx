@@ -388,3 +388,4 @@ export const Step5: React.FC<Step5Props> = ({
     </div>
   );
 };
+export default Step5;

@@ -67,3 +67,4 @@ export const SyncPanel: React.FC<SyncPanelProps> = ({
     </div>
   );
 };
+export default SyncPanel;

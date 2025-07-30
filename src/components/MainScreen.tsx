@@ -1013,3 +1013,5 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     </div>
   );
 };
+
+export default MainScreen;

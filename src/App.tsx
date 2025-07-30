@@ -1,12 +1,12 @@
-// BiopsyTracker v2.0.2 - Optimizado para Tablet - Rollup Fix - Deployed 2025-07-29
+// BiopsyTracker v2.0.4 - Optimizado para Tablet - Export Fix - Deployed 2025-07-29
 import React, { useState, useEffect, useCallback } from 'react';
 import type { DoctorInfo, BiopsyForm, SyncAction, HistoryEntry } from './types';
-import { LoginScreen } from './components/LoginScreen';
-import { MainScreen } from './components/MainScreen';
-import { NewBiopsyScreen } from './components/NewBiopsyScreen';
-import { TodayListScreen } from './components/TodayListScreen';
-import { HistoryScreen } from './components/HistoryScreen';
-import { AdminPanel } from './components/AdminPanel';
+import LoginScreen from './components/LoginScreen';
+import MainScreen from './components/MainScreen';
+import NewBiopsyScreen from './components/NewBiopsyScreen';
+import TodayListScreen from './components/TodayListScreen';
+import HistoryScreen from './components/HistoryScreen';
+import AdminPanel from './components/AdminPanel';
 
 type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin';
 

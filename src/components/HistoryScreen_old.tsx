@@ -1012,3 +1012,4 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     </div>
   );
 };
+export default HistoryScreen_old;
