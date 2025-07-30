@@ -1,29 +1,12 @@
-// BiopsyTracker v2.0.1 - Optimizado para Tablet - TypeScript Config Fixed - Deployed 2025-07-29
+// BiopsyTracker v2.0.2 - Optimizado para Tablet - Rollup Fix - Deployed 2025-07-29
 import React, { useState, useEffect, useCallback } from 'react';
-import type { DoctorInfo, BiopsyForm } from './types/index';
+import type { DoctorInfo, BiopsyForm, SyncAction, HistoryEntry } from './types';
 import { LoginScreen } from './components/LoginScreen';
 import { MainScreen } from './components/MainScreen';
 import { NewBiopsyScreen } from './components/NewBiopsyScreen';
 import { TodayListScreen } from './components/TodayListScreen';
 import { HistoryScreen } from './components/HistoryScreen';
 import { AdminPanel } from './components/AdminPanel';
-
-// Tipos locales para la app
-interface HistoryEntry {
-  id: string;
-  date: string;
-  timestamp: string;
-  biopsies: BiopsyForm[];
-  doctorInfo: DoctorInfo;
-}
-
-interface SyncAction {
-  id: string;
-  type: string;
-  data: any;
-  timestamp: string;
-  [key: string]: any; // Permitir cualquier propiedad adicional
-}
 
 type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin';
 
@@ -586,7 +569,6 @@ function App() {
         onSaveBiopsy={saveBiopsy}
         onFinishDailyReport={finishDailyReport}
         onFinishDailyReportFromStep7={finishDailyReportFromStep7}
-        onGoToMain={() => setCurrentScreen('main')}
         onUpdateFrequentTissues={updateFrequentTissues}
       />
     );

@@ -5,12 +5,30 @@ export interface DoctorInfo {
   email: string;
   hospital: string;
   selectedDate: string;
+  loginDate?: string;
 }
 
 export interface GiemsaServices {
   giemsa: boolean;
   pas: boolean;
   masson: boolean;
+}
+
+// ✅ TIPOS ADICIONALES PARA LA APP
+export interface HistoryEntry {
+  id: string;
+  date: string;
+  timestamp: string;
+  biopsies: BiopsyForm[];
+  doctorInfo: DoctorInfo;
+}
+
+export interface SyncAction {
+  id: string;
+  type: string;
+  data: any;
+  timestamp: string;
+  [key: string]: any; // Permitir cualquier propiedad adicional
 }
 
 export interface BiopsyServices {
@@ -241,21 +259,3 @@ export interface AppConfig {
   debugMode: boolean;
 }
 
-// ✅ EXPORT POR DEFECTO PARA MANTENER COMPATIBILIDAD
-
-export default {
-  DoctorInfo,
-  BiopsyForm,
-  BiopsyServices,
-  GiemsaServices,
-  CassetteNumber,
-  VirtualKeyboard,
-  Remito,
-  AdminRemito,
-  AdminBiopsia,
-  Configuracion,
-  TISSUE_TYPES,
-  ENDOSCOPIA_SUBTYPES,
-  BIOPSY_TYPES,
-  DECLASSIFY_OPTIONS
-};
