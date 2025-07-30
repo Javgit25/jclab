@@ -1,3 +1,4 @@
+// BiopsyTracker v2.0 - Optimizado para Tablet - Deployed 2025-07-29
 import React, { useState, useEffect, useCallback } from 'react';
 import { DoctorInfo, BiopsyForm, SyncAction, HistoryEntry } from './types';
 import { LoginScreen } from './components/LoginScreen';
