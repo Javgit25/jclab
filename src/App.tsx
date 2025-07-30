@@ -1,6 +1,6 @@
 // BiopsyTracker v2.0.1 - Optimizado para Tablet - TypeScript Config Fixed - Deployed 2025-07-29
 import React, { useState, useEffect, useCallback } from 'react';
-import { DoctorInfo, BiopsyForm } from './types';
+import type { DoctorInfo, BiopsyForm } from './types/index';
 import { LoginScreen } from './components/LoginScreen';
 import { MainScreen } from './components/MainScreen';
 import { NewBiopsyScreen } from './components/NewBiopsyScreen';
@@ -651,4 +651,5 @@ function App() {
   return null;
 }
 
+export { App };
 export default App;
