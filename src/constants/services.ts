@@ -1,40 +1,14 @@
 import { Clock, Microscope, TestTube, Clipboard } from 'lucide-react';
 import { ServiceOption } from '../types';
 
+// ✅ CORREGIDO: Solo servicios adicionales para BIOPSIAS NORMALES
+// PAP y Citología se manejan en Step2, NO aquí
 export const serviciosAdicionales: ServiceOption[] = [
   {
     key: 'cassetteUrgente',
     label: 'URGENTE 24HS',
     icon: Clock,
     description: 'Procesamiento urgente en 24 horas',
-    color: 'red'
-  },
-  {
-    key: 'pap',
-    label: 'PAP',
-    icon: Microscope,
-    description: 'Prueba de Papanicolaou',
-    color: 'purple'
-  },
-  {
-    key: 'papUrgente',
-    label: 'PAP URGENTE 24HS',
-    icon: Clock,
-    description: 'PAP con procesamiento urgente',
-    color: 'red'
-  },
-  {
-    key: 'citologia',
-    label: 'CITOLOGÍA',
-    icon: TestTube,
-    description: 'Estudio citológico',
-    color: 'green'
-  },
-  {
-    key: 'citologiaUrgente',
-    label: 'CITOLOGÍA URGENTE 24HS',
-    icon: Clock,
-    description: 'Citología con procesamiento urgente',
     color: 'red'
   },
   {
@@ -60,8 +34,10 @@ export const serviciosAdicionales: ServiceOption[] = [
   }
 ];
 
-// Lista fija de tipos de tejido (sin permitir entrada libre)
+// ✅ Lista de tipos de tejido CON PAP y Citología
 export const tissueTypes = [
+  'PAP',
+  'Citología',
   'Gastrica',
   'Endometrio', 
   'Endoscopia',
@@ -86,8 +62,10 @@ export const giemsaOptions = [
   { key: 'masson', label: 'Masson' }
 ];
 
-// Lista completa de tejidos (para uso futuro si necesitas más opciones)
+// ✅ Lista completa de tejidos CON PAP y Citología
 export const allTissueTypes = [
+  'PAP',
+  'Citología',
   'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia', 
   'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',
   'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'Hígado', 'Riñón',

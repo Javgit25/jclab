@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Check, TestTube, Plus, Minus, Beaker } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, TestTube, Plus, Minus, Beaker } from 'lucide-react';
 import { BiopsyServices, GiemsaServices } from '../../types';
 import { serviciosAdicionales } from '../../constants/services';
 
@@ -7,7 +7,7 @@ interface Step6Props {
   servicios: BiopsyServices;
   onServicioChange: (servicioKey: keyof BiopsyServices) => void;
   onGiemsaOptionChange: (giemsaKey: keyof GiemsaServices) => void;
-  onGiemsaTotalChange: (total: number) => void;
+  onGiemsaTotalChange: (total: number) => void; // ✅ PROP REQUERIDA
   onCorteBlancoQuantityChange: (type: 'ihq' | 'comun', quantity: number) => void;
   onNext: () => void;
   onPrev: () => void;
@@ -55,6 +55,8 @@ export const Step6: React.FC<Step6Props> = ({
       totalSelected
     });
   };
+
+
 
   const getColorClasses = (color: string, isSelected: boolean) => {
     const baseColors = {
@@ -212,128 +214,104 @@ export const Step6: React.FC<Step6Props> = ({
   );
 
   return (
-    <div style={{
-      height: '100vh',
-      backgroundColor: '#f8fafc',
+    <div style={{ 
+      minHeight: '100vh', 
+      background: colors.lightGray,
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* Header Compacto y Limpio */}
+      
+      {/* Título Principal */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        padding: '12px 16px',
-        flexShrink: 0,
-        borderRadius: '12px',
-        boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-        margin: '16px 16px 8px 16px',
-        maxWidth: 'none',
-        width: 'calc(100% - 32px)'
+        backgroundColor: colors.white,
+        padding: '16px 24px',
+        borderBottom: '1px solid #E2E8F0'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              padding: '8px',
-              borderRadius: '12px',
-              position: 'relative',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <TestTube style={{ height: '20px', width: '20px', color: 'white' }} />
-              <div style={{
-                position: 'absolute',
-                top: '-4px',
-                right: '-4px',
-                width: '18px',
-                height: '18px',
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'white',
-                fontSize: '10px',
-                fontWeight: 'bold',
-                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.4)'
-              }}>
-                6
-              </div>
-            </div>
-            <div>
-              <h1 style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: 'white',
-                margin: 0,
-                lineHeight: '1.2'
-              }}>Servicios Adicionales</h1>
-              <p style={{
-                fontSize: '12px',
-                color: 'rgba(255, 255, 255, 0.8)',
-                margin: 0,
-                fontWeight: '500'
-              }}>Seleccione los servicios requeridos</p>
-            </div>
+        <h1 style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          color: '#1F2937',
+          margin: '0',
+          textAlign: 'center',
+          lineHeight: '1.2'
+        }}>
+          🧪 Servicios Adicionales
+        </h1>
+      </div>
+      
+      {/* Header Compacto */}
+      <div style={{
+        backgroundColor: colors.white,
+        padding: '12px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        borderBottom: '1px solid #E2E8F0'
+      }}>
+        
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            background: colors.primaryBlue,
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(79, 118, 246, 0.3)'
+          }}>
+            <TestTube style={{ width: '20px', height: '20px', color: colors.white }} />
           </div>
-          <button
-            onClick={onPrev}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '13px',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.2s',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            ← Anterior
-          </button>
+          <div style={{
+            position: 'absolute',
+            top: '-4px',
+            right: '-4px',
+            width: '18px',
+            height: '18px',
+            backgroundColor: colors.green,
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: `2px solid ${colors.white}`,
+            color: colors.white,
+            fontSize: '10px',
+            fontWeight: 'bold'
+          }}>
+            6
+          </div>
+        </div>
+
+        <div>
+          <p style={{
+            fontSize: '14px',
+            color: colors.darkGray,
+            margin: '0',
+            lineHeight: '1.3',
+            textAlign: 'center'
+          }}>
+            Seleccione los servicios adicionales requeridos
+          </p>
         </div>
       </div>
 
       {/* Contenido Principal */}
-      <div style={{ flex: 1, padding: '4px 8px 12px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-        {/* Título Principal - Fuera del box */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px',
-          marginBottom: '16px',
-          padding: '0 16px'
-        }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '6px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-          }}>
-            <TestTube style={{ height: '16px', width: '16px', color: 'white' }} />
-          </div>
-          <h2 style={{
-            fontSize: '28px',
-            fontWeight: 'bold',
-            color: '#1f2937',
-            margin: 0
-          }}>🧪 Servicios Adicionales</h2>
-        </div>
+      <div style={{
+        flex: '1',
+        overflowY: 'auto',
+        padding: '15px'
+      }}>
         
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '18px',
-          minHeight: 'calc(100vh - 180px)',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-          border: '1px solid #e5e7eb',
-          margin: '0 8px'
+          backgroundColor: colors.white,
+          borderRadius: '16px',
+          padding: '24px',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+          maxWidth: '800px',
+          margin: '0 auto',
+          width: '100%'
         }}>
           
           {/* Contador de servicios */}
@@ -342,7 +320,7 @@ export const Step6: React.FC<Step6Props> = ({
               backgroundColor: '#EBF4FF',
               padding: '16px',
               borderRadius: '12px',
-              marginBottom: '20px',
+              marginBottom: '24px',
               textAlign: 'center',
               border: `2px solid ${colors.lightBlue}`
             }}>
@@ -356,7 +334,7 @@ export const Step6: React.FC<Step6Props> = ({
             </div>
           )}
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
             {/* SERVICIOS BÁSICOS - EXCLUYENDO giemsaPASMasson, corteBlancoIHQ, corteBlancoComun */}
             {serviciosAdicionales
@@ -372,7 +350,7 @@ export const Step6: React.FC<Step6Props> = ({
                     onClick={() => onServicioChange(servicio.key as keyof BiopsyServices)}
                     style={{
                       width: '100%',
-                      padding: '14px',
+                      padding: '18px',
                       borderRadius: '12px',
                       border: `2px solid ${colorStyles.border}`,
                       backgroundColor: colorStyles.bg,
@@ -380,8 +358,8 @@ export const Step6: React.FC<Step6Props> = ({
                       textAlign: 'left',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      transform: isSelected ? 'scale(1.01)' : 'scale(1)',
-                      boxShadow: isSelected ? '0 3px 12px rgba(79, 118, 246, 0.15)' : 'none'
+                      transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                      boxShadow: isSelected ? '0 4px 16px rgba(79, 118, 246, 0.2)' : 'none'
                     }}
                   >
                     <div style={{
@@ -412,13 +390,13 @@ export const Step6: React.FC<Step6Props> = ({
                         <div>
                           <div style={{
                             fontWeight: '600',
-                            fontSize: '15px',
-                            marginBottom: '3px'
+                            fontSize: '16px',
+                            marginBottom: '4px'
                           }}>
                             {servicio.label}
                           </div>
                           <div style={{
-                            fontSize: '12px',
+                            fontSize: '13px',
                             opacity: 0.8
                           }}>
                             {servicio.description}
@@ -428,7 +406,7 @@ export const Step6: React.FC<Step6Props> = ({
                       
                       {(servicio.key.includes('urgente') || servicio.key === 'cassetteUrgente') && (
                         <div style={{
-                          fontSize: '10px',
+                          fontSize: '11px',
                           backgroundColor: '#FEF2F2',
                           color: '#DC2626',
                           padding: '6px 10px',
@@ -445,13 +423,13 @@ export const Step6: React.FC<Step6Props> = ({
 
             {/* CORTE EN BLANCO PARA IHQ - CON CONTADOR */}
             <div style={{
-              padding: '14px',
+              padding: '18px',
               borderRadius: '12px',
               border: `2px solid ${servicios.corteBlancoIHQ ? '#6366F1' : '#E5E7EB'}`,
               backgroundColor: servicios.corteBlancoIHQ ? '#EEF2FF' : colors.white,
               transition: 'all 0.2s ease',
-              transform: servicios.corteBlancoIHQ ? 'scale(1.01)' : 'scale(1)',
-              boxShadow: servicios.corteBlancoIHQ ? '0 3px 12px rgba(99, 102, 241, 0.15)' : 'none'
+              transform: servicios.corteBlancoIHQ ? 'scale(1.02)' : 'scale(1)',
+              boxShadow: servicios.corteBlancoIHQ ? '0 4px 16px rgba(99, 102, 241, 0.2)' : 'none'
             }}>
               <button
                 onClick={() => onServicioChange('corteBlancoIHQ')}
@@ -491,14 +469,14 @@ export const Step6: React.FC<Step6Props> = ({
                     <div>
                       <div style={{
                         fontWeight: '600',
-                        fontSize: '15px',
-                        marginBottom: '3px',
+                        fontSize: '16px',
+                        marginBottom: '4px',
                         color: servicios.corteBlancoIHQ ? '#312E81' : '#374151'
                       }}>
                         CORTE EN BLANCO PARA IHQ
                       </div>
                       <div style={{
-                        fontSize: '12px',
+                        fontSize: '13px',
                         opacity: 0.8,
                         color: servicios.corteBlancoIHQ ? '#312E81' : '#374151'
                       }}>
@@ -508,7 +486,7 @@ export const Step6: React.FC<Step6Props> = ({
                   </div>
                   
                   <div style={{
-                    fontSize: '10px',
+                    fontSize: '11px',
                     backgroundColor: '#EEF2FF',
                     color: '#6366F1',
                     padding: '6px 10px',
@@ -533,13 +511,13 @@ export const Step6: React.FC<Step6Props> = ({
 
             {/* CORTE EN BLANCO COMÚN - CON CONTADOR */}
             <div style={{
-              padding: '14px',
+              padding: '18px',
               borderRadius: '12px',
               border: `2px solid ${servicios.corteBlancoComun ? '#7C3AED' : '#E5E7EB'}`,
               backgroundColor: servicios.corteBlancoComun ? '#FAF5FF' : colors.white,
               transition: 'all 0.2s ease',
-              transform: servicios.corteBlancoComun ? 'scale(1.01)' : 'scale(1)',
-              boxShadow: servicios.corteBlancoComun ? '0 3px 12px rgba(124, 58, 237, 0.15)' : 'none'
+              transform: servicios.corteBlancoComun ? 'scale(1.02)' : 'scale(1)',
+              boxShadow: servicios.corteBlancoComun ? '0 4px 16px rgba(124, 58, 237, 0.2)' : 'none'
             }}>
               <button
                 onClick={() => onServicioChange('corteBlancoComun')}
@@ -579,14 +557,14 @@ export const Step6: React.FC<Step6Props> = ({
                     <div>
                       <div style={{
                         fontWeight: '600',
-                        fontSize: '15px',
-                        marginBottom: '3px',
+                        fontSize: '16px',
+                        marginBottom: '4px',
                         color: servicios.corteBlancoComun ? '#581C87' : '#374151'
                       }}>
                         CORTE EN BLANCO COMÚN
                       </div>
                       <div style={{
-                        fontSize: '12px',
+                        fontSize: '13px',
                         opacity: 0.8,
                         color: servicios.corteBlancoComun ? '#581C87' : '#374151'
                       }}>
@@ -596,7 +574,7 @@ export const Step6: React.FC<Step6Props> = ({
                   </div>
                   
                   <div style={{
-                    fontSize: '10px',
+                    fontSize: '11px',
                     backgroundColor: '#FAF5FF',
                     color: '#7C3AED',
                     padding: '6px 10px',
@@ -618,16 +596,81 @@ export const Step6: React.FC<Step6Props> = ({
                 />
               )}
             </div>
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
+                    border: `2px solid ${servicios.corteBlancoComun ? '#7C3AED' : '#D1D5DB'}`,
+                    backgroundColor: servicios.corteBlancoComun ? colors.white : 'transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {servicios.corteBlancoComun && <Check size={16} color="#7C3AED" />}
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flex: '1'
+                  }}>
+                    <TestTube size={24} color={servicios.corteBlancoComun ? '#581C87' : '#374151'} />
+                    <div>
+                      <div style={{
+                        fontWeight: '600',
+                        fontSize: '16px',
+                        marginBottom: '4px',
+                        color: servicios.corteBlancoComun ? '#581C87' : '#374151'
+                      }}>
+                        CORTE EN BLANCO COMÚN
+                      </div>
+                      <div style={{
+                        fontSize: '13px',
+                        opacity: 0.8,
+                        color: servicios.corteBlancoComun ? '#581C87' : '#374151'
+                      }}>
+                        Vidrios en blanco estándar
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    fontSize: '11px',
+                    backgroundColor: '#FAF5FF',
+                    color: '#7C3AED',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontWeight: '600'
+                  }}>
+                    POR UNIDAD
+                  </div>
+                </div>
+              </button>
+
+              {servicios.corteBlancoComun && (
+                <QuantityCounter
+                  value={servicios.corteBlancoComunQuantity || 1}
+                  onChange={(quantity) => onCorteBlancoQuantityChange('comun', quantity)}
+                  min={1}
+                  max={20}
+                  label="Cantidad de vidrios en blanco comunes"
+                />
+              )}
+            </div>
 
             {/* ✅ GIEMSA/PAS/MASSON - VERSION CORREGIDA CON CONTADOR AUTOMÁTICO */}
             <div style={{
-              padding: '14px',
+              padding: '20px',
               borderRadius: '12px',
               border: `2px solid ${servicios.giemsaPASMasson ? colors.primaryBlue : '#E5E7EB'}`,
               backgroundColor: servicios.giemsaPASMasson ? '#EBF8FF' : colors.white,
-              transition: 'all 0.2s ease',
-              transform: servicios.giemsaPASMasson ? 'scale(1.01)' : 'scale(1)',
-              boxShadow: servicios.giemsaPASMasson ? '0 3px 12px rgba(79, 118, 246, 0.15)' : 'none'
+              transition: 'all 0.3s ease',
+              transform: servicios.giemsaPASMasson ? 'scale(1.02)' : 'scale(1)',
+              boxShadow: servicios.giemsaPASMasson ? '0 4px 16px rgba(79, 118, 246, 0.2)' : 'none'
             }}>
               <button
                 onClick={() => onServicioChange('giemsaPASMasson')}
@@ -645,16 +688,16 @@ export const Step6: React.FC<Step6Props> = ({
                   gap: '16px'
                 }}>
                   <div style={{
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '6px',
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '4px',
                     border: `2px solid ${servicios.giemsaPASMasson ? colors.primaryBlue : '#D1D5DB'}`,
                     backgroundColor: servicios.giemsaPASMasson ? colors.white : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    {servicios.giemsaPASMasson && <Check size={18} color={colors.primaryBlue} />}
+                    {servicios.giemsaPASMasson && <Check size={16} color={colors.primaryBlue} />}
                   </div>
                   
                   <div style={{
@@ -667,14 +710,14 @@ export const Step6: React.FC<Step6Props> = ({
                     <div>
                       <div style={{
                         fontWeight: '600',
-                        fontSize: '15px',
-                        marginBottom: '3px',
+                        fontSize: '16px',
+                        marginBottom: '4px',
                         color: servicios.giemsaPASMasson ? '#1E3A8A' : '#374151'
                       }}>
                         GIEMSA / PAS / MASSON
                       </div>
                       <div style={{
-                        fontSize: '12px',
+                        fontSize: '13px',
                         opacity: 0.8,
                         color: servicios.giemsaPASMasson ? '#1E3A8A' : '#374151'
                       }}>
@@ -685,10 +728,10 @@ export const Step6: React.FC<Step6Props> = ({
                   
                   {servicios.giemsaPASMasson && (
                     <div style={{
-                      fontSize: '10px',
+                      fontSize: '11px',
                       backgroundColor: '#EBF8FF',
                       color: colors.primaryBlue,
-                      padding: '6px 10px',
+                      padding: '4px 8px',
                       borderRadius: '12px',
                       fontWeight: '600'
                     }}>
@@ -720,7 +763,7 @@ export const Step6: React.FC<Step6Props> = ({
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '10px'
+                    gap: '8px'
                   }}>
                     {[
                       { 
@@ -756,17 +799,28 @@ export const Step6: React.FC<Step6Props> = ({
                             ? '1px solid rgba(79, 118, 246, 0.3)'
                             : '1px solid transparent'
                         }}
+                        onMouseOver={(e) => {
+                          if (!servicios.giemsaOptions?.[option.key]) {
+                            e.currentTarget.style.backgroundColor = 'rgba(79, 118, 246, 0.05)';
+                          }
+                        }}
+                        onMouseOut={(e) => {
+                          if (!servicios.giemsaOptions?.[option.key]) {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
+                        }}
                       >
                         <input
                           type="checkbox"
                           checked={servicios.giemsaOptions?.[option.key] || false}
                           onChange={(e) => {
                             e.stopPropagation();
+                            // ✅ LÓGICA CORREGIDA: Usar la función que cuenta automáticamente
                             handleGiemsaOptionToggle(option.key);
                           }}
                           style={{
-                            width: '18px',
-                            height: '18px',
+                            width: '16px',
+                            height: '16px',
                             borderRadius: '4px',
                             cursor: 'pointer'
                           }}
@@ -796,7 +850,7 @@ export const Step6: React.FC<Step6Props> = ({
                     marginTop: '16px',
                     backgroundColor: 'rgba(34, 197, 94, 0.1)',
                     borderRadius: '8px',
-                    padding: '14px',
+                    padding: '16px',
                     border: '1px solid rgba(34, 197, 94, 0.3)'
                   }}>
                     <p style={{
@@ -804,7 +858,7 @@ export const Step6: React.FC<Step6Props> = ({
                       fontWeight: '600',
                       textAlign: 'center',
                       margin: '0',
-                      fontSize: '13px'
+                      fontSize: '14px'
                     }}>
                       💰 Total a facturar: {Object.values(servicios.giemsaOptions || {}).filter(Boolean).length} técnica{Object.values(servicios.giemsaOptions || {}).filter(Boolean).length !== 1 ? 's' : ''} × $75 = ${Object.values(servicios.giemsaOptions || {}).filter(Boolean).length * 75}
                     </p>
@@ -817,22 +871,22 @@ export const Step6: React.FC<Step6Props> = ({
           {/* Información adicional */}
           <div style={{
             background: '#F0F9FF',
-            padding: '14px',
+            padding: '20px',
             borderRadius: '12px',
             border: '1px solid #BAE6FD',
-            marginTop: '16px'
+            marginTop: '24px'
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'flex-start',
               gap: '12px'
             }}>
-              <TestTube size={18} style={{ color: '#0369A1', marginTop: '2px' }} />
-              <div style={{ flex: '1', fontSize: '13px' }}>
+              <TestTube size={20} style={{ color: '#0369A1', marginTop: '2px' }} />
+              <div style={{ flex: '1', fontSize: '14px' }}>
                 <div style={{
                   fontWeight: '600',
                   color: '#0369A1',
-                  marginBottom: '6px'
+                  marginBottom: '8px'
                 }}>
                   💰 Información de facturación:
                 </div>
@@ -840,7 +894,7 @@ export const Step6: React.FC<Step6Props> = ({
                   color: '#0C4A6E',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: '3px'
+                  gap: '4px'
                 }}>
                   <div>• <strong>Servicios básicos:</strong> Cargo fijo por servicio</div>
                   <div>• <strong>Cortes en blanco:</strong> Se facturan por unidad/vidrio</div>
@@ -858,15 +912,23 @@ export const Step6: React.FC<Step6Props> = ({
               width: '100%',
               fontWeight: 'bold',
               padding: '16px',
-              borderRadius: '12px',
-              fontSize: '16px',
+              borderRadius: '14px',
+              fontSize: '18px',
               border: 'none',
               cursor: 'pointer',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.2s ease',
-              marginTop: '16px'
+              background: `linear-gradient(135deg, ${colors.primaryBlue} 0%, ${colors.darkBlue} 100%)`,
+              color: colors.white,
+              boxShadow: '0 4px 16px rgba(79, 118, 246, 0.3)',
+              transition: 'all 0.3s ease',
+              marginTop: '24px'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(79, 118, 246, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 16px rgba(79, 118, 246, 0.3)';
             }}
           >
             <div style={{
@@ -876,10 +938,45 @@ export const Step6: React.FC<Step6Props> = ({
               gap: '10px'
             }}>
               <span>Continuar a Confirmación</span>
-              <ArrowRight style={{ width: '18px', height: '18px' }} />
+              <ArrowRight style={{ width: '20px', height: '20px' }} />
             </div>
           </button>
         </div>
+      </div>
+
+      {/* Botón de navegación hacia atrás */}
+      <div style={{
+        padding: '15px',
+        backgroundColor: colors.white,
+        borderTop: '1px solid #E2E8F0'
+      }}>
+        <button
+          onClick={onPrev}
+          style={{
+            backgroundColor: '#6B7280',
+            color: colors.white,
+            fontWeight: '600',
+            padding: '12px 20px',
+            borderRadius: '10px',
+            border: 'none',
+            fontSize: '14px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#4B5563';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#6B7280';
+          }}
+        >
+          <ArrowLeft style={{ width: '16px', height: '16px' }} />
+          <span>Volver a Trozos</span>
+        </button>
       </div>
     </div>
   );

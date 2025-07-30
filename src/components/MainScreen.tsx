@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Target, Zap, Star, Activity, BarChart3, PieChart, Calendar, Clock } from 'lucide-react';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock } from 'lucide-react';
 import { BiopsyForm, DoctorInfo } from '../types';
 import { ConnectionStatus } from './ConnectionStatus';
 
@@ -12,7 +12,6 @@ interface MainScreenProps {
   onStartNewBiopsy: () => void;
   onViewToday: () => void;
   onViewHistory: () => void;
-  onGoToAdmin: () => void;
   onLogout: () => void;
 }
 
@@ -25,60 +24,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onStartNewBiopsy,
   onViewToday,
   onViewHistory,
-  onGoToAdmin,
   onLogout
 }) => {
   const [showStatistics, setShowStatistics] = useState(false);
 
-  const today = new Date().toLocaleDateString('es-AR', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-
-  // Calcular métricas para el dashboard - CORREGIDO
-  const getTodayStats = () => {
-    // Combinar biopsias del estado actual + cualquier remito ya finalizado del día de hoy
-    let allTodayBiopsies = [...todayBiopsies];
-    
-    try {
-      let historyData = {};
-      
-      if (doctorInfo.email) {
-        const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
-        const doctorKey = `doctor_${normalizedEmail}`;
-        const historyKey = `${doctorKey}_history`;
-        historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-      } else {
-        const historyKey = `${doctorInfo.firstName}_${doctorInfo.lastName}_history`;
-        historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-      }
-      
-      // Buscar remitos del día de hoy en el historial
-      const todayDate = new Date().toDateString();
-      const todayRemitos = Object.values(historyData).filter((entry: any) => {
-        const entryDate = new Date(entry.date).toDateString();
-        return entryDate === todayDate;
-      });
-      
-      // Agregar biopsias de remitos ya finalizados del día de hoy
-      todayRemitos.forEach((remito: any) => {
-        if (remito.biopsies) {
-          allTodayBiopsies = [...allTodayBiopsies, ...remito.biopsies];
-        }
-      });
-      
-    } catch (error) {
-      console.error('Error calculando estadísticas del día:', error);
-    }
-    
-    return allTodayBiopsies;
-  };
-
-  const allTodayBiopsies = getTodayStats();
-  const todayBiopsiesCount = allTodayBiopsies.length;
-  const biopsiesWithServices = allTodayBiopsies.filter(b => 
+  // Calcular métricas básicas
+  const todayBiopsiesCount = todayBiopsies.length;
+  const biopsiesWithServices = todayBiopsies.filter(b => 
     Object.values(b.servicios || {}).some(val => 
       typeof val === 'boolean' ? val : false
     )
@@ -86,7 +38,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   // Calcular eficiencia (simulada basada en datos reales)
   const efficiency = todayBiopsiesCount > 0 ? Math.min(95, 70 + (todayBiopsiesCount * 3)) : 0;
-  const avgTime = todayBiopsiesCount > 0 ? `${(5 - (todayBiopsiesCount * 0.1)).toFixed(1)} min` : '0 min';
 
   // Calcular estadísticas del historial - CORREGIDA para usar EMAIL
   const getHistoryStats = () => {
@@ -104,7 +55,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
       } else {
         // Fallback: usar sistema anterior por nombre
-        const historyKey = `${doctorInfo.firstName}_${doctorInfo.lastName}_history`;
+        const historyKey = `${doctorInfo.name}_history`;
         console.log('MainScreen - Buscando historial con nombre:', historyKey);
         historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
       }
@@ -154,174 +105,478 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const stats = getHistoryStats();
 
   const StatisticsModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center">
-            <BarChart3 className="text-purple-500 mr-3" size={28} />
-            Estadísticas Médicas
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      zIndex: 50,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '8px'
+    }}>
+      <div style={{
+        backgroundColor: '#f8fafc',
+        borderRadius: '20px',
+        padding: '0',
+        width: '100%',
+        height: 'calc(100vh - 16px)',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        border: '1px solid #e2e8f0'
+      }}>
+        {/* Header con Gradiente */}
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          padding: '20px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderRadius: '20px 20px 0 0'
+        }}>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          }}>
+            <BarChart3 style={{ height: '28px', width: '28px' }} />
+            📊 Estadísticas Médicas Completas
           </h2>
           <button
             onClick={() => setShowStatistics(false)}
-            className="text-gray-500 hover:text-gray-700 text-3xl font-bold"
+            style={{
+              color: 'white',
+              fontSize: '28px',
+              fontWeight: 'bold',
+              border: 'none',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              cursor: 'pointer',
+              padding: '8px 12px',
+              borderRadius: '12px',
+              backdropFilter: 'blur(10px)',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => { 
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.transform = 'scale(1.1)';
+            }}
+            onMouseOut={(e) => { 
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
           >
             ×
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Métricas Principales */}
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-6 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <FileText className="h-8 w-8" />
-              <span className="text-blue-100 text-sm">TOTAL</span>
+        {/* Contenido Principal Expandido */}
+        <div style={{
+          flex: 1,
+          padding: '24px',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          
+          {/* Métricas Principales - Cards en Grid Ancho Completo */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(5, 1fr)',
+            gap: '16px',
+            marginBottom: '20px'
+          }}>
+            {/* Card 1 - Total Remitos */}
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 25px -8px rgba(102, 126, 234, 0.4)',
+              height: '140px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30px',
+                right: '-30px',
+                width: '100px',
+                height: '100px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                filter: 'blur(25px)'
+              }}></div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <FileText style={{ height: '28px', width: '28px', marginBottom: '12px' }} />
+                <div style={{ fontSize: '32px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '4px' }}>{stats.totalRemitos}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Remitos</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold mb-2">{stats.totalRemitos}</div>
-            <div className="text-blue-100">Remitos Generados</div>
-          </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 text-white p-6 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <Activity className="h-8 w-8" />
-              <span className="text-green-100 text-sm">TOTAL</span>
+            {/* Card 2 - Total Biopsias */}
+            <div style={{
+              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 25px -8px rgba(17, 153, 142, 0.4)',
+              height: '140px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30px',
+                right: '-30px',
+                width: '100px',
+                height: '100px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                filter: 'blur(25px)'
+              }}></div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <Activity style={{ height: '28px', width: '28px', marginBottom: '12px' }} />
+                <div style={{ fontSize: '32px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '4px' }}>{stats.totalBiopsias}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Biopsias</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold mb-2">{stats.totalBiopsias}</div>
-            <div className="text-green-100">Biopsias Procesadas</div>
-          </div>
 
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-6 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <TrendingUp className="h-8 w-8" />
-              <span className="text-purple-100 text-sm">PROMEDIO</span>
+            {/* Card 3 - Promedio */}
+            <div style={{
+              background: 'linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 25px -8px rgba(157, 80, 187, 0.4)',
+              height: '140px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30px',
+                right: '-30px',
+                width: '100px',
+                height: '100px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                filter: 'blur(25px)'
+              }}></div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <TrendingUp style={{ height: '28px', width: '28px', marginBottom: '12px' }} />
+                <div style={{ fontSize: '32px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '4px' }}>{stats.promedioPorRemito}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Promedio/Remito</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold mb-2">{stats.promedioPorRemito}</div>
-            <div className="text-purple-100">Biopsias por Remito</div>
-          </div>
 
-          {/* Estadísticas del Día Actual */}
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 text-white p-6 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <Calendar className="h-8 w-8" />
-              <span className="text-orange-100 text-sm">HOY</span>
+            {/* Card 4 - Biopsias Hoy */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 25px -8px rgba(240, 147, 251, 0.4)',
+              height: '140px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30px',
+                right: '-30px',
+                width: '100px',
+                height: '100px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                filter: 'blur(25px)'
+              }}></div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <Calendar style={{ height: '28px', width: '28px', marginBottom: '12px' }} />
+                <div style={{ fontSize: '32px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '4px' }}>{todayBiopsiesCount}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Biopsias Hoy</div>
+              </div>
             </div>
-            <div className="text-3xl font-bold mb-2">{todayBiopsiesCount}</div>
-            <div className="text-orange-100">Biopsias del Día</div>
-          </div>
 
-          <div className="bg-gradient-to-br from-teal-500 to-teal-600 text-white p-6 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <Clock className="h-8 w-8" />
-              <span className="text-teal-100 text-sm">EFICIENCIA</span>
-            </div>
-            <div className="text-3xl font-bold mb-2">{efficiency}%</div>
-            <div className="text-teal-100">Rendimiento</div>
-          </div>
-
-          <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-6 rounded-xl">
-            <div className="flex items-center justify-between mb-4">
-              <Star className="h-8 w-8" />
-              <span className="text-indigo-100 text-sm">SERVICIOS</span>
-            </div>
-            <div className="text-3xl font-bold mb-2">{biopsiesWithServices}</div>
-            <div className="text-indigo-100">Con Servicios Extra</div>
-          </div>
-        </div>
-
-        {/* Top Tejidos */}
-        {stats.topTissues.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4 flex items-center">
-              <PieChart className="text-purple-500 mr-2" size={24} />
-              Tipos de Tejido Más Frecuentes
-            </h3>
-            <div className="bg-gray-50 rounded-xl p-6">
-              <div className="space-y-4">
-                {stats.topTissues.map(([tissue, count], index) => {
-                  const percentage = stats.totalBiopsias > 0 ? Math.round((count / stats.totalBiopsias) * 100) : 0;
-                  const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-teal-500'];
-                  
-                  return (
-                    <div key={tissue} className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <div className={`w-4 h-4 rounded-full ${colors[index]}`}></div>
-                        <span className="text-gray-700 font-medium">{tissue}</span>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <span className="text-gray-600 text-sm">{count} casos</span>
-                        <span className="text-gray-800 font-bold">{percentage}%</span>
-                      </div>
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${colors[index]} transition-all duration-1000`}
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
+            {/* Card 5 - Eficiencia */}
+            <div style={{
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              color: 'white',
+              padding: '20px',
+              borderRadius: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 25px -8px rgba(79, 172, 254, 0.4)',
+              height: '140px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-30px',
+                right: '-30px',
+                width: '100px',
+                height: '100px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                filter: 'blur(25px)'
+              }}></div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <Clock style={{ height: '28px', width: '28px', marginBottom: '12px' }} />
+                <div style={{ fontSize: '32px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '4px' }}>{efficiency}%</div>
+                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Eficiencia</div>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Recomendaciones */}
-        <div className="mt-8 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl p-6 border border-yellow-200">
-          <h3 className="text-xl font-semibold text-yellow-800 mb-4 flex items-center">
-            <Target className="text-yellow-600 mr-2" size={24} />
-            Análisis y Recomendaciones
-          </h3>
-          <div className="space-y-3 text-yellow-700">
-            {todayBiopsiesCount > stats.promedioPorRemito && (
-              <p>✅ <strong>Excelente:</strong> Estás por encima de tu promedio diario habitual.</p>
-            )}
-            {efficiency > 85 && (
-              <p>🚀 <strong>Alta eficiencia:</strong> Tu ritmo de trabajo es muy bueno hoy.</p>
-            )}
-            {biopsiesWithServices / todayBiopsiesCount > 0.5 && todayBiopsiesCount > 0 && (
-              <p>🔬 <strong>Servicios especiales:</strong> Alto porcentaje de biopsias con servicios adicionales.</p>
-            )}
-            {stats.totalRemitos === 0 && (
-              <p>📚 <strong>Primeros pasos:</strong> ¡Bienvenido! Este es tu primer día usando el sistema.</p>
-            )}
-            {stats.totalRemitos > 0 && stats.totalBiopsias > 50 && (
-              <p>🎯 <strong>Usuario experimentado:</strong> Has procesado {stats.totalBiopsias} biopsias en total. ¡Excelente!</p>
-            )}
-            {stats.topTissues.length > 0 && (
-              <p>📊 <strong>Especialización:</strong> Tu tejido más frecuente es "{stats.topTissues[0][0]}" con {stats.topTissues[0][1]} casos.</p>
-            )}
+          {/* Servicios Especiales - Card Ancho Completo */}
+          <div style={{
+            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            color: 'white',
+            padding: '24px',
+            borderRadius: '16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 25px -8px rgba(250, 112, 154, 0.4)',
+            height: '90px',
+            marginBottom: '20px'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '-30px',
+              right: '-30px',
+              width: '150px',
+              height: '150px',
+              background: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '50%',
+              filter: 'blur(40px)'
+            }}></div>
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <Star style={{ height: '32px', width: '32px' }} />
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '14px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Servicios Especiales</div>
+                <div style={{ fontSize: '28px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{biopsiesWithServices} biopsias con servicios extra</div>
+              </div>
+            </div>
           </div>
+
+          {/* Tipos de Tejido - Ancho Completo y Optimizado */}
+          {stats.topTissues.length > 0 && (
+            <div style={{ flex: 1, minHeight: '180px' }}>
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#2d3748',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <PieChart style={{ color: '#667eea', height: '24px', width: '24px' }} />
+                Análisis Detallado de Tipos de Tejido
+              </h3>
+              <div style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                height: '100%',
+                color: 'white',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  top: '-50px',
+                  right: '-50px',
+                  width: '200px',
+                  height: '200px',
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '50%',
+                  filter: 'blur(40px)'
+                }}></div>
+                <div style={{ position: 'relative', zIndex: 1, height: '100%' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '12px',
+                    height: '100%'
+                  }}>
+                    {stats.topTissues.slice(0, 4).map(([tissue, count]) => {
+                      const percentage = stats.totalBiopsias > 0 ? Math.round((count / stats.totalBiopsias) * 100) : 0;
+                      
+                      return (
+                        <div key={tissue} style={{
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          padding: '16px 24px',
+                          borderRadius: '12px',
+                          backdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          height: '60px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+                            <div style={{
+                              width: '12px',
+                              height: '12px',
+                              borderRadius: '50%',
+                              backgroundColor: 'white',
+                              flexShrink: 0
+                            }}></div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '2px' }}>{tissue}</div>
+                              <div style={{ fontSize: '12px', opacity: 0.9 }}>{count} casos registrados</div>
+                            </div>
+                          </div>
+                          
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                            <div style={{
+                              width: '120px',
+                              height: '8px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                              borderRadius: '4px',
+                              overflow: 'hidden'
+                            }}>
+                              <div style={{
+                                height: '100%',
+                                backgroundColor: 'white',
+                                width: `${percentage}%`,
+                                borderRadius: '4px',
+                                transition: 'width 2s ease-in-out',
+                                boxShadow: '0 0 10px rgba(255, 255, 255, 0.5)'
+                              }}></div>
+                            </div>
+                            <div style={{ 
+                              fontSize: '18px', 
+                              fontWeight: 'bold', 
+                              minWidth: '50px',
+                              textAlign: 'right'
+                            }}>
+                              {percentage}%
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => setShowStatistics(false)}
-            className="bg-purple-600 hover:bg-purple-700 text-white py-3 px-8 rounded-xl font-semibold"
-          >
-            Cerrar Estadísticas
-          </button>
+        {/* Footer Elegante */}
+        <div style={{
+          padding: '20px 24px',
+          borderTop: '1px solid #e2e8f0',
+          backgroundColor: 'white',
+          borderRadius: '0 0 20px 20px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '14px', color: '#64748b' }}>
+              Última actualización: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+            </div>
+            <button
+              onClick={() => setShowStatistics(false)}
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                padding: '12px 32px',
+                borderRadius: '12px',
+                fontWeight: '600',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '14px',
+                transition: 'all 0.3s',
+                boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.6)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.4)';
+              }}
+            >
+              Cerrar Estadísticas
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header optimizado para tablet */}
-      <div className="bg-white border-b px-6 py-5">
-        <div className="flex items-center justify-between">
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
+      {/* Header Ultra Compacto para Tablet */}
+      <div style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        padding: '8px 16px',
+        flexShrink: 0
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Bienvenido, Dr. {doctorInfo.firstName} {doctorInfo.lastName}
+            <h1 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: 0,
+              lineHeight: '1.2'
+            }}>
+              Dr. {doctorInfo.name}
             </h1>
-            {doctorInfo.hospitalName && (
-              <p className="text-lg text-gray-600 mt-1">{doctorInfo.hospitalName}</p>
-            )}
-            {doctorInfo.email && (
-              <p className="text-sm text-blue-600 mt-1">📧 {doctorInfo.email}</p>
-            )}
-            <p className="text-sm text-gray-500 mt-1">{today}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '2px' }}>
+              {doctorInfo.email && (
+                <p style={{
+                  fontSize: '11px',
+                  color: '#2563eb',
+                  margin: 0
+                }}>📧 {doctorInfo.email}</p>
+              )}
+              <p style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                margin: 0
+              }}>{new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-4">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ConnectionStatus 
               isOnline={isOnline}
               backupStatus={backupStatus}
@@ -329,280 +584,426 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             />
             <button
               onClick={onLogout}
-              className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
+              style={{
+                padding: '6px',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+              }}
               title="Cerrar sesión"
             >
-              <LogOut className="h-6 w-6 text-gray-600" />
+              <LogOut style={{ height: '16px', width: '16px', color: '#6b7280' }} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Contenido principal optimizado para tablet 10.1" */}
-      <div className="p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+      {/* Contenido Principal Ultra Optimizado para Tablet 22cm x 13cm */}
+      <div style={{
+        padding: '16px',
+        height: 'calc(100vh - 64px)', // Restar altura del header
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        maxWidth: '100%'
+      }}>
+        
+        {/* Dashboard Expandido - Ocupa más espacio */}
+        <div style={{
+          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #8b5cf6 75%, #a855f7 100%)',
+          color: 'white',
+          padding: '24px',
+          borderRadius: '16px',
+          marginBottom: '16px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          {/* Patrón de fondo decorativo */}
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            right: '-10%',
+            width: '200px',
+            height: '200px',
+            background: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '50%',
+            filter: 'blur(40px)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            bottom: '-30%',
+            left: '-5%',
+            width: '150px',
+            height: '150px',
+            background: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '50%',
+            filter: 'blur(30px)'
+          }}></div>
           
-          {/* Panel principal izquierdo (2/3 del espacio) */}
-          <div className="lg:col-span-2 space-y-8">
+          <div style={{
+            position: 'relative',
+            zIndex: 1
+          }}>
+            <h2 style={{
+              fontSize: '22px',
+              fontWeight: 'bold',
+              marginBottom: '20px',
+              textAlign: 'center',
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              📊 Resumen del Día - {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </h2>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '20px',
+              textAlign: 'center'
+            }}>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                padding: '16px',
+                borderRadius: '12px',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{todayBiopsiesCount}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>BIOPSIAS HOY</div>
+              </div>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                padding: '16px',
+                borderRadius: '12px',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{biopsiesWithServices}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>CON SERVICIOS</div>
+              </div>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                padding: '16px',
+                borderRadius: '12px',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{efficiency}%</div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>EFICIENCIA</div>
+              </div>
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                padding: '16px',
+                borderRadius: '12px',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{stats.totalRemitos}</div>
+                <div style={{ fontSize: '12px', opacity: 0.9 }}>TOTAL REMITOS</div>
+              </div>
+            </div>
             
-            {/* Resumen del día con métricas visuales */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-8 rounded-2xl shadow-lg">
-              <div className="grid grid-cols-4 gap-6">
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">{todayBiopsiesCount}</div>
-                  <div className="text-blue-100 text-lg">Biopsias Hoy</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">{efficiency}%</div>
-                  <div className="text-blue-100 text-lg">Eficiencia</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">{avgTime}</div>
-                  <div className="text-blue-100 text-lg">Tiempo Promedio</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-2">{biopsiesWithServices}</div>
-                  <div className="text-blue-100 text-lg">Con Servicios</div>
-                </div>
+            {/* Barra de progreso */}
+            <div style={{ marginTop: '20px' }}>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center',
+                marginBottom: '8px'
+              }}>
+                <span style={{ fontSize: '14px', opacity: 0.9 }}>Progreso Diario</span>
+                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{todayBiopsiesCount}/12 objetivo</span>
               </div>
-              
-              {/* Progreso visual del día */}
-              <div className="mt-8">
-                <div className="flex justify-between text-blue-100 text-sm mb-3">
-                  <span>Progreso Diario</span>
-                  <span>{todayBiopsiesCount}/12 objetivo</span>
-                </div>
-                <div className="bg-white/20 rounded-full h-4">
-                  <div 
-                    className="bg-white h-4 rounded-full transition-all duration-1000"
-                    style={{ width: `${Math.min(100, (todayBiopsiesCount / 12) * 100)}%` }}
-                  ></div>
-                </div>
-                {todayBiopsies.length > 0 && (
-                  <p className="text-blue-100 text-sm mt-2 text-center">
-                    ¡Excelente ritmo! Estás por encima del promedio
-                  </p>
-                )}
+              <div style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '10px',
+                height: '8px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  backgroundColor: 'white',
+                  height: '100%',
+                  borderRadius: '10px',
+                  width: `${Math.min(100, (todayBiopsiesCount / 12) * 100)}%`,
+                  transition: 'width 1s ease-in-out',
+                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)'
+                }}></div>
               </div>
-            </div>
-
-            {/* Acciones principales optimizadas para tablet */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <button
-                onClick={onStartNewBiopsy}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-8 px-8 rounded-2xl flex items-center justify-center space-x-4 transition-all duration-200 shadow-lg transform hover:scale-105"
-              >
-                <Plus className="h-10 w-10" />
-                <div className="text-left">
-                  <div className="text-2xl font-bold">Nueva Biopsia</div>
-                  <div className="text-blue-100 text-lg">Crear registro #{todayBiopsiesCount + 1}</div>
-                </div>
-              </button>
-
-              <button
-                onClick={onViewToday}
-                className="bg-white hover:bg-gray-50 text-gray-700 font-semibold py-8 px-8 rounded-2xl border-2 border-gray-200 flex items-center justify-center space-x-4 transition-all duration-200 shadow-lg transform hover:scale-105"
-              >
-                <FileText className="h-10 w-10 text-blue-500" />
-                <div className="text-left">
-                  <div className="text-2xl font-bold">Remito del Día</div>
-                  <div className="text-gray-500 text-lg">{todayBiopsiesCount} biopsias cargadas</div>
-                </div>
-              </button>
-            </div>
-
-            {/* Acciones secundarias en grid - SIN BOTÓN ADMIN */}
-            <div className="grid grid-cols-2 gap-6">
-              <button
-                onClick={onViewHistory}
-                className="bg-white hover:bg-gray-50 text-gray-700 font-medium py-6 px-6 rounded-xl border border-gray-200 flex flex-col items-center space-y-3 transition-all duration-200 transform hover:scale-105"
-              >
-                <History className="h-8 w-8 text-green-500" />
-                <div className="text-center">
-                  <div className="font-semibold text-lg">Historial</div>
-                  <div className="text-sm text-gray-500">{stats.totalRemitos} remitos guardados</div>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setShowStatistics(true)}
-                className="bg-white hover:bg-gray-50 text-gray-700 font-medium py-6 px-6 rounded-xl border border-gray-200 flex flex-col items-center space-y-3 transition-all duration-200 transform hover:scale-105"
-              >
-                <BarChart3 className="h-8 w-8 text-purple-500" />
-                <div className="text-center">
-                  <div className="font-semibold text-lg">Estadísticas</div>
-                  <div className="text-sm text-gray-500">{stats.totalBiopsias} biopsias totales</div>
-                </div>
-              </button>
             </div>
           </div>
+        </div>
 
-          {/* Panel derecho - Información contextual (1/3 del espacio) */}
-          <div className="space-y-6">
-            
-            {/* Acciones rápidas inteligentes */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <h3 className="text-xl font-semibold mb-6 flex items-center">
-                <Zap className="text-yellow-500 mr-3" size={24} />
-                Acceso Rápido
-              </h3>
-              <div className="space-y-4">
-                <button 
-                  onClick={onStartNewBiopsy}
-                  className="w-full flex items-center justify-between p-4 bg-blue-50 hover:bg-blue-100 rounded-xl transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Star className="text-yellow-500 mr-3" size={20} />
-                    <div className="text-left">
-                      <div className="font-medium text-lg">
-                        {stats.topTissues.length > 0 ? stats.topTissues[0][0] : 'Gastrica'} BX
-                      </div>
-                      <div className="text-sm text-gray-500">Más frecuente</div>
-                    </div>
-                  </div>
-                  <Plus className="text-gray-400" size={18} />
-                </button>
+        {/* Botones Principales Expandidos */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '16px',
+          marginBottom: '16px'
+        }}>
+          {/* Nueva Biopsia */}
+          <button
+            onClick={() => {
+              console.log('MainScreen - Clic en Nueva Biopsia');
+              onStartNewBiopsy();
+            }}
+            style={{
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              fontWeight: '600',
+              padding: '28px 24px',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '16px',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 8px 25px -5px rgba(59, 130, 246, 0.3)',
+              transition: 'all 0.3s',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#2563eb';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 12px 30px -5px rgba(59, 130, 246, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = '#3b82f6';
+              e.currentTarget.style.transform = 'translateY(0px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(59, 130, 246, 0.3)';
+            }}
+          >
+            <Plus style={{ height: '28px', width: '28px' }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1.2' }}>Nueva Biopsia</div>
+              <div style={{ color: '#dbeafe', fontSize: '14px' }}>Registro #{todayBiopsiesCount + 1}</div>
+            </div>
+          </button>
 
-                <button 
-                  onClick={onStartNewBiopsy}
-                  className="w-full flex items-center justify-between p-4 bg-green-50 hover:bg-green-100 rounded-xl transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Star className="text-yellow-500 mr-3" size={20} />
-                    <div className="text-left">
-                      <div className="font-medium text-lg">Endoscopia + PAP</div>
-                      <div className="text-sm text-gray-500">Combo frecuente</div>
-                    </div>
-                  </div>
-                  <Plus className="text-gray-400" size={18} />
-                </button>
+          {/* Remito del Día */}
+          <button
+            onClick={onViewToday}
+            style={{
+              backgroundColor: 'white',
+              color: '#374151',
+              fontWeight: '600',
+              padding: '28px 24px',
+              borderRadius: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '16px',
+              border: '2px solid #e5e7eb',
+              cursor: 'pointer',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f9fafb';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 12px 30px -5px rgba(0, 0, 0, 0.15)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.transform = 'translateY(0px)';
+              e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0, 0, 0, 0.1)';
+            }}
+          >
+            <FileText style={{ height: '28px', width: '28px', color: '#10b981' }} />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1.2' }}>Remito del Día</div>
+              <div style={{ color: '#6b7280', fontSize: '14px' }}>{todayBiopsiesCount} biopsias</div>
+            </div>
+          </button>
+        </div>
 
-                {todayBiopsies.length > 0 && (
-                  <button 
-                    onClick={onStartNewBiopsy}
-                    className="w-full flex items-center justify-between p-4 bg-purple-50 hover:bg-purple-100 rounded-xl transition-colors"
-                  >
-                    <div className="flex items-center">
-                      <Target className="text-purple-500 mr-3" size={20} />
-                      <div className="text-left">
-                        <div className="font-medium text-lg">Duplicar Última</div>
-                        <div className="text-sm text-gray-500">Biopsia similar</div>
-                      </div>
-                    </div>
-                    <Plus className="text-gray-400" size={18} />
-                  </button>
-                )}
+        {/* Botones Secundarios - Solo Historial y Estadísticas */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '12px',
+          marginBottom: '16px'
+        }}>
+          <button
+            onClick={onViewHistory}
+            style={{
+              backgroundColor: 'white',
+              color: '#374151',
+              fontWeight: '500',
+              padding: '20px 16px',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              border: '2px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.borderColor = '#10b981';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.transform = 'translateY(0px)';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+          >
+            <History style={{ height: '24px', width: '24px', color: '#10b981' }} />
+            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Historial</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>{stats.totalRemitos} remitos</div>
+          </button>
+
+          <button
+            onClick={() => setShowStatistics(true)}
+            style={{
+              backgroundColor: 'white',
+              color: '#374151',
+              fontWeight: '500',
+              padding: '20px 16px',
+              borderRadius: '12px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              border: '2px solid #e5e7eb',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f3f4f6';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.borderColor = '#8b5cf6';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.transform = 'translateY(0px)';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+            }}
+          >
+            <BarChart3 style={{ height: '24px', width: '24px', color: '#8b5cf6' }} />
+            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Estadísticas</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>{stats.totalBiopsias} biopsias</div>
+          </button>
+        </div>
+
+        {/* Estado del Sistema Compacto y Esencial */}
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '16px',
+          border: '1px solid #e5e7eb',
+          marginTop: 'auto',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h3 style={{
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#374151',
+            margin: '0 0 12px 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <Activity style={{ height: '18px', width: '18px', color: '#10b981' }} />
+            Estado del Sistema
+          </h3>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '12px'
+          }}>
+            {/* Conexión */}
+            <div style={{
+              backgroundColor: '#f8fafc',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              textAlign: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: isOnline ? '#10b981' : '#ef4444',
+                  marginRight: '6px'
+                }}></div>
+                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>CONEXIÓN</span>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold', 
+                color: isOnline ? '#10b981' : '#ef4444' 
+              }}>
+                {isOnline ? 'En línea' : 'Offline'}
               </div>
             </div>
 
-            {/* Estado del sistema mejorado */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-              <h3 className="text-xl font-semibold mb-6 flex items-center">
-                <Activity className="text-green-500 mr-3" size={24} />
-                Estado del Sistema
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 text-lg">Conexión</span>
-                  <div className="flex items-center text-green-600">
-                    <div className={`w-3 h-3 rounded-full mr-2 ${isOnline ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                    <span className="font-medium">{isOnline ? 'En línea' : 'Sin conexión'}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 text-lg">Datos guardados</span>
-                  <span className="text-blue-600 font-medium text-lg">100%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 text-lg">Último backup</span>
-                  <span className="text-gray-600 font-medium">
-                    {backupStatus === 'success' ? 'Hace 2 min' : 
-                     backupStatus === 'syncing' ? 'Sincronizando...' :
-                     backupStatus === 'error' ? 'Error' : 'Pendiente'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-600 text-lg">Datos pendientes</span>
-                  <span className="text-gray-600 font-medium">{syncQueueLength} elementos</span>
-                </div>
+            {/* Datos Locales */}
+            <div style={{
+              backgroundColor: '#f8fafc',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              textAlign: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#3b82f6',
+                  marginRight: '6px'
+                }}></div>
+                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>DATOS</span>
+              </div>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3b82f6' }}>
+                Seguro
               </div>
             </div>
 
-            {/* Tip del día */}
-            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl p-6 border border-yellow-200">
-              <h3 className="text-xl font-semibold mb-4 flex items-center text-yellow-800">
-                <Target className="text-yellow-600 mr-3" size={24} />
-                Tip del Día
-              </h3>
-              <p className="text-yellow-700 text-lg leading-relaxed">
-                <strong>Optimización de tiempo:</strong> Usa las plantillas de "Acceso Rápido" 
-                para crear biopsias frecuentes en un solo toque. ¡Ahorra hasta 2 minutos por biopsia!
-              </p>
+            {/* Último Backup */}
+            <div style={{
+              backgroundColor: '#f8fafc',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              textAlign: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: backupStatus === 'success' ? '#10b981' : 
+                                   backupStatus === 'syncing' ? '#f59e0b' : 
+                                   backupStatus === 'error' ? '#ef4444' : '#6b7280',
+                  marginRight: '6px'
+                }}></div>
+                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>BACKUP</span>
+              </div>
+              <div style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold', 
+                color: backupStatus === 'success' ? '#10b981' : 
+                       backupStatus === 'syncing' ? '#f59e0b' : 
+                       backupStatus === 'error' ? '#ef4444' : '#6b7280'
+              }}>
+                {backupStatus === 'success' ? 'OK' : 
+                 backupStatus === 'syncing' ? 'Sync...' :
+                 backupStatus === 'error' ? 'Error' : 'Pendiente'}
+              </div>
             </div>
-
-            {/* Progreso semanal */}
-            {allTodayBiopsies.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <h3 className="text-xl font-semibold mb-6 flex items-center">
-                  <TrendingUp className="text-blue-500 mr-3" size={24} />
-                  Progreso Semanal
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-lg">Esta semana</span>
-                    <span className="font-bold text-blue-600 text-xl">{allTodayBiopsies.length * 4}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-lg">Promedio diario</span>
-                    <span className="font-bold text-green-600 text-xl">{Math.round(allTodayBiopsies.length * 0.8)}</span>
-                  </div>
-                  <div className="bg-gray-200 rounded-full h-3 mt-4">
-                    <div 
-                      className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-1000"
-                      style={{ width: `${Math.min(100, (allTodayBiopsies.length / 15) * 100)}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-gray-500 text-center mt-2">
-                    Meta semanal: 60 biopsias
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Resumen de historial */}
-            {stats.totalRemitos > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-                <h3 className="text-xl font-semibold mb-6 flex items-center">
-                  <History className="text-green-500 mr-3" size={24} />
-                  Tu Historial
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-lg">Total remitos</span>
-                    <span className="font-bold text-green-600 text-xl">{stats.totalRemitos}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-lg">Total biopsias</span>
-                    <span className="font-bold text-blue-600 text-xl">{stats.totalBiopsias}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600 text-lg">Promedio por remito</span>
-                    <span className="font-bold text-purple-600 text-xl">{stats.promedioPorRemito}</span>
-                  </div>
-                  {stats.topTissues.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-gray-200">
-                      <p className="text-sm text-gray-600 mb-2">Tejido más frecuente:</p>
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-800">{stats.topTissues[0][0]}</span>
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-                          {stats.topTissues[0][1]} casos
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

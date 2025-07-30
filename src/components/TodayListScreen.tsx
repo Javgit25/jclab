@@ -65,6 +65,7 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
   // Asegurar que todayBiopsies sea un array
   const biopsies = todayBiopsies || [];
 
+  // ✅ FUNCIÓN CORREGIDA PARA EVITAR DUPLICADOS DE GIEMSA
   const getServiciosDisplay = (biopsy: BiopsyForm) => {
     const serviciosActivos: string[] = [];
     if (biopsy.servicios) {
@@ -74,16 +75,7 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
           if (servicio) {
             let servicioLabel = servicio.label;
             
-            // Agregar cantidad para cortes en blanco
-            if (key === 'corteBlancoIHQ') {
-              const quantity = biopsy.servicios.corteBlancoIHQQuantity || 1;
-              servicioLabel += ` (${quantity})`;
-            } else if (key === 'corteBlancoComun') {
-              const quantity = biopsy.servicios.corteBlancoComunQuantity || 1;
-              servicioLabel += ` (${quantity})`;
-            }
-            
-            // Agregar sub-opciones de Giemsa si están seleccionadas
+            // ✅ MANEJO ESPECIAL PARA GIEMSA/PAS/MASSON CON SUBMENÚ
             if (key === 'giemsaPASMasson' && biopsy.servicios.giemsaOptions) {
               const giemsaSelected = Object.entries(biopsy.servicios.giemsaOptions)
                 .filter(([_, selected]) => selected)
@@ -93,8 +85,20 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                 });
               
               if (giemsaSelected.length > 0) {
-                servicioLabel = `${giemsaSelected.join(', ')}`;
+                // ✅ MOSTRAR SOLO LAS OPCIONES ESPECÍFICAS SELECCIONADAS
+                servicioLabel = giemsaSelected.join(', ');
+              } else {
+                // Si no hay sub-opciones seleccionadas, no mostrar nada
+                return;
               }
+            }
+            // ✅ AGREGAR CANTIDAD PARA CORTES EN BLANCO
+            else if (key === 'corteBlancoIHQ') {
+              const quantity = biopsy.servicios.corteBlancoIHQQuantity || 1;
+              servicioLabel += ` (${quantity})`;
+            } else if (key === 'corteBlancoComun') {
+              const quantity = biopsy.servicios.corteBlancoComunQuantity || 1;
+              servicioLabel += ` (${quantity})`;
             }
             
             serviciosActivos.push(servicioLabel);
@@ -112,6 +116,26 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
     return biopsy.tissueType;
   };
 
+  // ✅ FUNCIÓN PARA DETECTAR SI ES PAP O CITOLOGÍA
+  const isPAPOrCitologia = (biopsy: BiopsyForm) => {
+    return biopsy.tissueType === 'PAP' || biopsy.tissueType === 'Citología';
+  };
+
+  // ✅ FUNCIÓN PARA OBTENER SERVICIOS ESPECÍFICOS DE PAP/CITOLOGÍA
+  const getPAPCitologiaServices = (biopsy: BiopsyForm) => {
+    const services: string[] = [];
+    
+    if (biopsy.tissueType === 'PAP' && biopsy.papUrgente) {
+      services.push('PAP Urgente');
+    }
+    
+    if (biopsy.tissueType === 'Citología' && biopsy.citologiaUrgente) {
+      services.push('Citología Urgente');
+    }
+    
+    return services;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -127,7 +151,7 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
             <div>
               <h2 className="text-lg font-semibold text-gray-800">Remito del Día</h2>
               <p className="text-sm text-gray-600">
-                {biopsies.length} biopsia{biopsies.length !== 1 ? 's' : ''} cargada{biopsies.length !== 1 ? 's' : ''}
+                {biopsies.length} {biopsies.length === 1 ? 'estudio cargado' : 'estudios cargados'}
               </p>
             </div>
           </div>
@@ -146,17 +170,17 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
               <FileText className="h-12 w-12 mx-auto" />
             </div>
             <h3 className="text-lg font-medium text-gray-600 mb-2">
-              No hay biopsias cargadas hoy
+              No hay estudios cargados hoy
             </h3>
             <p className="text-gray-500 mb-4">
-              Comienza agregando tu primera biopsia del día
+              Comienza agregando tu primer estudio del día
             </p>
             <button
               onClick={onStartNewBiopsy}
               className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg flex items-center space-x-2 mx-auto"
             >
               <Plus className="h-5 w-5" />
-              <span>Nueva Biopsia</span>
+              <span>Nuevo Estudio</span>
             </button>
           </div>
         ) : (
@@ -168,7 +192,7 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                 className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center justify-center space-x-2"
               >
                 <Plus className="h-5 w-5" />
-                <span>Nueva Biopsia</span>
+                <span>Nuevo Estudio</span>
               </button>
               
               <button
@@ -180,29 +204,48 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
               </button>
             </div>
 
-            {/* Lista de biopsias */}
+            {/* Lista de estudios */}
             <div className="space-y-4">
               {biopsies.map((biopsy, index) => {
-                const serviciosActivos = getServiciosDisplay(biopsy);
+                const isPapCitologia = isPAPOrCitologia(biopsy);
+                const serviciosActivos = isPapCitologia ? getPAPCitologiaServices(biopsy) : getServiciosDisplay(biopsy);
                 
                 return (
                   <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    {/* Header de la biopsia */}
+                    {/* ✅ HEADER DIFERENTE PARA PAP/CITOLOGÍA VS BIOPSIA */}
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                           <span className="text-blue-600 font-bold text-sm">{index + 1}</span>
                         </div>
                         <div>
-                          <h4 className="font-semibold text-gray-800">
-                            Biopsia #{biopsy.number}
-                          </h4>
-                          <p className="text-xs text-gray-500">
-                            {biopsy.timestamp ? new Date(biopsy.timestamp).toLocaleTimeString('es-AR', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            }) : 'Sin hora'}
-                          </p>
+                          {isPapCitologia ? (
+                            // ✅ FORMATO PARA PAP/CITOLOGÍA: "#BX25-002 - PAP"
+                            <>
+                              <h4 className="font-semibold text-gray-800">
+                                #{biopsy.type}{biopsy.number} - {biopsy.tissueType}
+                              </h4>
+                              <p className="text-xs text-gray-500">
+                                {biopsy.timestamp ? new Date(biopsy.timestamp).toLocaleTimeString('es-AR', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                }) : 'Sin hora'}
+                              </p>
+                            </>
+                          ) : (
+                            // ✅ FORMATO NORMAL PARA BIOPSIAS: "Biopsia #88"
+                            <>
+                              <h4 className="font-semibold text-gray-800">
+                                Biopsia #{biopsy.number}
+                              </h4>
+                              <p className="text-xs text-gray-500">
+                                {biopsy.timestamp ? new Date(biopsy.timestamp).toLocaleTimeString('es-AR', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                }) : 'Sin hora'}
+                              </p>
+                            </>
+                          )}
                         </div>
                       </div>
                       
@@ -217,37 +260,60 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                       </div>
                     </div>
                     
-                    {/* Información principal */}
+                    {/* ✅ INFORMACIÓN PRINCIPAL DIFERENTE PARA PAP/CITOLOGÍA */}
                     <div className="space-y-2 text-sm mb-3">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Tejido:</span>
-                        <span className="font-medium text-right max-w-[60%]">
-                          {getTissueTypeDisplay(biopsy)}
-                        </span>
-                      </div>
-                      
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Cassettes:</span>
-                        <span className="font-medium">{biopsy.cassettes}</span>
-                      </div>
-                      
-                      {biopsy.pieces && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Trozos:</span>
-                          <span className="font-medium">{biopsy.pieces}</span>
-                        </div>
-                      )}
-                      
-                      {biopsy.declassify && biopsy.declassify !== 'No' && (
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Desclasificar:</span>
-                          <span className="font-medium text-orange-600">{biopsy.declassify}</span>
-                        </div>
+                      {isPapCitologia ? (
+                        // ✅ FORMATO PAP/CITOLOGÍA: "Vidrios: 2"
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Vidrios:</span>
+                            <span className="font-medium">
+                              {biopsy.tissueType === 'PAP' ? biopsy.papQuantity : biopsy.citologiaQuantity}
+                            </span>
+                          </div>
+                          
+                          {((biopsy.tissueType === 'PAP' && biopsy.papUrgente) || 
+                            (biopsy.tissueType === 'Citología' && biopsy.citologiaUrgente)) && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Prioridad:</span>
+                              <span className="font-medium text-orange-600">⚡ Urgente 24hs</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        // ✅ FORMATO NORMAL BIOPSIA: "Tejido:", "Cassettes:", etc.
+                        <>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Tejido:</span>
+                            <span className="font-medium text-right max-w-[60%]">
+                              {getTissueTypeDisplay(biopsy)}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Cassettes:</span>
+                            <span className="font-medium">{biopsy.cassettes}</span>
+                          </div>
+                          
+                          {biopsy.pieces && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Trozos:</span>
+                              <span className="font-medium">{biopsy.pieces}</span>
+                            </div>
+                          )}
+                          
+                          {biopsy.declassify && biopsy.declassify !== 'No' && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Desclasificar:</span>
+                              <span className="font-medium text-orange-600">{biopsy.declassify}</span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
-                    {/* Números de cassettes */}
-                    {biopsy.cassettesNumbers && biopsy.cassettesNumbers.length > 0 && (
+                    {/* ✅ NÚMEROS DE CASSETTES - SOLO PARA BIOPSIAS NORMALES */}
+                    {!isPapCitologia && biopsy.cassettesNumbers && biopsy.cassettesNumbers.length > 0 && (
                       <div className="mb-3">
                         <p className="text-xs text-gray-600 mb-2">Números de cassettes:</p>
                         <div className="flex flex-wrap gap-1">
@@ -265,10 +331,12 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                       </div>
                     )}
 
-                    {/* Servicios adicionales */}
+                    {/* ✅ SERVICIOS ADICIONALES */}
                     {serviciosActivos.length > 0 && (
                       <div className="border-t pt-3">
-                        <p className="text-xs text-gray-600 mb-2">Servicios adicionales:</p>
+                        <p className="text-xs text-gray-600 mb-2">
+                          🔧 {serviciosActivos.length} servicio{serviciosActivos.length !== 1 ? 's' : ''}
+                        </p>
                         <div className="space-y-1">
                           {serviciosActivos.map((servicio, servIndex) => (
                             <div key={servIndex} className="flex items-center space-x-2">
@@ -298,17 +366,22 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                 <h4 className="font-semibold text-blue-800 mb-2">📊 Resumen del Día</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-blue-600">Total Biopsias</p>
+                    <p className="text-blue-600">Total Estudios</p>
                     <p className="text-2xl font-bold text-blue-800">{biopsies.length}</p>
                   </div>
                   <div>
                     <p className="text-blue-600">Con Servicios</p>
                     <p className="text-2xl font-bold text-blue-800">
-                      {biopsies.filter(b => 
-                        Object.values(b.servicios || {}).some(val => 
+                      {biopsies.filter(b => {
+                        const isPapCit = isPAPOrCitologia(b);
+                        if (isPapCit) {
+                          return (b.tissueType === 'PAP' && b.papUrgente) || 
+                                 (b.tissueType === 'Citología' && b.citologiaUrgente);
+                        }
+                        return Object.values(b.servicios || {}).some(val => 
                           typeof val === 'boolean' ? val : false
-                        )
-                      ).length}
+                        );
+                      }).length}
                     </p>
                   </div>
                 </div>
@@ -322,9 +395,9 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
               <h4 className="font-medium text-gray-800 mb-2">ℹ️ Acciones disponibles:</h4>
               <ul className="text-sm text-gray-600 space-y-1">
-                <li>• <strong>Nueva Biopsia:</strong> Agregar otra biopsia al remito</li>
+                <li>• <strong>Nuevo Estudio:</strong> Agregar otro estudio al remito</li>
                 <li>• <strong>Finalizar:</strong> Guardar el remito en el historial</li>
-                <li>• Puedes agregar tantas biopsias como necesites</li>
+                <li>• Puedes agregar tantos estudios como necesites</li>
               </ul>
             </div>
           </div>

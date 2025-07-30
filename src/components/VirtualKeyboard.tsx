@@ -18,6 +18,22 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   autoCompleteOptions = [],
   onSelectAutoComplete
 }) => {
+  // 🔧 FUNCIÓN MEJORADA: Selecciona sugerencia Y cierra teclado automáticamente
+  const handleSelectAutoComplete = (option: string) => {
+    console.log('🎹 VirtualKeyboard - Seleccionando sugerencia:', option);
+    
+    // Primero ejecutar la selección
+    if (onSelectAutoComplete) {
+      onSelectAutoComplete(option);
+    }
+    
+    // Luego cerrar el teclado automáticamente
+    setTimeout(() => {
+      console.log('🎹 VirtualKeyboard - Cerrando teclado automáticamente');
+      onConfirm();
+    }, 150); // Pequeño delay para asegurar que se procese la selección
+  };
+
   if (keyboard.type === 'numeric') {
     const numericKeys = [
       ['1', '2', '3'],
@@ -107,19 +123,38 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
           />
         </div>
 
+        {/* 🔧 PANEL DE SUGERENCIAS MEJORADO CON CIERRE AUTOMÁTICO */}
         {keyboard.targetField === 'tissueType' && autoCompleteOptions.length > 0 && (
-          <div className="mb-3 p-3 bg-blue-50 rounded-lg">
-            <p className="text-sm font-medium text-blue-800 mb-2">💡 Sugerencias:</p>
-            <div className="grid grid-cols-2 gap-2">
+          <div className="mb-3 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-medium text-blue-800">
+                💡 {autoCompleteOptions.length} sugerencia{autoCompleteOptions.length !== 1 ? 's' : ''} encontrada{autoCompleteOptions.length !== 1 ? 's' : ''}
+              </p>
+              <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                Toque para seleccionar
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
               {autoCompleteOptions.map((option, index) => (
                 <button
                   key={index}
-                  onClick={() => onSelectAutoComplete?.(option)}
-                  className="text-left p-2 bg-white hover:bg-blue-100 text-blue-800 rounded border border-blue-200 transition-colors text-sm"
+                  onClick={() => handleSelectAutoComplete(option)}
+                  className="text-left p-3 bg-white hover:bg-blue-100 text-blue-800 rounded-lg border border-blue-200 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                 >
-                  {option}
+                  <div className="flex items-center justify-between">
+                    <span className="text-base">{option}</span>
+                    <span className="text-xs text-blue-500">→</span>
+                  </div>
+                  {(option === 'PAP' || option === 'Citología') && (
+                    <div className="text-xs text-blue-600 mt-1">
+                      Requiere cantidad específica
+                    </div>
+                  )}
                 </button>
               ))}
+            </div>
+            <div className="mt-2 text-xs text-blue-600 text-center">
+              ✨ Se cerrará automáticamente al seleccionar
             </div>
           </div>
         )}

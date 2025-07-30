@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Save, FileText, Eye } from 'lucide-react';
+import { Save, FileText, Eye, ChevronLeft } from 'lucide-react';
 import { BiopsyForm } from '../../types';
 import { serviciosAdicionales, giemsaOptions } from '../../constants/services';
 
@@ -14,42 +14,71 @@ interface Step7Props {
 
 export const Step7: React.FC<Step7Props> = ({
   biopsyForm,
-  onObservationsChange,
+  // onObservationsChange, // No se usa directamente, se maneja por el teclado virtual
   onSave,
   onPrev,
   onFinishDailyReport,
   onOpenVirtualKeyboard
 }) => {
-  // Debug: Verificar que las funciones se reciben correctamente
-  React.useEffect(() => {
-    console.log('Step7 - Props recibidas:');
-    console.log('- biopsyForm:', biopsyForm);
-    console.log('- onSave:', typeof onSave);
-    console.log('- onFinishDailyReport:', typeof onFinishDailyReport);
-    console.log('- biopsyForm.number:', biopsyForm.number);
-    console.log('- biopsyForm.tissueType:', biopsyForm.tissueType);
-  }, [biopsyForm, onSave, onFinishDailyReport]);
-
-  const handleSave = () => {
-    console.log('Step7 - Botón Guardar Biopsia presionado');
-    console.log('Step7 - Biopsia a guardar:', biopsyForm);
-    onSave();
+  // Colores del diseño (siguiendo metodología de otros pasos)
+  const colors = {
+    primaryBlue: '#4F76F6',
+    darkBlue: '#3B5BDB',
+    lightBlue: '#7C9BFF',
+    yellow: '#FFE066',
+    green: '#51CF66',
+    white: '#FFFFFF',
+    lightGray: '#F8FAFC',
+    darkGray: '#64748B'
   };
 
-  const handleFinishDaily = () => {
-    console.log('Step7 - Botón Finalizar Remito presionado');
-    console.log('Step7 - Biopsia actual que se incluirá:', biopsyForm);
-    onFinishDailyReport();
+  // Determinar si es PAP o Citología
+  const isPAPSelected = biopsyForm.tissueType === 'PAP';
+  const isCitologiaSelected = biopsyForm.tissueType === 'Citología';
+  const isPapOrCitologia = isPAPSelected || isCitologiaSelected;
+
+  // Textos dinámicos
+  const getTitle = () => {
+    if (isPAPSelected) return 'Vista Previa de los PAP';
+    if (isCitologiaSelected) return 'Vista Previa de las Citologías';
+    return 'Vista Previa de la Biopsia';
   };
 
-  const handleObservationsClick = () => {
-    console.log('Step7 - Abriendo teclado para observaciones');
-    onOpenVirtualKeyboard('full', 'observations', biopsyForm.observations);
+  const getGiemsaText = () => {
+    if (biopsyForm.servicios?.giemsaOptions) {
+      const selected = Object.entries(biopsyForm.servicios.giemsaOptions)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([key, _]) => {
+          const option = giemsaOptions.find(opt => opt.key === key);
+          return option ? option.label : key;
+        });
+      return selected.length > 0 ? selected.join(', ') : 'No especificado';
+    }
+    return 'No especificado';
   };
 
-  // Función para obtener servicios activos con formato correcto
+  const getMaterialText = () => {
+    if (isPapOrCitologia) {
+      if (isPAPSelected) {
+        return `${biopsyForm.papQuantity} vidrio${biopsyForm.papQuantity > 1 ? 's' : ''} PAP`;
+      } else {
+        return `${biopsyForm.citologiaQuantity} vidrio${biopsyForm.citologiaQuantity > 1 ? 's' : ''} citología`;
+      }
+    } else {
+      const cassettes = parseInt(biopsyForm.cassettes) || 0;
+      const pieces = parseInt(biopsyForm.pieces) || 0;
+      let text = `${cassettes} cassette${cassettes > 1 ? 's' : ''}`;
+      if (pieces > 0) {
+        text += ` • ${pieces} trozo${pieces > 1 ? 's' : ''}`;
+      }
+      return text;
+    }
+  };
+
+  // Obtener servicios activos
   const getServiciosActivos = () => {
     const serviciosActivos: string[] = [];
+    
     if (biopsyForm.servicios) {
       Object.entries(biopsyForm.servicios).forEach(([key, value]) => {
         if (value && key !== 'giemsaOptions' && key !== 'corteBlancoIHQQuantity' && key !== 'corteBlancoComunQuantity') {
@@ -57,16 +86,7 @@ export const Step7: React.FC<Step7Props> = ({
           if (servicio) {
             let servicioLabel = servicio.label;
             
-            // Agregar cantidad para cortes en blanco
-            if (key === 'corteBlancoIHQ') {
-              const quantity = biopsyForm.servicios.corteBlancoIHQQuantity || 1;
-              servicioLabel += ` (${quantity} corte${quantity !== 1 ? 's' : ''})`;
-            } else if (key === 'corteBlancoComun') {
-              const quantity = biopsyForm.servicios.corteBlancoComunQuantity || 1;
-              servicioLabel += ` (${quantity} corte${quantity !== 1 ? 's' : ''})`;
-            }
-            
-            // Agregar sub-opciones de Giemsa si están seleccionadas
+            // Manejo especial para Giemsa/PAS/Masson
             if (key === 'giemsaPASMasson' && biopsyForm.servicios.giemsaOptions) {
               const giemsaSelected = Object.entries(biopsyForm.servicios.giemsaOptions)
                 .filter(([_, selected]) => selected)
@@ -76,8 +96,18 @@ export const Step7: React.FC<Step7Props> = ({
                 });
               
               if (giemsaSelected.length > 0) {
-                servicioLabel = `${giemsaSelected.join(', ')}`;
+                servicioLabel = giemsaSelected.join(', ');
+              } else {
+                return;
               }
+            }
+            // Agregar cantidad para cortes en blanco
+            else if (key === 'corteBlancoIHQ') {
+              const quantity = biopsyForm.servicios.corteBlancoIHQQuantity || 1;
+              servicioLabel += ` (${quantity} corte${quantity !== 1 ? 's' : ''})`;
+            } else if (key === 'corteBlancoComun') {
+              const quantity = biopsyForm.servicios.corteBlancoComunQuantity || 1;
+              servicioLabel += ` (${quantity} corte${quantity !== 1 ? 's' : ''})`;
             }
             
             serviciosActivos.push(servicioLabel);
@@ -85,208 +115,429 @@ export const Step7: React.FC<Step7Props> = ({
         }
       });
     }
+    
     return serviciosActivos;
   };
 
-  // Función para obtener números de cassettes formateados
+  // Obtener números de cassettes
   const getCassettesNumbers = () => {
-    if (!biopsyForm.cassettesNumbers || biopsyForm.cassettesNumbers.length === 0) {
+    if (isPapOrCitologia) {
       return [biopsyForm.number];
     }
     
-    return biopsyForm.cassettesNumbers.map((cassette, index) => {
-      if (typeof cassette === 'string') {
-        return cassette;
-      }
-      if (index === 0) {
-        return cassette.base;
-      } else {
-        return `${cassette.base}/${cassette.suffix || index}`;
-      }
-    });
-  };
-
-  // Función para obtener el tipo de tejido completo
-  const getTissueTypeDisplay = () => {
-    if (biopsyForm.tissueType === 'Endoscopia' && biopsyForm.endoscopiaSubTypes && biopsyForm.endoscopiaSubTypes.length > 0) {
-      return `${biopsyForm.tissueType} (${biopsyForm.endoscopiaSubTypes.join(', ')})`;
+    if (biopsyForm.cassettesNumbers && biopsyForm.cassettesNumbers.length > 0) {
+      return biopsyForm.cassettesNumbers.map(cassette => `${cassette.base}${cassette.suffix}`);
     }
-    return biopsyForm.tissueType;
+    
+    return [biopsyForm.number];
   };
 
   const serviciosActivos = getServiciosActivos();
   const cassettesNumbers = getCassettesNumbers();
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-            <Eye className="h-6 w-6 text-green-600" />
+    <div style={{
+      height: '100vh',
+      backgroundColor: '#f8fafc',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      {/* Header Compacto y Limpio - MISMA METODOLOGÍA */}
+      <div style={{
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        padding: '12px 16px',
+        flexShrink: 0,
+        borderRadius: '12px',
+        boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
+        margin: '16px 16px 8px 16px',
+        maxWidth: 'none',
+        width: 'calc(100% - 32px)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              padding: '8px',
+              borderRadius: '12px',
+              position: 'relative',
+              backdropFilter: 'blur(10px)'
+            }}>
+              <Eye style={{ height: '20px', width: '20px', color: 'white' }} />
+              <div style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: '18px',
+                height: '18px',
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.4)'
+              }}>
+                7
+              </div>
+            </div>
+            <div>
+              <h1 style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: 'white',
+                margin: 0,
+                lineHeight: '1.2'
+              }}>Resumen Final</h1>
+              <p style={{
+                fontSize: '12px',
+                color: 'rgba(255, 255, 255, 0.8)',
+                margin: 0,
+                fontWeight: '500'
+              }}>Confirma todos los datos</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800">Resumen Final</h3>
-            <p className="text-sm text-gray-600">Revisa y confirma los datos antes de guardar</p>
+          
+          {/* Navegación integrada en el header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button
+              onClick={onPrev}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <ChevronLeft size={16} />
+              Anterior
+            </button>
+            <button
+              onClick={onSave}
+              style={{
+                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <Save size={16} />
+              Guardar
+            </button>
+            <button
+              onClick={onFinishDailyReport}
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                color: 'white',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
+            >
+              <FileText size={16} />
+              Finalizar
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Vista previa de la biopsia */}
-        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-          {/* Información básica */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Número de Biopsia</p>
-              <p className="text-lg font-bold text-blue-600">#{biopsyForm.number}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Tipo</p>
-              <p className="text-lg font-bold text-purple-600">{biopsyForm.type}</p>
-            </div>
-          </div>
+      {/* Título principal fuera del box - MISMA METODOLOGÍA */}
+      <div style={{ 
+        padding: '8px 24px 8px 24px',
+        flexShrink: 0
+      }}>
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          color: '#1f2937',
+          margin: 0,
+          textAlign: 'left'
+        }}>
+          {getTitle()}
+        </h2>
+      </div>
 
-          {/* Tejido */}
-          <div>
-            <p className="text-xs text-gray-600 font-medium mb-1">Tipo de Tejido</p>
-            <p className="text-sm font-medium text-gray-800">{getTissueTypeDisplay()}</p>
-          </div>
-
-          {/* Cassettes y trozos */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Cassettes</p>
-              <p className="text-sm font-medium text-gray-800">{biopsyForm.cassettes}</p>
-            </div>
-            {biopsyForm.pieces && (
+      {/* Contenido principal con scroll */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '0 24px 24px 24px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          padding: '24px',
+          border: '1px solid #e5e7eb'
+        }}>
+          {/* Vista previa de la biopsia */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px'
+          }}>
+            
+            {/* Información básica */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '20px'
+            }}>
               <div>
-                <p className="text-xs text-gray-600 font-medium">Trozos</p>
-                <p className="text-sm font-medium text-gray-800">{biopsyForm.pieces}</p>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 4px 0'
+                }}>
+                  {isPAPSelected ? 'Número de PAP' : isCitologiaSelected ? 'Número de Citología' : 'Número de Biopsia'}
+                </p>
+                <p style={{
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: colors.primaryBlue,
+                  margin: '0'
+                }}>
+                  #{biopsyForm.number}
+                </p>
+              </div>
+              
+              {/* Tipo de tejido */}
+              <div>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 4px 0'
+                }}>
+                  Tipo de Tejido
+                </p>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0'
+                }}>
+                  {biopsyForm.tissueType === 'Endoscopia' && biopsyForm.endoscopiaSubTypes && biopsyForm.endoscopiaSubTypes.length > 0 
+                    ? `${biopsyForm.tissueType} (${biopsyForm.endoscopiaSubTypes.join(', ')})` 
+                    : biopsyForm.tissueType}
+                </p>
+              </div>
+            </div>
+
+            {/* Tipo de biopsia y material */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '20px'
+            }}>
+              {/* Tipo de biopsia - solo para biopsias normales */}
+              {!isPapOrCitologia && (
+                <div>
+                  <p style={{
+                    fontSize: '12px',
+                    color: colors.darkGray,
+                    fontWeight: '500',
+                    margin: '0 0 4px 0'
+                  }}>
+                    Tipo
+                  </p>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1f2937',
+                    margin: '0'
+                  }}>
+                    {biopsyForm.type}
+                  </p>
+                </div>
+              )}
+              
+              {/* Material */}
+              <div>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 4px 0'
+                }}>
+                  Material
+                </p>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0'
+                }}>
+                  {getMaterialText()}
+                </p>
+              </div>
+            </div>
+
+            {/* Números de cassettes o vidrios */}
+            {cassettesNumbers.length > 0 && (
+              <div>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 8px 0'
+                }}>
+                  {isPapOrCitologia ? 'Números de Vidrios' : 'Números de Cassettes'}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {cassettesNumbers.map((number, index) => (
+                    <span key={index} style={{
+                      background: colors.lightBlue,
+                      color: 'white',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}>
+                      {number}
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Números de cassettes */}
-          {cassettesNumbers.length > 0 && (
-            <div>
-              <p className="text-xs text-gray-600 font-medium mb-2">Números de Cassettes</p>
-              <div className="flex flex-wrap gap-2">
-                {cassettesNumbers.map((number, index) => (
-                  <span
-                    key={index}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"
-                  >
-                    {number}
-                  </span>
-                ))}
+            {/* Desclasificar - solo para biopsias normales */}
+            {!isPapOrCitologia && biopsyForm.declassify && biopsyForm.declassify !== 'No desclasificar' && (
+              <div>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 4px 0'
+                }}>
+                  Desclasificar
+                </p>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: '#F59E0B',
+                  margin: '0'
+                }}>
+                  {biopsyForm.declassify}
+                </p>
               </div>
-            </div>
-          )}
-
-          {/* Desclasificar */}
-          {biopsyForm.declassify && biopsyForm.declassify !== 'No' && (
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Desclasificar</p>
-              <p className="text-sm font-medium text-orange-600">{biopsyForm.declassify}</p>
-            </div>
-          )}
-
-          {/* Servicios adicionales */}
-          {serviciosActivos.length > 0 && (
-            <div>
-              <p className="text-xs text-gray-600 font-medium mb-2">Servicios Adicionales</p>
-              <div className="space-y-1">
-                {serviciosActivos.map((servicio, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm text-purple-700 font-medium">{servicio}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Observaciones */}
-      <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-        <div className="mb-3">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Observaciones (Opcional)
-          </label>
-          <div 
-            onClick={handleObservationsClick}
-            className="w-full min-h-[80px] p-3 border border-gray-300 rounded-lg bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-          >
-            {biopsyForm.observations ? (
-              <p className="text-gray-800 text-sm">{biopsyForm.observations}</p>
-            ) : (
-              <p className="text-gray-500 text-sm italic">Toca aquí para agregar observaciones...</p>
             )}
+
+            {/* Servicios adicionales */}
+            {serviciosActivos.length > 0 && (
+              <div>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 8px 0'
+                }}>
+                  Servicios Adicionales
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {serviciosActivos.map((servicio, index) => (
+                    <div key={index} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <div style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        background: colors.green
+                      }} />
+                      <span style={{
+                        fontSize: '14px',
+                        color: '#1f2937',
+                        fontWeight: '500'
+                      }}>
+                        {servicio}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tiempo Giemsa - solo para PAP/Citología */}
+            {isPapOrCitologia && (
+              <div>
+                <p style={{
+                  fontSize: '12px',
+                  color: colors.darkGray,
+                  fontWeight: '500',
+                  margin: '0 0 4px 0'
+                }}>
+                  Tiempo Giemsa
+                </p>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1f2937',
+                  margin: '0'
+                }}>
+                  {getGiemsaText()}
+                </p>
+              </div>
+            )}
+
+            {/* Observaciones */}
+            <div>
+              <p style={{
+                fontSize: '12px',
+                color: colors.darkGray,
+                fontWeight: '500',
+                margin: '0 0 8px 0'
+              }}>
+                Observaciones
+              </p>
+              <div
+                onClick={() => onOpenVirtualKeyboard('full', 'observations', biopsyForm.observations)}
+                style={{
+                  width: '100%',
+                  minHeight: '100px',
+                  padding: '12px',
+                  background: colors.lightGray,
+                  border: `2px solid ${biopsyForm.observations ? colors.primaryBlue : '#e5e7eb'}`,
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  color: biopsyForm.observations ? '#1f2937' : colors.darkGray,
+                  fontStyle: biopsyForm.observations ? 'normal' : 'italic'
+                }}
+              >
+                {biopsyForm.observations || 'Toque aquí para agregar observaciones...'}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Información importante */}
-      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-        <h4 className="font-medium text-blue-800 mb-2">ℹ️ Información importante:</h4>
-        <ul className="text-sm text-blue-700 space-y-1">
-          <li>• <strong>Guardar Biopsia:</strong> Guarda esta biopsia y continúa agregando más</li>
-          <li>• <strong>Finalizar Remito:</strong> Guarda esta biopsia y completa el remito del día</li>
-          <li>• Puedes modificar cualquier dato volviendo a los pasos anteriores</li>
-        </ul>
-      </div>
-
-      {/* Botones de acción */}
-      <div className="space-y-3">
-        {/* Botón para guardar solo esta biopsia */}
-        <button
-          onClick={handleSave}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-        >
-          <Save className="h-5 w-5" />
-          <span>💾 Guardar Biopsia</span>
-        </button>
-
-        {/* Botón para finalizar remito del día */}
-        <button
-          onClick={handleFinishDaily}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-        >
-          <FileText className="h-5 w-5" />
-          <span>📋 Guardar Biopsia y Finalizar Remito del Día</span>
-        </button>
-
-        {/* Botón para volver */}
-        <button
-          onClick={onPrev}
-          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span>← Volver a Servicios</span>
-        </button>
-      </div>
-
-      {/* Resumen final */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <div className="text-center">
-          <h4 className="font-semibold text-gray-800 mb-2">📋 Resumen</h4>
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div>
-              <p className="text-gray-600">Biopsia</p>
-              <p className="font-bold text-gray-800">#{biopsyForm.number}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Cassettes</p>
-              <p className="font-bold text-gray-800">{biopsyForm.cassettes}</p>
-            </div>
-            <div>
-              <p className="text-gray-600">Servicios</p>
-              <p className="font-bold text-gray-800">{serviciosActivos.length}</p>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500 mt-2">
-            📅 {new Date().toLocaleDateString('es-AR')} • 🕐 {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
         </div>
       </div>
     </div>
