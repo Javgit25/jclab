@@ -261,7 +261,7 @@ export const Step2: React.FC<Step2Props> = ({
                   <Search style={{ height: '24px', width: '24px', color: 'white' }} />
                 </div>
                 <h2 style={{
-                  fontSize: '28px',
+                  fontSize: '24px',
                   fontWeight: 'bold',
                   color: '#1f2937',
                   margin: 0
