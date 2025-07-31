@@ -106,16 +106,56 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
   const loadAdminData = () => {
     try {
+      // Intentar cargar datos del panel de administrador
       const savedRemitos = localStorage.getItem('adminRemitos');
+      
+      // También intentar cargar datos de la app principal
+      const mainAppRemitos = localStorage.getItem('remitos');
+      const mainAppBiopsies = localStorage.getItem('biopsies');
+      
+      let allRemitos: AdminRemito[] = [];
+      
+      // Cargar datos del admin panel si existen
       if (savedRemitos) {
         const parsedRemitos = JSON.parse(savedRemitos);
-        setRemitos(parsedRemitos);
-        const medicosUnicos = [...new Set(parsedRemitos.map((r: AdminRemito) => r.medico))];
-        setMedicos(medicosUnicos);
-      } else {
-        // Generar datos de prueba si no hay datos guardados
-        generateDemoData();
+        allRemitos = [...allRemitos, ...parsedRemitos];
       }
+      
+      // Convertir datos de la app principal si existen
+      if (mainAppRemitos) {
+        try {
+          const mainRemitos = JSON.parse(mainAppRemitos);
+          const convertedRemitos = mainRemitos.map((remito: any, index: number) => ({
+            id: remito.id || `main-${index}`,
+            medico: remito.medico || 'Médico no especificado',
+            email: remito.email || 'email@ejemplo.com',
+            fecha: remito.fecha || new Date().toISOString(),
+            hospital: remito.hospital || 'Hospital no especificado',
+            estado: remito.estado || 'pendiente',
+            biopsias: remito.biopsias || []
+          }));
+          allRemitos = [...allRemitos, ...convertedRemitos];
+        } catch (error) {
+          console.log('Error procesando datos de la app principal:', error);
+        }
+      }
+      
+      // Si no hay datos, generar datos de prueba
+      if (allRemitos.length === 0) {
+        generateDemoData();
+        return;
+      }
+      
+      // Eliminar duplicados por ID
+      const remitosUnicos = allRemitos.filter((remito, index, self) => 
+        index === self.findIndex(r => r.id === remito.id)
+      );
+      
+      setRemitos(remitosUnicos);
+      const medicosUnicos = [...new Set(remitosUnicos.map(r => r.medico))];
+      setMedicos(medicosUnicos);
+      
+      console.log('📊 Datos cargados:', remitosUnicos.length, 'remitos de', medicosUnicos.length, 'médicos');
 
       const savedConfig = localStorage.getItem('adminConfig');
       if (savedConfig) {
@@ -133,10 +173,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const demoRemitos: AdminRemito[] = [
       {
         id: 'demo-1',
-        medico: 'Dr. García',
-        email: 'garcia@email.com',
+        medico: 'Dr. Juan García',
+        email: 'garcia@hospital.com',
         fecha: new Date().toISOString(),
-        hospital: 'Hospital Central',
+        hospital: 'Hospital Central Buenos Aires',
         estado: 'pendiente',
         biopsias: [
           {
@@ -165,8 +205,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       },
       {
         id: 'demo-2',
-        medico: 'Dra. López',
-        email: 'lopez@email.com',
+        medico: 'Dra. María López',
+        email: 'lopez@clinica.com',
         fecha: new Date(Date.now() - 86400000).toISOString(),
         hospital: 'Clínica San José',
         estado: 'facturado',
@@ -194,6 +234,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             citologiaQuantity: 0
           }
         ]
+      },
+      {
+        id: 'demo-3',
+        medico: 'Dr. Carlos Rodríguez',
+        email: 'rodriguez@medico.com',
+        fecha: new Date(Date.now() - 2 * 86400000).toISOString(),
+        hospital: 'Instituto Médico Integral',
+        estado: 'pendiente',
+        biopsias: [
+          {
+            numero: 'C001',
+            tejido: 'Citología',
+            tipo: 'CITO',
+            cassettes: 0,
+            trozos: 0,
+            desclasificar: 'N/A',
+            servicios: {
+              cassetteNormal: 0,
+              cassetteUrgente: 0,
+              profundizacion: 0,
+              pap: 0,
+              papUrgente: 0,
+              citologia: 2,
+              citologiaUrgente: 0,
+              corteBlanco: 0,
+              corteBlancoIHQ: 0,
+              giemsaPASMasson: 0
+            },
+            papQuantity: 0,
+            citologiaQuantity: 2
+          }
+        ]
       }
     ];
     
@@ -201,6 +273,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const medicosUnicos = [...new Set(demoRemitos.map(r => r.medico))];
     setMedicos(medicosUnicos);
     localStorage.setItem('adminRemitos', JSON.stringify(demoRemitos));
+    console.log('🧪 Datos de prueba generados:', medicosUnicos);
   };
 
   const generateNotifications = () => {
@@ -230,6 +303,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     generateNotifications();
     setSelectedRemitos([]);
     console.log('🔄 Datos actualizados');
+  };
+
+  const resetToDemo = () => {
+    if (confirm('🔄 ¿Desea restablecer los datos a los ejemplos de demostración?\n\nEsto eliminará todos los datos actuales.')) {
+      localStorage.removeItem('adminRemitos');
+      generateDemoData();
+      console.log('🧪 Datos restablecidos a demostración');
+    }
   };
 
   const toggleNotifications = () => {
@@ -1164,6 +1245,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     <RefreshCw size={16} />
                     <span>Actualizar</span>
                   </button>
+                  <button 
+                    onClick={resetToDemo}
+                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                  >
+                    <Target size={16} />
+                    <span>Reset Demo</span>
+                  </button>
                   <button onClick={() => exportarExcel()} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
                     <Download size={16} />
                     <span>Exportar Dashboard</span>
@@ -1344,19 +1432,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 // Aplicar filtros
                 let remitosFiltrados = remitos;
                 
+                console.log('🔍 Aplicando filtros:', {
+                  totalRemitos: remitos.length,
+                  filtroMedico,
+                  filtroEstado,
+                  searchTerm: searchTerm.trim()
+                });
+                
                 // Filtro por médico
                 if (filtroMedico !== 'todos') {
                   remitosFiltrados = remitosFiltrados.filter(r => r.medico === filtroMedico);
+                  console.log('👨‍⚕️ Después de filtro médico:', remitosFiltrados.length);
                 }
                 
                 // Filtro por estado
                 if (filtroEstado !== 'todos') {
                   remitosFiltrados = remitosFiltrados.filter(r => r.estado === filtroEstado);
+                  console.log('📋 Después de filtro estado:', remitosFiltrados.length);
                 }
                 
                 // Filtro por búsqueda (mejorado)
                 if (searchTerm.trim()) {
                   const searchLower = searchTerm.toLowerCase().trim();
+                  const beforeFilter = remitosFiltrados.length;
                   remitosFiltrados = remitosFiltrados.filter(r => {
                     // Buscar en médico
                     const medicoMatch = r.medico.toLowerCase().includes(searchLower);
@@ -1375,9 +1473,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       b.desclasificar?.toLowerCase().includes(searchLower)
                     );
                     
-                    return medicoMatch || hospitalMatch || emailMatch || biopsiaMatch;
+                    const match = medicoMatch || hospitalMatch || emailMatch || biopsiaMatch;
+                    if (match) {
+                      console.log('✅ Match encontrado en:', r.medico, {medicoMatch, hospitalMatch, emailMatch, biopsiaMatch});
+                    }
+                    return match;
                   });
+                  console.log('🔍 Después de filtro búsqueda:', beforeFilter, '→', remitosFiltrados.length);
                 }
+                
+                console.log('📊 Remitos finales filtrados:', remitosFiltrados.length);
                 
                 return remitosFiltrados.length === 0 ? (
                   <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
