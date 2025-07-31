@@ -74,6 +74,21 @@ export const Step2: React.FC<Step2Props> = ({
     ]
   };
 
+  // Función para validar si el paso está completo
+  const isStepValid = () => {
+    if (!tissueType) return false;
+    
+    // Para PAP y Citología, verificar que tengan cantidad > 0
+    if (tissueType === 'PAP') {
+      return papQuantity > 0;
+    }
+    if (tissueType === 'Citología') {
+      return citologiaQuantity > 0;
+    }
+    
+    return true;
+  };
+
   const handleEndoscopiaSubTypeToggle = (subType: string) => {
     const currentSubTypes = endoscopiaSubTypes || [];
     if (currentSubTypes.includes(subType)) {
@@ -604,6 +619,207 @@ export const Step2: React.FC<Step2Props> = ({
             )}
           </div>
 
+          {/* Configuración específica para PAP y Citología */}
+          {(tissueType === 'PAP' || tissueType === 'Citología') && (
+            <div style={{
+              marginTop: '24px',
+              padding: '20px',
+              backgroundColor: '#f0f9ff',
+              borderRadius: '16px',
+              border: '2px solid #667eea',
+              boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#667eea',
+                marginBottom: '16px',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}>
+                🔬 Configuración de {tissueType}
+              </h3>
+
+              {/* Campo de Cantidad */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Cantidad de Unidades:
+                </label>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px'
+                }}>
+                  <button
+                    onClick={() => {
+                      const currentQuantity = tissueType === 'PAP' ? papQuantity : citologiaQuantity;
+                      if (currentQuantity > 0) {
+                        if (tissueType === 'PAP' && onPapQuantityChange) {
+                          onPapQuantityChange(currentQuantity - 1);
+                        } else if (tissueType === 'Citología' && onCitologiaQuantityChange) {
+                          onCitologiaQuantityChange(currentQuantity - 1);
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      border: '2px solid #667eea',
+                      backgroundColor: 'white',
+                      color: '#667eea',
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.color = '#667eea';
+                    }}
+                  >
+                    −
+                  </button>
+                  
+                  <div style={{
+                    minWidth: '120px',
+                    height: '48px',
+                    backgroundColor: 'white',
+                    border: '2px solid #667eea',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    color: '#667eea'
+                  }}>
+                    {tissueType === 'PAP' ? papQuantity : citologiaQuantity}
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      const currentQuantity = tissueType === 'PAP' ? papQuantity : citologiaQuantity;
+                      if (tissueType === 'PAP' && onPapQuantityChange) {
+                        onPapQuantityChange(currentQuantity + 1);
+                      } else if (tissueType === 'Citología' && onCitologiaQuantityChange) {
+                        onCitologiaQuantityChange(currentQuantity + 1);
+                      }
+                    }}
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      border: '2px solid #667eea',
+                      backgroundColor: 'white',
+                      color: '#667eea',
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.color = 'white';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.color = '#667eea';
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Campo de Urgente */}
+              <div>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  cursor: 'pointer',
+                  padding: '12px',
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  border: `2px solid ${(tissueType === 'PAP' ? papUrgente : citologiaUrgente) ? '#667eea' : '#e5e7eb'}`,
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.borderColor = '#667eea';
+                }}
+                onMouseOut={(e) => {
+                  const isChecked = tissueType === 'PAP' ? papUrgente : citologiaUrgente;
+                  e.currentTarget.style.borderColor = isChecked ? '#667eea' : '#e5e7eb';
+                }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={tissueType === 'PAP' ? papUrgente : citologiaUrgente}
+                    onChange={(e) => {
+                      if (tissueType === 'PAP' && onPapUrgenteChange) {
+                        onPapUrgenteChange(e.target.checked);
+                      } else if (tissueType === 'Citología' && onCitologiaUrgenteChange) {
+                        onCitologiaUrgenteChange(e.target.checked);
+                      }
+                    }}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      accentColor: '#667eea'
+                    }}
+                  />
+                  <span style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    🚨 Urgente (24hs)
+                  </span>
+                </label>
+              </div>
+
+              {/* Información de facturación */}
+              <div style={{
+                marginTop: '16px',
+                padding: '12px',
+                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                borderRadius: '8px',
+                border: '1px solid rgba(102, 126, 234, 0.2)'
+              }}>
+                <p style={{
+                  fontSize: '12px',
+                  color: '#667eea',
+                  margin: 0,
+                  textAlign: 'center',
+                  fontWeight: '500'
+                }}>
+                  💰 Este estudio se cobra por unidad
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Botón fijo en la parte inferior */}
           <div style={{ 
             marginTop: '20px', 
@@ -615,32 +831,32 @@ export const Step2: React.FC<Step2Props> = ({
           }}>
             <button
               onClick={onNext}
-              disabled={!tissueType}
+              disabled={!isStepValid()}
               style={{
                 width: '100%',
                 padding: '20px 24px',
                 borderRadius: '16px',
                 fontWeight: 'bold',
                 fontSize: '20px',
-                background: tissueType 
+                background: isStepValid() 
                   ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
                   : '#d1d5db',
                 color: 'white',
                 border: 'none',
-                cursor: tissueType ? 'pointer' : 'not-allowed',
-                boxShadow: tissueType ? '0 8px 24px rgba(102, 126, 234, 0.3)' : 'none',
+                cursor: isStepValid() ? 'pointer' : 'not-allowed',
+                boxShadow: isStepValid() ? '0 8px 24px rgba(102, 126, 234, 0.3)' : 'none',
                 transition: 'all 0.3s',
                 outline: 'none',
                 minHeight: '70px'
               }}
               onMouseOver={(e) => {
-                if (tissueType) {
+                if (isStepValid()) {
                   e.currentTarget.style.transform = 'translateY(-2px)';
                   e.currentTarget.style.boxShadow = '0 12px 32px rgba(102, 126, 234, 0.4)';
                 }
               }}
               onMouseOut={(e) => {
-                if (tissueType) {
+                if (isStepValid()) {
                   e.currentTarget.style.transform = 'translateY(0px)';
                   e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.3)';
                 }
@@ -652,8 +868,13 @@ export const Step2: React.FC<Step2Props> = ({
                 justifyContent: 'center',
                 gap: '12px'
               }}>
-                <span>Continuar al Tipo de Biopsia</span>
-                <ArrowRight style={{ height: '24px', width: '24px' }} />
+                <span>
+                  {!tissueType ? 'Seleccione un tipo de tejido' :
+                   (tissueType === 'PAP' && papQuantity === 0) ? 'Especifique cantidad de PAP' :
+                   (tissueType === 'Citología' && citologiaQuantity === 0) ? 'Especifique cantidad de Citología' :
+                   'Continuar al Tipo de Biopsia'}
+                </span>
+                {isStepValid() && <ArrowRight style={{ height: '24px', width: '24px' }} />}
               </div>
             </button>
           </div>
