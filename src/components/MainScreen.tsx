@@ -108,69 +108,112 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      backgroundColor: 'rgba(0, 0, 0, 0.75)',
       zIndex: 50,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '12px'
+      padding: '20px',
+      backdropFilter: 'blur(8px)'
     }}>
       <div style={{
-        backgroundColor: '#f8fafc',
-        borderRadius: '16px',
+        backgroundColor: 'white',
+        borderRadius: '20px',
         padding: '0',
         width: '100%',
-        maxWidth: '1200px',
-        maxHeight: '95vh',
+        maxWidth: '1100px',
+        maxHeight: '90vh',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-        border: '1px solid #e2e8f0'
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        {/* Header con Gradiente - Más Compacto */}
+        {/* Header Premium con Gradiente */}
         <div style={{
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
           color: 'white',
-          padding: '16px 20px',
+          padding: '24px 28px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderRadius: '16px 16px 0 0',
-          flexShrink: 0
+          borderRadius: '20px 20px 0 0',
+          flexShrink: 0,
+          position: 'relative',
+          overflow: 'hidden'
         }}>
-          <h2 style={{
-            fontSize: '20px',
-            fontWeight: 'bold',
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          {/* Efecto decorativo de fondo */}
+          <div style={{
+            position: 'absolute',
+            top: '-100px',
+            right: '-100px',
+            width: '300px',
+            height: '300px',
+            background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+            borderRadius: '50%'
+          }}></div>
+          
+          <div style={{
+            position: 'relative',
+            zIndex: 1
           }}>
-            <BarChart3 style={{ height: '24px', width: '24px' }} />
-            📊 Estadísticas Médicas
-          </h2>
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '700',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+              letterSpacing: '-0.025em'
+            }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                padding: '8px',
+                borderRadius: '12px',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <BarChart3 style={{ height: '24px', width: '24px' }} />
+              </div>
+              Estadísticas Médicas
+            </h2>
+            <p style={{
+              fontSize: '14px',
+              margin: '8px 0 0 0',
+              opacity: 0.9,
+              fontWeight: '500'
+            }}>
+              Análisis completo de datos clínicos
+            </p>
+          </div>
+          
           <button
             onClick={() => setShowStatistics(false)}
             style={{
               color: 'white',
-              fontSize: '28px',
+              fontSize: '24px',
               fontWeight: 'bold',
               border: 'none',
-              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
               cursor: 'pointer',
-              padding: '8px 12px',
-              borderRadius: '12px',
+              padding: '12px',
+              borderRadius: '50%',
               backdropFilter: 'blur(10px)',
-              transition: 'all 0.2s'
+              transition: 'all 0.3s',
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+              zIndex: 1
             }}
             onMouseOver={(e) => { 
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
               e.currentTarget.style.transform = 'scale(1.1)';
             }}
             onMouseOut={(e) => { 
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
               e.currentTarget.style.transform = 'scale(1)';
             }}
           >
@@ -178,54 +221,72 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </button>
         </div>
 
-        {/* Contenido Principal con Scroll Optimizado */}
+        {/* Contenido Principal con Diseño Premium */}
         <div style={{
           flex: 1,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '20px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px'
+          padding: '28px',
+          background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)'
         }}>
           
-          {/* Métricas Principales - Cards en Grid Responsivo */}
+          {/* Métricas Principales - Cards Premium */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: '12px',
-            marginBottom: '16px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px',
+            marginBottom: '32px'
           }}>
             {/* Card 1 - Total Remitos */}
             <div style={{
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: 'white',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: '24px',
+              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 6px 20px -6px rgba(102, 126, 234, 0.4)',
-              height: '110px',
-              textAlign: 'center'
+              boxShadow: '0 8px 32px -8px rgba(102, 126, 234, 0.4)',
+              height: '140px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <div style={{
                 position: 'absolute',
-                top: '-30px',
-                right: '-30px',
-                width: '100px',
-                height: '100px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                filter: 'blur(25px)'
+                top: '-40px',
+                right: '-40px',
+                width: '120px',
+                height: '120px',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+                borderRadius: '50%'
               }}></div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <FileText style={{ height: '24px', width: '24px', marginBottom: '8px' }} />
-                <div style={{ fontSize: '28px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2px' }}>{stats.totalRemitos}</div>
-                <div style={{ fontSize: '11px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Remitos</div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  marginBottom: '12px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <FileText style={{ height: '28px', width: '28px' }} />
+                </div>
+                <div style={{ 
+                  fontSize: '36px', 
+                  fontWeight: '700', 
+                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
+                  marginBottom: '4px',
+                  letterSpacing: '-0.025em'
+                }}>{stats.totalRemitos}</div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  opacity: 0.9, 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px' 
+                }}>Total Remitos</div>
               </div>
             </div>
 
@@ -233,32 +294,52 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             <div style={{
               background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
               color: 'white',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: '24px',
+              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 6px 20px -6px rgba(17, 153, 142, 0.4)',
-              height: '110px',
-              textAlign: 'center'
+              boxShadow: '0 8px 32px -8px rgba(17, 153, 142, 0.4)',
+              height: '140px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <div style={{
                 position: 'absolute',
-                top: '-30px',
-                right: '-30px',
-                width: '100px',
-                height: '100px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                filter: 'blur(25px)'
+                top: '-40px',
+                right: '-40px',
+                width: '120px',
+                height: '120px',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+                borderRadius: '50%'
               }}></div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <Activity style={{ height: '24px', width: '24px', marginBottom: '8px' }} />
-                <div style={{ fontSize: '28px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2px' }}>{stats.totalBiopsias}</div>
-                <div style={{ fontSize: '11px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Biopsias</div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  marginBottom: '12px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <Activity style={{ height: '28px', width: '28px' }} />
+                </div>
+                <div style={{ 
+                  fontSize: '36px', 
+                  fontWeight: '700', 
+                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
+                  marginBottom: '4px',
+                  letterSpacing: '-0.025em'
+                }}>{stats.totalBiopsias}</div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  opacity: 0.9, 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px' 
+                }}>Total Biopsias</div>
               </div>
             </div>
 
@@ -266,32 +347,52 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             <div style={{
               background: 'linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%)',
               color: 'white',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: '24px',
+              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 6px 20px -6px rgba(157, 80, 187, 0.4)',
-              height: '110px',
-              textAlign: 'center'
+              boxShadow: '0 8px 32px -8px rgba(157, 80, 187, 0.4)',
+              height: '140px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <div style={{
                 position: 'absolute',
-                top: '-30px',
-                right: '-30px',
-                width: '100px',
-                height: '100px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                filter: 'blur(25px)'
+                top: '-40px',
+                right: '-40px',
+                width: '120px',
+                height: '120px',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+                borderRadius: '50%'
               }}></div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <TrendingUp style={{ height: '24px', width: '24px', marginBottom: '8px' }} />
-                <div style={{ fontSize: '28px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2px' }}>{stats.promedioPorRemito}</div>
-                <div style={{ fontSize: '11px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Promedio/Remito</div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  marginBottom: '12px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <TrendingUp style={{ height: '28px', width: '28px' }} />
+                </div>
+                <div style={{ 
+                  fontSize: '36px', 
+                  fontWeight: '700', 
+                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
+                  marginBottom: '4px',
+                  letterSpacing: '-0.025em'
+                }}>{stats.promedioPorRemito}</div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  opacity: 0.9, 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px' 
+                }}>Promedio/Remito</div>
               </div>
             </div>
 
@@ -299,32 +400,52 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             <div style={{
               background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
               color: 'white',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: '24px',
+              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 6px 20px -6px rgba(240, 147, 251, 0.4)',
-              height: '110px',
-              textAlign: 'center'
+              boxShadow: '0 8px 32px -8px rgba(240, 147, 251, 0.4)',
+              height: '140px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <div style={{
                 position: 'absolute',
-                top: '-30px',
-                right: '-30px',
-                width: '100px',
-                height: '100px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                filter: 'blur(25px)'
+                top: '-40px',
+                right: '-40px',
+                width: '120px',
+                height: '120px',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+                borderRadius: '50%'
               }}></div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <Calendar style={{ height: '24px', width: '24px', marginBottom: '8px' }} />
-                <div style={{ fontSize: '28px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2px' }}>{todayBiopsiesCount}</div>
-                <div style={{ fontSize: '11px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Biopsias Hoy</div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  marginBottom: '12px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <Calendar style={{ height: '28px', width: '28px' }} />
+                </div>
+                <div style={{ 
+                  fontSize: '36px', 
+                  fontWeight: '700', 
+                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
+                  marginBottom: '4px',
+                  letterSpacing: '-0.025em'
+                }}>{todayBiopsiesCount}</div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  opacity: 0.9, 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px' 
+                }}>Biopsias Hoy</div>
               </div>
             </div>
 
@@ -332,108 +453,154 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             <div style={{
               background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
               color: 'white',
-              padding: '16px',
-              borderRadius: '12px',
+              padding: '24px',
+              borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               position: 'relative',
               overflow: 'hidden',
-              boxShadow: '0 6px 20px -6px rgba(79, 172, 254, 0.4)',
-              height: '110px',
-              textAlign: 'center'
+              boxShadow: '0 8px 32px -8px rgba(79, 172, 254, 0.4)',
+              height: '140px',
+              textAlign: 'center',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
             }}>
               <div style={{
                 position: 'absolute',
-                top: '-30px',
-                right: '-30px',
-                width: '100px',
-                height: '100px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                filter: 'blur(25px)'
+                top: '-40px',
+                right: '-40px',
+                width: '120px',
+                height: '120px',
+                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+                borderRadius: '50%'
               }}></div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <Clock style={{ height: '24px', width: '24px', marginBottom: '8px' }} />
-                <div style={{ fontSize: '28px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)', marginBottom: '2px' }}>{efficiency}%</div>
-                <div style={{ fontSize: '11px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Eficiencia</div>
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  marginBottom: '12px',
+                  backdropFilter: 'blur(10px)'
+                }}>
+                  <Clock style={{ height: '28px', width: '28px' }} />
+                </div>
+                <div style={{ 
+                  fontSize: '36px', 
+                  fontWeight: '700', 
+                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
+                  marginBottom: '4px',
+                  letterSpacing: '-0.025em'
+                }}>{efficiency}%</div>
+                <div style={{ 
+                  fontSize: '12px', 
+                  opacity: 0.9, 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px' 
+                }}>Eficiencia</div>
               </div>
             </div>
           </div>
 
-          {/* Servicios Especiales - Card Compacto */}
+          {/* Servicios Especiales - Card Premium Horizontal */}
           <div style={{
             background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
             color: 'white',
-            padding: '16px',
-            borderRadius: '12px',
+            padding: '24px',
+            borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             position: 'relative',
             overflow: 'hidden',
-            boxShadow: '0 6px 20px -6px rgba(250, 112, 154, 0.4)',
-            height: '70px',
-            marginBottom: '16px'
+            boxShadow: '0 8px 32px -8px rgba(250, 112, 154, 0.4)',
+            marginBottom: '32px',
+            border: '1px solid rgba(255, 255, 255, 0.1)'
           }}>
             <div style={{
               position: 'absolute',
-              top: '-30px',
-              right: '-30px',
-              width: '150px',
-              height: '150px',
-              background: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '50%',
-              filter: 'blur(40px)'
+              top: '-60px',
+              right: '-60px',
+              width: '200px',
+              height: '200px',
+              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+              borderRadius: '50%'
             }}></div>
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <Star style={{ height: '28px', width: '28px' }} />
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                padding: '16px',
+                borderRadius: '50%',
+                backdropFilter: 'blur(10px)'
+              }}>
+                <Star style={{ height: '32px', width: '32px' }} />
+              </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '600', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>Servicios Especiales</div>
-                <div style={{ fontSize: '20px', fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>{biopsiesWithServices} biopsias con servicios extra</div>
+                <div style={{ 
+                  fontSize: '14px', 
+                  opacity: 0.9, 
+                  fontWeight: '600', 
+                  textTransform: 'uppercase', 
+                  letterSpacing: '1px', 
+                  marginBottom: '4px' 
+                }}>Servicios Especiales</div>
+                <div style={{ 
+                  fontSize: '24px', 
+                  fontWeight: '700', 
+                  textShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  letterSpacing: '-0.025em'
+                }}>{biopsiesWithServices} biopsias con servicios extra</div>
               </div>
             </div>
           </div>
 
-          {/* Tipos de Tejido - Sección Compacta y Responsive */}
+          {/* Tipos de Tejido - Sección Premium */}
           {stats.topTissues.length > 0 && (
-            <div style={{ minHeight: '200px' }}>
+            <div>
               <h3 style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
+                fontSize: '20px',
+                fontWeight: '700',
                 color: '#2d3748',
-                marginBottom: '12px',
+                marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '10px'
+                gap: '12px',
+                letterSpacing: '-0.025em'
               }}>
-                <PieChart style={{ color: '#667eea', height: '20px', width: '20px' }} />
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  padding: '8px',
+                  borderRadius: '12px',
+                  color: 'white'
+                }}>
+                  <PieChart style={{ height: '20px', width: '20px' }} />
+                </div>
                 Tipos de Tejido Analizados
               </h3>
               <div style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '12px',
-                padding: '16px',
+                borderRadius: '16px',
+                padding: '24px',
                 color: 'white',
                 position: 'relative',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                border: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
                 <div style={{
                   position: 'absolute',
-                  top: '-50px',
-                  right: '-50px',
-                  width: '200px',
-                  height: '200px',
-                  background: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '50%',
-                  filter: 'blur(40px)'
+                  top: '-80px',
+                  right: '-80px',
+                  width: '250px',
+                  height: '250px',
+                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
+                  borderRadius: '50%'
                 }}></div>
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <div style={{ 
                     display: 'flex', 
                     flexDirection: 'column',
-                    gap: '8px'
+                    gap: '12px'
                   }}>
                     {stats.topTissues.slice(0, 4).map(([tissue, count]) => {
                       const percentage = stats.totalBiopsias > 0 ? Math.round((count / stats.totalBiopsias) * 100) : 0;
@@ -441,51 +608,54 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       return (
                         <div key={tissue} style={{
                           backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                          padding: '12px 16px',
-                          borderRadius: '10px',
+                          padding: '16px 20px',
+                          borderRadius: '12px',
                           backdropFilter: 'blur(10px)',
                           border: '1px solid rgba(255, 255, 255, 0.2)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          height: '50px'
+                          minHeight: '60px',
+                          transition: 'all 0.3s ease'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
                             <div style={{
-                              width: '8px',
-                              height: '8px',
+                              width: '12px',
+                              height: '12px',
                               borderRadius: '50%',
                               backgroundColor: 'white',
-                              flexShrink: 0
+                              flexShrink: 0,
+                              boxShadow: '0 0 8px rgba(255, 255, 255, 0.5)'
                             }}></div>
                             <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '1px' }}>{tissue}</div>
-                              <div style={{ fontSize: '11px', opacity: 0.9 }}>{count} casos</div>
+                              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px', letterSpacing: '-0.025em' }}>{tissue}</div>
+                              <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '500' }}>{count} casos registrados</div>
                             </div>
                           </div>
                           
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <div style={{
-                              width: '80px',
-                              height: '6px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                              borderRadius: '3px',
+                              width: '100px',
+                              height: '8px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                              borderRadius: '4px',
                               overflow: 'hidden'
                             }}>
                               <div style={{
                                 height: '100%',
                                 backgroundColor: 'white',
                                 width: `${percentage}%`,
-                                borderRadius: '3px',
+                                borderRadius: '4px',
                                 transition: 'width 2s ease-in-out',
-                                boxShadow: '0 0 8px rgba(255, 255, 255, 0.5)'
+                                boxShadow: '0 0 12px rgba(255, 255, 255, 0.6)'
                               }}></div>
                             </div>
                             <div style={{ 
-                              fontSize: '16px', 
-                              fontWeight: 'bold', 
-                              minWidth: '40px',
-                              textAlign: 'right'
+                              fontSize: '18px', 
+                              fontWeight: '700', 
+                              minWidth: '50px',
+                              textAlign: 'right',
+                              letterSpacing: '-0.025em'
                             }}>
                               {percentage}%
                             </div>
@@ -500,42 +670,70 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           )}
         </div>
 
-        {/* Footer Compacto */}
+        {/* Footer Premium */}
         <div style={{
-          padding: '16px 20px',
+          padding: '20px 28px',
           borderTop: '1px solid #e2e8f0',
           backgroundColor: 'white',
-          borderRadius: '0 0 16px 16px',
-          flexShrink: 0
+          borderRadius: '0 0 20px 20px',
+          flexShrink: 0,
+          background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px' }}>
-            <div style={{ fontSize: '12px', color: '#64748b' }}>
-              Actualizado: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Clock style={{ height: '16px', width: '16px' }} />
+                Actualizado: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              <div style={{
+                fontSize: '13px',
+                color: '#10b981',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  backgroundColor: '#10b981',
+                  borderRadius: '50%',
+                  animation: 'pulse 2s infinite'
+                }}></div>
+                Datos en tiempo real
+              </div>
             </div>
             <button
               onClick={() => setShowStatistics(false)}
               style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
-                padding: '10px 24px',
-                borderRadius: '10px',
+                padding: '12px 28px',
+                borderRadius: '12px',
                 fontWeight: '600',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: '14px',
                 transition: 'all 0.3s',
-                boxShadow: '0 3px 12px rgba(102, 126, 234, 0.4)'
+                boxShadow: '0 4px 16px rgba(102, 126, 234, 0.4)',
+                letterSpacing: '-0.025em'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-1px)';
-                e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.6)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.6)';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 3px 12px rgba(102, 126, 234, 0.4)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.4)';
               }}
             >
-              Cerrar
+              Cerrar Estadísticas
             </button>
           </div>
         </div>
