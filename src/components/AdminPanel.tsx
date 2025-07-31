@@ -146,6 +146,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     setNotifications(notificaciones);
   };
 
+  const refreshData = () => {
+    loadAdminData();
+    generateNotifications();
+    setSelectedRemitos([]);
+    console.log('🔄 Datos actualizados');
+  };
+
+  const toggleNotifications = () => {
+    setShowNotifications(!showNotifications);
+  };
+
+  const markNotificationAsRead = (notificationId: string) => {
+    setNotifications(prev => 
+      prev.map(n => n.id === notificationId ? { ...n, leida: true } : n)
+    );
+  };
+
   const handleLogin = () => {
     if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
       setIsAuthenticated(true);
@@ -162,18 +179,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   };
 
   const calcularTotalBiopsia = (biopsia: AdminBiopsia) => {
-    const servicios = biopsia.servicios || {};
+    const servicios = biopsia.servicios || {
+      cassetteNormal: 0,
+      cassetteUrgente: 0,
+      profundizacion: 0,
+      pap: 0,
+      papUrgente: 0,
+      citologia: 0,
+      citologiaUrgente: 0,
+      corteBlanco: 0,
+      corteBlancoIHQ: 0,
+      giemsaPASMasson: 0
+    };
     let total = 0;
     const totalCassettes = Math.max(biopsia.cassettes || 0, 0);
-    const cassettesUrgentes = servicios.cassetteUrgente || 0;
+    const esCassetteUrgente = (servicios.cassetteUrgente || 0) > 0;
     
+    // Cálculo de cassettes
     if (totalCassettes > 0) {
-      if (cassettesUrgentes > 0) {
-        total += configuracion.precioCassetteUrgente;
-        if (totalCassettes > 1) {
-          total += (totalCassettes - 1) * configuracion.precioProfundizacion;
-        }
+      if (esCassetteUrgente) {
+        // TODOS los cassettes son urgentes
+        total += totalCassettes * configuracion.precioCassetteUrgente;
       } else {
+        // Primer cassette normal, el resto profundización
         total += configuracion.precioCassette;
         if (totalCassettes > 1) {
           total += (totalCassettes - 1) * configuracion.precioProfundizacion;
@@ -181,16 +209,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       }
     }
     
-    const papUrgenteCantidad = servicios.papUrgente || 0;
-    const papNormalCantidad = papUrgenteCantidad > 0 ? 0 : (biopsia.papQuantity || 0);
-    total += papNormalCantidad * configuracion.precioPAP;
-    total += papUrgenteCantidad * (biopsia.papQuantity || 1) * configuracion.precioPAPUrgente;
+    // Cálculo de PAP
+    const papCantidad = biopsia.papQuantity || 0;
+    const esPapUrgente = (servicios.papUrgente || 0) > 0;
+    if (papCantidad > 0) {
+      if (esPapUrgente) {
+        // TODOS los PAP son urgentes
+        total += papCantidad * configuracion.precioPAPUrgente;
+      } else {
+        // TODOS los PAP son normales
+        total += papCantidad * configuracion.precioPAP;
+      }
+    }
     
-    const citologiaUrgenteCantidad = servicios.citologiaUrgente || 0;
-    const citologiaNormalCantidad = citologiaUrgenteCantidad > 0 ? 0 : ((biopsia.citologiaQuantity || 0) > 0 ? 1 : 0);
-    total += citologiaNormalCantidad * configuracion.precioCitologia;
-    total += (citologiaUrgenteCantidad > 0 ? 1 : 0) * configuracion.precioCitologiaUrgente;
+    // Cálculo de Citología
+    const citologiaCantidad = biopsia.citologiaQuantity || 0;
+    const esCitologiaUrgente = (servicios.citologiaUrgente || 0) > 0;
+    if (citologiaCantidad > 0) {
+      if (esCitologiaUrgente) {
+        // TODAS las citologías son urgentes
+        total += citologiaCantidad * configuracion.precioCitologiaUrgente;
+      } else {
+        // TODAS las citologías son normales
+        total += citologiaCantidad * configuracion.precioCitologia;
+      }
+    }
     
+    // Otros estudios
     total += (servicios.corteBlanco || 0) * configuracion.precioCorteBlanco;
     total += (servicios.corteBlancoIHQ || 0) * configuracion.precioCorteBlancoIHQ;
     
@@ -207,6 +252,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   };
 
   const cambiarEstadoRemito = (remitoId: string, nuevoEstado: 'pendiente' | 'facturado') => {
+    // Pedir confirmación solo al marcar como facturado
+    if (nuevoEstado === 'facturado') {
+      const confirmar = window.confirm(
+        '⚠️ ¿Está seguro que desea marcar este remito como FACTURADO?\n\n' +
+        'Esta acción cambiará el estado del remito y se reflejará en los reportes.'
+      );
+      
+      if (!confirmar) {
+        return; // No hacer nada si cancela
+      }
+    }
+    
     setRemitos(prev => {
       const updated = prev.map(remito => 
         remito.id === remitoId ? { ...remito, estado: nuevoEstado } : remito
@@ -214,6 +271,333 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       localStorage.setItem('adminRemitos', JSON.stringify(updated));
       return updated;
     });
+  };
+
+  // Función para determinar qué campos mostrar en edición según lo que tiene la biopsia
+  const getCamposEditables = (biopsia: AdminBiopsia) => {
+    const campos = [];
+    
+    // Siempre mostrar cassettes si tiene
+    if (biopsia.cassettes > 0) {
+      campos.push('cassettes');
+    }
+    
+    // Mostrar PAP si tiene cantidad
+    if ((biopsia.papQuantity || 0) > 0) {
+      campos.push('pap');
+    }
+    
+    // Mostrar Citología si tiene cantidad
+    if ((biopsia.citologiaQuantity || 0) > 0) {
+      campos.push('citologia');
+    }
+    
+    // Mostrar estudios especiales si tiene alguno
+    if ((biopsia.servicios?.corteBlanco || 0) > 0 || 
+        (biopsia.servicios?.corteBlancoIHQ || 0) > 0 || 
+        (biopsia.servicios?.giemsaPASMasson || 0) > 0) {
+      campos.push('estudios');
+    }
+    
+    return campos;
+  };
+
+  // Componente de edición inteligente
+  const EdicionInteligente = ({ biopsia, index, remito }: { biopsia: AdminBiopsia, index: number, remito: AdminRemito }) => {
+    const camposEditables = getCamposEditables(biopsia);
+    
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-3">
+        <div className="text-xs font-bold text-blue-800 mb-2 flex items-center gap-1">
+          <Edit size={12} />
+          Editando #{biopsia.numero} - Solo campos con datos
+        </div>
+        
+        <div className="grid grid-cols-1 gap-3">
+          {/* Cassettes */}
+          {camposEditables.includes('cassettes') && (
+            <div className="bg-white rounded-lg p-2 border">
+              <div className="text-xs font-semibold text-gray-700 mb-2">🧪 Cassettes de Biopsia</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  defaultValue={biopsia.cassettes}
+                  min="0"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                  onChange={(e) => {
+                    const updatedRemitos = remitos.map(r => {
+                      if (r.id === remito.id) {
+                        const updatedBiopsias = r.biopsias.map((b, i) => {
+                          if (i === index) {
+                            return { ...b, cassettes: Number(e.target.value) };
+                          }
+                          return b;
+                        });
+                        return { ...r, biopsias: updatedBiopsias };
+                      }
+                      return r;
+                    });
+                    setRemitos(updatedRemitos);
+                  }}
+                />
+                <label className="flex items-center gap-1 text-xs">
+                  <input
+                    type="checkbox"
+                    defaultChecked={(biopsia.servicios?.cassetteUrgente || 0) > 0}
+                    className="w-3 h-3"
+                    onChange={(e) => {
+                      const updatedRemitos = remitos.map(r => {
+                        if (r.id === remito.id) {
+                          const updatedBiopsias = r.biopsias.map((b, i) => {
+                            if (i === index) {
+                              return { 
+                                ...b, 
+                                servicios: { 
+                                  ...b.servicios, 
+                                  cassetteUrgente: e.target.checked ? 1 : 0
+                                }
+                              };
+                            }
+                            return b;
+                          });
+                          return { ...r, biopsias: updatedBiopsias };
+                        }
+                        return r;
+                      });
+                      setRemitos(updatedRemitos);
+                    }}
+                  />
+                  <span className="text-red-600 font-medium">🚨 Urgente</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* PAP */}
+          {camposEditables.includes('pap') && (
+            <div className="bg-white rounded-lg p-2 border">
+              <div className="text-xs font-semibold text-pink-700 mb-2">🌸 PAP</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  defaultValue={biopsia.papQuantity || 0}
+                  min="0"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                  onChange={(e) => {
+                    const updatedRemitos = remitos.map(r => {
+                      if (r.id === remito.id) {
+                        const updatedBiopsias = r.biopsias.map((b, i) => {
+                          if (i === index) {
+                            return { ...b, papQuantity: Number(e.target.value) };
+                          }
+                          return b;
+                        });
+                        return { ...r, biopsias: updatedBiopsias };
+                      }
+                      return r;
+                    });
+                    setRemitos(updatedRemitos);
+                  }}
+                />
+                <label className="flex items-center gap-1 text-xs">
+                  <input
+                    type="checkbox"
+                    defaultChecked={(biopsia.servicios?.papUrgente || 0) > 0}
+                    className="w-3 h-3"
+                    onChange={(e) => {
+                      const updatedRemitos = remitos.map(r => {
+                        if (r.id === remito.id) {
+                          const updatedBiopsias = r.biopsias.map((b, i) => {
+                            if (i === index) {
+                              return { 
+                                ...b, 
+                                servicios: { 
+                                  ...b.servicios, 
+                                  papUrgente: e.target.checked ? 1 : 0
+                                }
+                              };
+                            }
+                            return b;
+                          });
+                          return { ...r, biopsias: updatedBiopsias };
+                        }
+                        return r;
+                      });
+                      setRemitos(updatedRemitos);
+                    }}
+                  />
+                  <span className="text-red-600 font-medium">🚨 Urgente</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Citología */}
+          {camposEditables.includes('citologia') && (
+            <div className="bg-white rounded-lg p-2 border">
+              <div className="text-xs font-semibold text-purple-700 mb-2">🔬 Citología</div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  defaultValue={biopsia.citologiaQuantity || 0}
+                  min="0"
+                  className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+                  onChange={(e) => {
+                    const updatedRemitos = remitos.map(r => {
+                      if (r.id === remito.id) {
+                        const updatedBiopsias = r.biopsias.map((b, i) => {
+                          if (i === index) {
+                            return { ...b, citologiaQuantity: Number(e.target.value) };
+                          }
+                          return b;
+                        });
+                        return { ...r, biopsias: updatedBiopsias };
+                      }
+                      return r;
+                    });
+                    setRemitos(updatedRemitos);
+                  }}
+                />
+                <label className="flex items-center gap-1 text-xs">
+                  <input
+                    type="checkbox"
+                    defaultChecked={(biopsia.servicios?.citologiaUrgente || 0) > 0}
+                    className="w-3 h-3"
+                    onChange={(e) => {
+                      const updatedRemitos = remitos.map(r => {
+                        if (r.id === remito.id) {
+                          const updatedBiopsias = r.biopsias.map((b, i) => {
+                            if (i === index) {
+                              return { 
+                                ...b, 
+                                servicios: { 
+                                  ...b.servicios, 
+                                  citologiaUrgente: e.target.checked ? 1 : 0
+                                }
+                              };
+                            }
+                            return b;
+                          });
+                          return { ...r, biopsias: updatedBiopsias };
+                        }
+                        return r;
+                      });
+                      setRemitos(updatedRemitos);
+                    }}
+                  />
+                  <span className="text-red-600 font-medium">🚨 Urgente</span>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {/* Estudios Especiales */}
+          {camposEditables.includes('estudios') && (
+            <div className="bg-white rounded-lg p-2 border">
+              <div className="text-xs font-semibold text-orange-700 mb-2">⚗️ Estudios Especiales</div>
+              <div className="space-y-2">
+                {(biopsia.servicios?.corteBlanco || 0) > 0 && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      defaultValue={biopsia.servicios?.corteBlanco || 0}
+                      min="0"
+                      className="w-12 px-1 py-1 border border-gray-300 rounded text-center text-xs"
+                      onChange={(e) => {
+                        const updatedRemitos = remitos.map(r => {
+                          if (r.id === remito.id) {
+                            const updatedBiopsias = r.biopsias.map((b, i) => {
+                              if (i === index) {
+                                return { 
+                                  ...b, 
+                                  servicios: { 
+                                    ...b.servicios, 
+                                    corteBlanco: Number(e.target.value) 
+                                  }
+                                };
+                              }
+                              return b;
+                            });
+                            return { ...r, biopsias: updatedBiopsias };
+                          }
+                          return r;
+                        });
+                        setRemitos(updatedRemitos);
+                      }}
+                    />
+                    <span className="text-blue-600 font-medium text-xs">Corte Blanco</span>
+                  </div>
+                )}
+                {(biopsia.servicios?.corteBlancoIHQ || 0) > 0 && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      defaultValue={biopsia.servicios?.corteBlancoIHQ || 0}
+                      min="0"
+                      className="w-12 px-1 py-1 border border-gray-300 rounded text-center text-xs"
+                      onChange={(e) => {
+                        const updatedRemitos = remitos.map(r => {
+                          if (r.id === remito.id) {
+                            const updatedBiopsias = r.biopsias.map((b, i) => {
+                              if (i === index) {
+                                return { 
+                                  ...b, 
+                                  servicios: { 
+                                    ...b.servicios, 
+                                    corteBlancoIHQ: Number(e.target.value) 
+                                  }
+                                };
+                              }
+                              return b;
+                            });
+                            return { ...r, biopsias: updatedBiopsias };
+                          }
+                          return r;
+                        });
+                        setRemitos(updatedRemitos);
+                      }}
+                    />
+                    <span className="text-orange-600 font-medium text-xs">IHQ</span>
+                  </div>
+                )}
+                {(biopsia.servicios?.giemsaPASMasson || 0) > 0 && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      defaultValue={biopsia.servicios?.giemsaPASMasson || 0}
+                      min="0"
+                      className="w-12 px-1 py-1 border border-gray-300 rounded text-center text-xs"
+                      onChange={(e) => {
+                        const updatedRemitos = remitos.map(r => {
+                          if (r.id === remito.id) {
+                            const updatedBiopsias = r.biopsias.map((b, i) => {
+                              if (i === index) {
+                                return { 
+                                  ...b, 
+                                  servicios: { 
+                                    ...b.servicios, 
+                                    giemsaPASMasson: Number(e.target.value) 
+                                  }
+                                };
+                              }
+                              return b;
+                            });
+                            return { ...r, biopsias: updatedBiopsias };
+                          }
+                          return r;
+                        });
+                        setRemitos(updatedRemitos);
+                      }}
+                    />
+                    <span className="text-green-600 font-medium text-xs">Giemsa/PAS</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
 
   const exportarFacturacionMedico = (medico: string) => {
@@ -528,7 +912,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <div className="flex items-center space-x-4">
                 <div className="relative">
                   <button
-                    onClick={() => setShowNotifications(!showNotifications)}
+                    onClick={toggleNotifications}
                     className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                   >
                     <Bell size={20} />
@@ -538,6 +922,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </span>
                     )}
                   </button>
+                  
+                  {/* Panel de Notificaciones */}
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                      <div className="p-4 border-b border-gray-200">
+                        <h3 className="text-lg font-semibold text-gray-900">Notificaciones</h3>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-gray-500">
+                            No hay notificaciones
+                          </div>
+                        ) : (
+                          notifications.map(notification => (
+                            <div
+                              key={notification.id}
+                              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                                !notification.leida ? 'bg-blue-50' : ''
+                              }`}
+                              onClick={() => markNotificationAsRead(notification.id)}
+                            >
+                              <div className="flex items-start space-x-3">
+                                <div className={`w-2 h-2 rounded-full mt-2 ${
+                                  notification.tipo === 'warning' ? 'bg-yellow-500' :
+                                  notification.tipo === 'success' ? 'bg-green-500' :
+                                  notification.tipo === 'error' ? 'bg-red-500' : 'bg-blue-500'
+                                }`} />
+                                <div className="flex-1">
+                                  <h4 className="text-sm font-medium text-gray-900">
+                                    {notification.titulo}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 mt-1">
+                                    {notification.mensaje}
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-2">
+                                    {notification.fecha.toLocaleDateString()} {notification.fecha.toLocaleTimeString()}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <button onClick={onGoBack} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
@@ -574,7 +1003,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <p className="text-gray-600">Visión general del rendimiento del laboratorio</p>
                 </div>
                 <div className="flex space-x-2">
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                  <button 
+                    onClick={refreshData}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                  >
                     <RefreshCw size={16} />
                     <span>Actualizar</span>
                   </button>
@@ -754,15 +1186,45 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
-              {remitos.length === 0 ? (
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-                  <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay remitos</h3>
-                  <p className="text-gray-500">Los remitos aparecerán aquí cuando los médicos los envíen</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {remitos.map(remito => (
+              {(() => {
+                // Aplicar filtros
+                let remitosFiltrados = remitos;
+                
+                // Filtro por médico
+                if (filtroMedico !== 'todos') {
+                  remitosFiltrados = remitosFiltrados.filter(r => r.medico === filtroMedico);
+                }
+                
+                // Filtro por estado
+                if (filtroEstado !== 'todos') {
+                  remitosFiltrados = remitosFiltrados.filter(r => r.estado === filtroEstado);
+                }
+                
+                // Filtro por búsqueda
+                if (searchTerm.trim()) {
+                  remitosFiltrados = remitosFiltrados.filter(r => 
+                    r.medico.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    r.hospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    r.biopsias.some(b => b.numero.includes(searchTerm) || b.tejido.toLowerCase().includes(searchTerm.toLowerCase()))
+                  );
+                }
+                
+                return remitosFiltrados.length === 0 ? (
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
+                    <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                      {remitos.length === 0 ? 'No hay remitos' : 'No se encontraron remitos'}
+                    </h3>
+                    <p className="text-gray-500">
+                      {remitos.length === 0 
+                        ? 'Los remitos aparecerán aquí cuando los médicos los envíen' 
+                        : 'Intenta ajustar los filtros para encontrar los remitos que buscas'
+                      }
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {remitosFiltrados.map(remito => (
                     <div key={remito.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                       <div className="flex items-center justify-between mb-4">
                         <div>
@@ -795,34 +1257,260 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               <th className="text-left py-2">Tejido</th>
                               <th className="text-left py-2">Tipo</th>
                               <th className="text-left py-2">Cassettes</th>
+                              <th className="text-left py-2">PAP</th>
+                              <th className="text-left py-2">Citología</th>
+                              <th className="text-left py-2">Otros Estudios</th>
                               <th className="text-right py-2">Subtotal</th>
+                              <th className="text-center py-2">Acciones</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {remito.biopsias.map((biopsia, index) => (
-                              <tr key={index} className="border-b border-gray-100">
-                                <td className="py-2 font-bold text-blue-600">#{biopsia.numero}</td>
-                                <td className="py-2">{biopsia.tejido}</td>
-                                <td className="py-2">
-                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                                    biopsia.tipo === 'BX' ? 'bg-green-100 text-green-800' : 'bg-purple-100 text-purple-800'
-                                  }`}>
-                                    {biopsia.tipo}
-                                  </span>
-                                </td>
-                                <td className="py-2">{biopsia.cassettes}</td>
-                                <td className="py-2 text-right font-bold text-green-600">
-                                  ${calcularTotalBiopsia(biopsia).toLocaleString()}
-                                </td>
-                              </tr>
-                            ))}
+                            {remito.biopsias.map((biopsia, index) => {
+                              const isEditing = editingRemito === `${remito.id}_${index}`;
+                              
+                              if (isEditing) {
+                                // Modo edición: mostrar solo campos con datos
+                                return (
+                                  <tr key={index} className="border-b border-gray-200 bg-blue-50">
+                                    <td colSpan={8} className="py-4">
+                                      <EdicionInteligente 
+                                        biopsia={biopsia} 
+                                        index={index} 
+                                        remito={remito} 
+                                      />
+                                      <div className="flex justify-end gap-2 mt-3">
+                                        <button
+                                          onClick={() => {
+                                            localStorage.setItem('adminRemitos', JSON.stringify(remitos));
+                                            setEditingRemito(null);
+                                          }}
+                                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                                        >
+                                          <Save size={14} />
+                                          Guardar
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            loadAdminData();
+                                            setEditingRemito(null);
+                                          }}
+                                          className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
+                                        >
+                                          <X size={14} />
+                                          Cancelar
+                                        </button>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                );
+                              }
+                              
+                              // Modo vista normal
+                              return (
+                                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                                  <td className="py-2 font-bold text-blue-600">#{biopsia.numero}</td>
+                                  <td className="py-2">{biopsia.tejido}</td>
+                                  <td className="py-2">
+                                    {(() => {
+                                      const getTipoDisplay = (tipo: string, tejido: string) => {
+                                        // Simplificar: todo es BX
+                                        if (tejido === 'PAP') {
+                                          return { nombre: 'PAP', color: 'bg-pink-100 text-pink-800' };
+                                        }
+                                        if (tejido === 'Citología') {
+                                          return { nombre: 'CITO', color: 'bg-purple-100 text-purple-800' };
+                                        }
+                                        // Todo lo demás es BX
+                                        return { nombre: 'BX', color: 'bg-green-100 text-green-800' };
+                                      };
+                                      
+                                      const tipoInfo = getTipoDisplay(biopsia.tipo, biopsia.tejido);
+                                      
+                                      return (
+                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${tipoInfo.color} border`}>
+                                          {tipoInfo.nombre}
+                                        </span>
+                                      );
+                                    })()}
+                                  </td>
+                                  <td className="py-2">
+                                    <div className="space-y-1">
+                                      <span className="font-medium">{biopsia.cassettes}</span>
+                                      {(biopsia.servicios?.cassetteUrgente || 0) > 0 && (
+                                        <div className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                          URGENTE (24hs)
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2">
+                                    <div className="space-y-1">
+                                      {(biopsia.papQuantity || 0) > 0 && (
+                                        <div className={`text-xs px-2 py-1 rounded ${
+                                          (biopsia.servicios?.papUrgente || 0) > 0 
+                                            ? 'bg-red-100 text-red-800' 
+                                            : 'bg-pink-100 text-pink-800'
+                                        }`}>
+                                          PAP: {biopsia.papQuantity} {(biopsia.servicios?.papUrgente || 0) > 0 ? '(URGENTES)' : ''}
+                                        </div>
+                                      )}
+                                      {!(biopsia.papQuantity || 0) && (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2">
+                                    <div className="space-y-1">
+                                      {(biopsia.citologiaQuantity || 0) > 0 && (
+                                        <div className={`text-xs px-2 py-1 rounded ${
+                                          (biopsia.servicios?.citologiaUrgente || 0) > 0 
+                                            ? 'bg-red-100 text-red-800' 
+                                            : 'bg-purple-100 text-purple-800'
+                                        }`}>
+                                          CITO: {biopsia.citologiaQuantity} {(biopsia.servicios?.citologiaUrgente || 0) > 0 ? '(URGENTES)' : ''}
+                                        </div>
+                                      )}
+                                      {!(biopsia.citologiaQuantity || 0) && (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2">
+                                    <div className="space-y-1">
+                                      {(biopsia.servicios?.corteBlanco || 0) > 0 && (
+                                        <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
+                                          Corte Blanco: {biopsia.servicios.corteBlanco}
+                                        </div>
+                                      )}
+                                      {(biopsia.servicios?.corteBlancoIHQ || 0) > 0 && (
+                                        <div className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">
+                                          IHQ: {biopsia.servicios.corteBlancoIHQ}
+                                        </div>
+                                      )}
+                                      {(biopsia.servicios?.giemsaPASMasson || 0) > 0 && (
+                                        <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">
+                                          Giemsa/PAS: {biopsia.servicios.giemsaPASMasson}
+                                        </div>
+                                      )}
+                                      {!(biopsia.servicios?.corteBlanco || 0) && 
+                                       !(biopsia.servicios?.corteBlancoIHQ || 0) && 
+                                       !(biopsia.servicios?.giemsaPASMasson || 0) && (
+                                        <span className="text-gray-400">-</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-2 text-right font-bold text-green-600">
+                                    ${calcularTotalBiopsia(biopsia).toLocaleString()}
+                                  </td>
+                                  <td className="py-2 text-center">
+                                    <button
+                                      onClick={() => setEditingRemito(`${remito.id}_${index}`)}
+                                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg text-xs flex items-center gap-1 mx-auto"
+                                      title="Editar biopsia"
+                                    >
+                                      <Edit size={12} />
+                                      Editar
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
+                      </div>
+                      
+                      {/* Resumen de Estudios del Remito */}
+                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold text-gray-800 mb-3">Resumen de Estudios</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {(() => {
+                            const totales = remito.biopsias.reduce((acc, biopsia) => {
+                              acc.cassettes += biopsia.cassettes || 0;
+                              
+                              // PAP: si están marcados como urgentes, todas son urgentes, sino normales
+                              const esPapUrgente = (biopsia.servicios?.papUrgente || 0) > 0;
+                              if (esPapUrgente) {
+                                acc.papUrgente += biopsia.papQuantity || 0;
+                              } else {
+                                acc.papNormal += biopsia.papQuantity || 0;
+                              }
+                              
+                              // Citología: si están marcadas como urgentes, todas son urgentes, sino normales
+                              const esCitologiaUrgente = (biopsia.servicios?.citologiaUrgente || 0) > 0;
+                              if (esCitologiaUrgente) {
+                                acc.citologiaUrgente += biopsia.citologiaQuantity || 0;
+                              } else {
+                                acc.citologiaNormal += biopsia.citologiaQuantity || 0;
+                              }
+                              
+                              acc.corteBlanco += biopsia.servicios?.corteBlanco || 0;
+                              acc.corteBlancoIHQ += biopsia.servicios?.corteBlancoIHQ || 0;
+                              acc.giemsaPASMasson += biopsia.servicios?.giemsaPASMasson || 0;
+                              return acc;
+                            }, {
+                              cassettes: 0,
+                              papNormal: 0,
+                              papUrgente: 0,
+                              citologiaNormal: 0,
+                              citologiaUrgente: 0,
+                              corteBlanco: 0,
+                              corteBlancoIHQ: 0,
+                              giemsaPASMasson: 0
+                            });
+
+                            return (
+                              <>
+                                <div className="text-center">
+                                  <div className="text-2xl font-bold text-blue-600">{totales.cassettes}</div>
+                                  <div className="text-xs text-gray-600">Cassettes</div>
+                                </div>
+                                {(totales.papNormal + totales.papUrgente) > 0 && (
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-green-600">{totales.papNormal + totales.papUrgente}</div>
+                                    <div className="text-xs text-gray-600">PAP Total</div>
+                                    <div className="text-xs text-gray-500">
+                                      {totales.papNormal > 0 && `${totales.papNormal} normal`}
+                                      {totales.papNormal > 0 && totales.papUrgente > 0 && ', '}
+                                      {totales.papUrgente > 0 && `${totales.papUrgente} urgente`}
+                                    </div>
+                                  </div>
+                                )}
+                                {(totales.citologiaNormal + totales.citologiaUrgente) > 0 && (
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-purple-600">{totales.citologiaNormal + totales.citologiaUrgente}</div>
+                                    <div className="text-xs text-gray-600">Citología Total</div>
+                                    <div className="text-xs text-gray-500">
+                                      {totales.citologiaNormal > 0 && `${totales.citologiaNormal} normal`}
+                                      {totales.citologiaNormal > 0 && totales.citologiaUrgente > 0 && ', '}
+                                      {totales.citologiaUrgente > 0 && `${totales.citologiaUrgente} urgente`}
+                                    </div>
+                                  </div>
+                                )}
+                                {(totales.corteBlanco + totales.corteBlancoIHQ + totales.giemsaPASMasson) > 0 && (
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-orange-600">
+                                      {totales.corteBlanco + totales.corteBlancoIHQ + totales.giemsaPASMasson}
+                                    </div>
+                                    <div className="text-xs text-gray-600">Estudios Especiales</div>
+                                    <div className="text-xs text-gray-500">
+                                      {totales.corteBlanco > 0 && `${totales.corteBlanco} corte blanco`}
+                                      {totales.corteBlanco > 0 && (totales.corteBlancoIHQ > 0 || totales.giemsaPASMasson > 0) && ', '}
+                                      {totales.corteBlancoIHQ > 0 && `${totales.corteBlancoIHQ} IHQ`}
+                                      {totales.corteBlancoIHQ > 0 && totales.giemsaPASMasson > 0 && ', '}
+                                      {totales.giemsaPASMasson > 0 && `${totales.giemsaPASMasson} giemsa/PAS`}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
