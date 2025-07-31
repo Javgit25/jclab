@@ -145,10 +145,9 @@ export const Step2: React.FC<Step2Props> = ({
         flexShrink: 0,
         borderRadius: '12px',
         boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-        margin: '16px 20px 8px 20px',
-        maxWidth: '600px',
-        marginLeft: 'auto',
-        marginRight: 'auto'
+        margin: '16px 16px 8px 16px',
+        maxWidth: 'none',
+        width: 'calc(100% - 32px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
