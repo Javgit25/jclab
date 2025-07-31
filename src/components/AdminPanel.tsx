@@ -112,6 +112,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         setRemitos(parsedRemitos);
         const medicosUnicos = [...new Set(parsedRemitos.map((r: AdminRemito) => r.medico))];
         setMedicos(medicosUnicos);
+      } else {
+        // Generar datos de prueba si no hay datos guardados
+        generateDemoData();
       }
 
       const savedConfig = localStorage.getItem('adminConfig');
@@ -121,7 +124,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       }
     } catch (error) {
       console.error('Error cargando datos del administrador:', error);
+      // En caso de error, generar datos de prueba
+      generateDemoData();
     }
+  };
+
+  const generateDemoData = () => {
+    const demoRemitos: AdminRemito[] = [
+      {
+        id: 'demo-1',
+        medico: 'Dr. García',
+        email: 'garcia@email.com',
+        fecha: new Date().toISOString(),
+        hospital: 'Hospital Central',
+        estado: 'pendiente',
+        biopsias: [
+          {
+            numero: 'B001',
+            tejido: 'Gastrica',
+            tipo: 'BX',
+            cassettes: 2,
+            trozos: 3,
+            desclasificar: 'N/A',
+            servicios: {
+              cassetteNormal: 2,
+              cassetteUrgente: 0,
+              profundizacion: 1,
+              pap: 0,
+              papUrgente: 0,
+              citologia: 0,
+              citologiaUrgente: 0,
+              corteBlanco: 0,
+              corteBlancoIHQ: 0,
+              giemsaPASMasson: 0
+            },
+            papQuantity: 0,
+            citologiaQuantity: 0
+          }
+        ]
+      },
+      {
+        id: 'demo-2',
+        medico: 'Dra. López',
+        email: 'lopez@email.com',
+        fecha: new Date(Date.now() - 86400000).toISOString(),
+        hospital: 'Clínica San José',
+        estado: 'facturado',
+        biopsias: [
+          {
+            numero: 'P001',
+            tejido: 'PAP',
+            tipo: 'PAP',
+            cassettes: 0,
+            trozos: 0,
+            desclasificar: 'N/A',
+            servicios: {
+              cassetteNormal: 0,
+              cassetteUrgente: 0,
+              profundizacion: 0,
+              pap: 3,
+              papUrgente: 0,
+              citologia: 0,
+              citologiaUrgente: 0,
+              corteBlanco: 0,
+              corteBlancoIHQ: 0,
+              giemsaPASMasson: 0
+            },
+            papQuantity: 3,
+            citologiaQuantity: 0
+          }
+        ]
+      }
+    ];
+    
+    setRemitos(demoRemitos);
+    const medicosUnicos = [...new Set(demoRemitos.map(r => r.medico))];
+    setMedicos(medicosUnicos);
+    localStorage.setItem('adminRemitos', JSON.stringify(demoRemitos));
   };
 
   const generateNotifications = () => {
@@ -183,6 +262,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       // Para otros tipos, ir al dashboard
       setCurrentView('dashboard');
     }
+  };
+
+  const generateInsights = () => {
+    const totalRemitos = remitos.length;
+    const pendientes = remitos.filter(r => r.estado === 'pendiente').length;
+    const facturados = remitos.filter(r => r.estado === 'facturado').length;
+    
+    const insights = [
+      `Se han procesado ${totalRemitos} remitos en total`,
+      `${pendientes} remitos están pendientes de facturación`,
+      `${facturados} remitos han sido facturados exitosamente`,
+      `Tasa de facturación: ${totalRemitos > 0 ? Math.round((facturados / totalRemitos) * 100) : 0}%`
+    ];
+    
+    alert(`📊 Insights Generados:\n\n${insights.join('\n')}\n\n🔍 Análisis completado exitosamente`);
+  };
+
+  const exportAnalytics = () => {
+    const analyticsData = {
+      fecha: new Date().toISOString().split('T')[0],
+      totalRemitos: remitos.length,
+      pendientes: remitos.filter(r => r.estado === 'pendiente').length,
+      facturados: remitos.filter(r => r.estado === 'facturado').length,
+      medicos: medicos.length,
+      totalFacturado: remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0)
+    };
+    
+    const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics_${new Date().toISOString().split('T')[0]}.json`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const handleLogin = () => {
@@ -2083,11 +2198,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <p className="text-gray-600">Análisis profundo del rendimiento del laboratorio</p>
                 </div>
                 <div className="flex space-x-2">
-                  <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                  <button 
+                    onClick={generateInsights}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                  >
                     <TrendingUp size={16} />
                     <span>Generar Insights</span>
                   </button>
-                  <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                  <button 
+                    onClick={exportAnalytics}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
+                  >
                     <Download size={16} />
                     <span>Exportar Analytics</span>
                   </button>
