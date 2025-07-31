@@ -163,6 +163,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     );
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    // Marcar como leída
+    markNotificationAsRead(notification.id);
+    
+    // Cerrar panel de notificaciones
+    setShowNotifications(false);
+    
+    // Navegación según el tipo de notificación
+    if (notification.titulo.includes('Remitos Pendientes')) {
+      // Ir a gestión de remitos y filtrar por pendientes
+      setCurrentView('remitos');
+      setFiltroEstado('pendiente');
+      setSearchTerm(''); // Limpiar búsqueda para mostrar todos los pendientes
+    } else if (notification.titulo.includes('Meta Alcanzada')) {
+      // Ir a facturación para ver las estadísticas
+      setCurrentView('facturacion');
+    } else {
+      // Para otros tipos, ir al dashboard
+      setCurrentView('dashboard');
+    }
+  };
+
   const handleLogin = () => {
     if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
       setIsAuthenticated(true);
@@ -952,10 +974,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           notifications.map(notification => (
                             <div
                               key={notification.id}
-                              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
+                              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                                 !notification.leida ? 'bg-blue-50' : ''
                               }`}
-                              onClick={() => markNotificationAsRead(notification.id)}
+                              onClick={() => handleNotificationClick(notification)}
                             >
                               <div className="flex items-start space-x-3">
                                 <div className={`w-2 h-2 rounded-full mt-2 ${
@@ -973,6 +995,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   <p className="text-xs text-gray-400 mt-2">
                                     {notification.fecha.toLocaleDateString()} {notification.fecha.toLocaleTimeString()}
                                   </p>
+                                </div>
+                                <div className="text-xs text-blue-600 font-medium">
+                                  Click para ver →
                                 </div>
                               </div>
                             </div>
@@ -1190,7 +1215,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
                       <input
                         type="text"
-                        placeholder="Buscar remitos..."
+                        placeholder="Buscar por médico, hospital, número de biopsia..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -1214,13 +1239,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   remitosFiltrados = remitosFiltrados.filter(r => r.estado === filtroEstado);
                 }
                 
-                // Filtro por búsqueda
+                // Filtro por búsqueda (mejorado)
                 if (searchTerm.trim()) {
-                  remitosFiltrados = remitosFiltrados.filter(r => 
-                    r.medico.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    r.hospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    r.biopsias.some(b => b.numero.includes(searchTerm) || b.tejido.toLowerCase().includes(searchTerm.toLowerCase()))
-                  );
+                  const searchLower = searchTerm.toLowerCase().trim();
+                  remitosFiltrados = remitosFiltrados.filter(r => {
+                    // Buscar en médico
+                    const medicoMatch = r.medico.toLowerCase().includes(searchLower);
+                    
+                    // Buscar en hospital
+                    const hospitalMatch = r.hospital.toLowerCase().includes(searchLower);
+                    
+                    // Buscar en email
+                    const emailMatch = r.email?.toLowerCase().includes(searchLower);
+                    
+                    // Buscar en biopsias
+                    const biopsiaMatch = r.biopsias.some(b => 
+                      b.numero.toLowerCase().includes(searchLower) ||
+                      b.tejido.toLowerCase().includes(searchLower) ||
+                      b.tipo.toLowerCase().includes(searchLower) ||
+                      b.desclasificar?.toLowerCase().includes(searchLower)
+                    );
+                    
+                    return medicoMatch || hospitalMatch || emailMatch || biopsiaMatch;
+                  });
                 }
                 
                 return remitosFiltrados.length === 0 ? (
