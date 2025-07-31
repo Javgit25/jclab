@@ -1051,7 +1051,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </button>
         </div>
 
-        {/* Botones Secundarios - Solo Historial y Estadísticas */}
+        {/* Botones Secundarios - Solo Historial y Facturación */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(2, 1fr)',
@@ -1120,7 +1120,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             }}
           >
             <BarChart3 style={{ height: '24px', width: '24px', color: '#8b5cf6' }} />
-            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Estadísticas</div>
+            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Facturación</div>
             <div style={{ fontSize: '12px', color: '#6b7280' }}>{stats.totalBiopsias} biopsias</div>
           </button>
         </div>
@@ -1238,7 +1238,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </div>
       </div>
 
-      {/* Modal de Estadísticas */}
+      {/* Modal de Facturación */}
       {showStatistics && <StatisticsModal />}
     </div>
   );

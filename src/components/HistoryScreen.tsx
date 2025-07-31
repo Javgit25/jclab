@@ -98,9 +98,581 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   };
 
   const handlePrint = (entry: HistoryEntry) => {
-    console.log('🖨️ Función de impresión para entry:', entry.id);
-    // Implementación de impresión simplificada
-    window.print();
+    console.log('🖨️ Generando remito profesional para entry:', entry.id);
+    
+    // Crear HTML profesional para el remito
+    const remitoHTML = `<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remito de Biopsias - ${entry.id}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        @page {
+            margin: 15mm;
+            size: A4;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.4;
+            color: #1a1a1a;
+            background: white;
+            font-size: 11pt;
+            -webkit-print-color-adjust: exact;
+            color-adjust: exact;
+        }
+        
+        .letterhead {
+            text-align: center;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            color: white;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .clinic-logo {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .clinic-name {
+            font-size: 22pt;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .clinic-subtitle {
+            font-size: 14pt;
+            margin-bottom: 12px;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        
+        .remito-title {
+            font-size: 16pt;
+            font-weight: 700;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .document-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 12px;
+            border-left: 5px solid #3b82f6;
+        }
+        
+        .info-section {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 5px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #64748b;
+            font-size: 10pt;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 10pt;
+            text-align: right;
+        }
+        
+        .biopsies-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .biopsies-table th {
+            background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+            color: white;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 9pt;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #1e3a8a;
+        }
+        
+        .biopsies-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f1f5f9;
+            vertical-align: middle;
+            font-size: 9pt;
+            text-align: center;
+        }
+        
+        .biopsies-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .biopsy-number {
+            font-weight: 700;
+            color: #1e40af;
+            font-size: 10pt;
+            background: #dbeafe;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .tissue-type {
+            font-weight: 600;
+            color: #1e293b;
+            text-align: left;
+        }
+        
+        .quantity-cell {
+            font-weight: 700;
+            color: #059669;
+            font-size: 10pt;
+        }
+        
+        .services-badge {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 3px 6px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 600;
+            display: inline-block;
+            margin: 1px;
+            border: 1px solid #c7d2fe;
+        }
+        
+        .urgent-badge {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 700;
+            border: 1px solid #fecaca;
+        }
+        
+        .normal-badge {
+            background: #f0fdf4;
+            color: #166534;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 8pt;
+            font-weight: 600;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .summary-section {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #bae6fd;
+            margin-bottom: 25px;
+        }
+        
+        .summary-title {
+            font-size: 14pt;
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 15px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        
+        .summary-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e0f2fe;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .summary-number {
+            font-size: 18pt;
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .summary-label {
+            font-size: 8pt;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .instructions-section {
+            background: #fefce8;
+            border: 2px solid #facc15;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .instructions-title {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #a16207;
+            margin-bottom: 10px;
+        }
+        
+        .instructions-list {
+            font-size: 9pt;
+            color: #713f12;
+            line-height: 1.6;
+        }
+        
+        .signature-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+        
+        .signature-box {
+            text-align: center;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .signature-line {
+            border-bottom: 2px solid #64748b;
+            margin-bottom: 8px;
+            height: 30px;
+        }
+        
+        .signature-label {
+            font-size: 8pt;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #e2e8f0;
+            text-align: center;
+            color: #64748b;
+            font-size: 8pt;
+            page-break-inside: avoid;
+        }
+        
+        @media print {
+            body { 
+                margin: 0; 
+                padding: 10mm;
+                font-size: 10pt;
+            }
+            .no-print { display: none !important; }
+            .letterhead { page-break-inside: avoid; }
+            .signature-section { page-break-inside: avoid; }
+            .footer { page-break-inside: avoid; }
+            * { color-adjust: exact; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Professional Letterhead -->
+    <div class="letterhead">
+        <div class="clinic-logo">⚕</div>
+        <div class="clinic-name">Laboratorio de Anatomía Patológica</div>
+        <div class="clinic-subtitle">${entry.doctorInfo?.hospital || doctorInfo?.hospital || 'Centro Médico Especializado'}</div>
+        <div class="remito-title">📋 REMITO DE BIOPSIAS</div>
+    </div>
+
+    <!-- Document Information -->
+    <div class="document-info">
+        <div class="info-section">
+            <div class="section-title">👨‍⚕️ Información del Médico</div>
+            <div class="info-row">
+                <span class="info-label">Nombre:</span>
+                <span class="info-value">Dr/a. ${entry.doctorInfo?.name || doctorInfo?.name || 'No especificado'}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">${entry.doctorInfo?.email || doctorInfo?.email || 'No especificado'}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Hospital:</span>
+                <span class="info-value">${entry.doctorInfo?.hospital || doctorInfo?.hospital || 'No especificado'}</span>
+            </div>
+        </div>
+        
+        <div class="info-section">
+            <div class="section-title">📅 Información del Remito</div>
+            <div class="info-row">
+                <span class="info-label">Número:</span>
+                <span class="info-value">#${entry.id.slice(-8).toUpperCase()}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Fecha:</span>
+                <span class="info-value">${new Date(entry.date).toLocaleDateString('es-AR', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric'
+                })}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Hora:</span>
+                <span class="info-value">${new Date(entry.timestamp).toLocaleTimeString('es-AR', {
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Biopsies Table -->
+    <table class="biopsies-table">
+        <thead>
+            <tr>
+                <th style="width: 8%">N°</th>
+                <th style="width: 12%">Tipo</th>
+                <th style="width: 30%">Tejido/Procedimiento</th>
+                <th style="width: 15%">Cantidad</th>
+                <th style="width: 25%">Servicios Especiales</th>
+                <th style="width: 10%">Prioridad</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${entry.biopsies?.map((biopsy: any, index: number) => {
+              // Determinar servicios activos
+              const serviciosActivos = [];
+              if (biopsy.serviciosEspeciales) {
+                if (biopsy.serviciosEspeciales.cassetteUrgente) serviciosActivos.push('Cassette Urgente');
+                if (biopsy.serviciosEspeciales.papUrgente) serviciosActivos.push('PAP Urgente');
+                if (biopsy.serviciosEspeciales.citologiaUrgente) serviciosActivos.push('Citología Urgente');
+                if (biopsy.serviciosEspeciales.corteBlancoIHQ) serviciosActivos.push('Corte Blanco IHQ');
+                if (biopsy.serviciosEspeciales.corteBlancoComun) serviciosActivos.push('Corte Blanco Común');
+                if (biopsy.serviciosEspeciales.giemsaPASMasson) {
+                  const opciones = [];
+                  if (biopsy.serviciosEspeciales.giemsaOptions?.giemsa) opciones.push('Giemsa');
+                  if (biopsy.serviciosEspeciales.giemsaOptions?.pas) opciones.push('PAS');
+                  if (biopsy.serviciosEspeciales.giemsaOptions?.masson) opciones.push('Masson');
+                  if (opciones.length > 0) serviciosActivos.push(`Tinciones: ${opciones.join(', ')}`);
+                }
+              }
+              
+              const isUrgent = serviciosActivos.some(s => s.includes('Urgente'));
+              
+              return `
+                <tr>
+                    <td><span class="biopsy-number">${biopsy.number || index + 1}</span></td>
+                    <td style="font-weight: 600;">${biopsy.type || 'BIOPSIA'}</td>
+                    <td class="tissue-type">${biopsy.tissueType || 'No especificado'}${
+                      biopsy.tissueType === 'Endoscopia' && biopsy.endoscopiaSubTypes?.length > 0
+                        ? `<br><small style="font-size: 8pt; color: #64748b;">(${biopsy.endoscopiaSubTypes.join(', ')})</small>`
+                        : ''
+                    }</td>
+                    <td class="quantity-cell">
+                        ${
+                          biopsy.tissueType === 'PAP' 
+                            ? `${biopsy.papQuantity || 0} vidrios`
+                            : biopsy.tissueType === 'Citología' 
+                              ? `${biopsy.citologiaQuantity || 0} vidrios`
+                              : `${biopsy.cassettes || 1} cassettes`
+                        }
+                    </td>
+                    <td style="text-align: left; padding-left: 12px;">
+                        ${serviciosActivos.length > 0 
+                          ? serviciosActivos.map(s => `<span class="services-badge">${s}</span>`).join(' ')
+                          : '<span style="color: #6b7280; font-style: italic;">Sin servicios adicionales</span>'
+                        }
+                    </td>
+                    <td>
+                        ${isUrgent 
+                          ? '<span class="urgent-badge">🚨 URGENTE</span>'
+                          : '<span class="normal-badge">✓ NORMAL</span>'
+                        }
+                    </td>
+                </tr>
+              `;
+            }).join('') || '<tr><td colspan="6" style="text-align: center; color: #6b7280; font-style: italic; padding: 20px;">No hay biopsias registradas en este remito</td></tr>'}
+        </tbody>
+    </table>
+
+    <!-- Summary Section -->
+    <div class="summary-section">
+        <div class="summary-title">📊 Resumen Estadístico del Remito</div>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <span class="summary-number">${entry.biopsies?.length || 0}</span>
+                <div class="summary-label">Total Biopsias</div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-number">${
+                  entry.biopsies?.reduce((sum: number, biopsy: any) => 
+                    sum + (biopsy.cassettes || 0), 0) || 0
+                }</span>
+                <div class="summary-label">Total Cassettes</div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-number">${
+                  entry.biopsies?.reduce((sum: number, biopsy: any) => 
+                    sum + (biopsy.papQuantity || 0) + (biopsy.citologiaQuantity || 0), 0) || 0
+                }</span>
+                <div class="summary-label">Total Vidrios</div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-number">${
+                  entry.biopsies?.filter((biopsy: any) => 
+                    biopsy.serviciosEspeciales && Object.values(biopsy.serviciosEspeciales).some(v => 
+                      typeof v === 'boolean' ? v : false
+                    )
+                  ).length || 0
+                }</span>
+                <div class="summary-label">Con Servicios</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions Section -->
+    <div class="instructions-section">
+        <div class="instructions-title">⚠️ Instrucciones Importantes</div>
+        <ul class="instructions-list">
+            <li><strong>Conservar este remito</strong> junto con las muestras hasta la entrega de resultados</li>
+            <li><strong>Verificar</strong> que todas las muestras estén debidamente identificadas y rotuladas</li>
+            <li><strong>Contactar inmediatamente</strong> al laboratorio en caso de urgencias o consultas</li>
+            <li><strong>Estudios urgentes</strong> serán procesados en 24-48 horas hábiles</li>
+            <li><strong>Estudios normales</strong> serán procesados en 5-7 días hábiles</li>
+        </ul>
+    </div>
+
+    <!-- Signature Section -->
+    <div class="signature-section">
+        <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Firma del Médico Solicitante</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Sello y Matrícula Profesional</div>
+        </div>
+        <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-label">Recepción Laboratorio</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <p><strong>Remito generado automáticamente por BiopsyTracker</strong></p>
+        <p>Fecha de generación: ${new Date().toLocaleString('es-AR')} | Código: ${entry.id.slice(-8).toUpperCase()}</p>
+        <p style="margin-top: 8px; font-size: 7pt;">
+            Este documento es válido únicamente cuando está acompañado de las muestras correspondientes
+        </p>
+    </div>
+
+    <!-- Print Controls -->
+    <div class="no-print" style="position: fixed; top: 20px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #e2e8f0;">
+        <button onclick="window.print(); return false;" 
+                style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; padding: 12px 24px; 
+                       border-radius: 8px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); margin-right: 10px;">
+            🖨️ IMPRIMIR REMITO
+        </button>
+        <button onclick="window.close(); return false;" 
+                style="background: #6b7280; color: white; border: none; padding: 12px 24px; 
+                       border-radius: 8px; font-weight: 600; cursor: pointer;">
+            ✕ CERRAR
+        </button>
+    </div>
+</body>
+</html>`;
+
+    // Abrir en nueva ventana para imprimir
+    try {
+      const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
+      if (printWindow) {
+        printWindow.document.write(remitoHTML);
+        printWindow.document.close();
+        
+        // Esperar a que se cargue y luego enfocar
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.focus();
+          }, 500);
+        };
+        
+        console.log('✅ Remito profesional generado exitosamente');
+      } else {
+        console.warn('⚠️ No se pudo abrir ventana de impresión');
+        alert('Por favor, permite las ventanas emergentes para generar el remito de impresión.');
+      }
+    } catch (error) {
+      console.error('❌ Error al generar remito:', error);
+      alert('Error al generar el remito. Intenta nuevamente o contacta soporte técnico.');
+    }
   };
 
   const handleEmail = (entry: HistoryEntry) => {
