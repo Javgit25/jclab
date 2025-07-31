@@ -632,7 +632,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         th { background: #f1f5f9; padding: 15px; text-align: left; font-weight: 600; color: #374151; }
         td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
         .tipo-bx { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .tipo-citologia { background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .tipo-pap { background: #fce7f3; color: #be185d; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .tipo-cito { background: #ede9fe; color: #7c3aed; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
         .footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 30px; }
       </style>
     </head>
@@ -687,13 +688,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <tbody>
             ${remitosDelMedico.map(remito => 
               remito.biopsias.map(biopsia => {
+                // Aplicar la misma lógica de tipos que en el panel
+                const getTipoForHTML = (tipo: string, tejido: string) => {
+                  if (tejido === 'PAP') {
+                    return { nombre: 'PAP', clase: 'tipo-pap' };
+                  }
+                  if (tejido === 'Citología') {
+                    return { nombre: 'CITO', clase: 'tipo-cito' };
+                  }
+                  return { nombre: 'BX', clase: 'tipo-bx' };
+                };
+                
+                const tipoInfo = getTipoForHTML(biopsia.tipo, biopsia.tejido);
+                
                 return `
                   <tr>
                     <td>${new Date(remito.fecha).toLocaleDateString('es-AR')}</td>
                     <td>${remito.hospital}</td>
                     <td><strong>${biopsia.numero}</strong></td>
                     <td>${biopsia.tejido}</td>
-                    <td><span class="${biopsia.tipo === 'BX' ? 'tipo-bx' : 'tipo-citologia'}">${biopsia.tipo}</span></td>
+                    <td><span class="${tipoInfo.clase}">${tipoInfo.nombre}</span></td>
                     <td>${biopsia.cassettes}</td>
                     <td><strong>$${calcularTotalBiopsia(biopsia).toLocaleString()}</strong></td>
                     <td><span class="${remito.estado}">${remito.estado === 'facturado' ? 'Facturado' : 'Pendiente'}</span></td>
