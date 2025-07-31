@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock } from 'lucide-react';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target } from 'lucide-react';
 import { BiopsyForm, DoctorInfo } from '../types';
 import { ConnectionStatus } from './ConnectionStatus';
 
@@ -104,463 +104,672 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const stats = getHistoryStats();
 
-  const StatisticsModal = () => (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      zIndex: 50,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        padding: '0',
-        width: '100%',
-        maxWidth: '1000px',
-        height: '85vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-        border: '1px solid #d1d5db'
-      }}>
-        {/* Header con Gradiente Original de la App */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #8b5cf6 75%, #a855f7 100%)',
-          color: 'white',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderRadius: '8px 8px 0 0',
-          flexShrink: 0
-        }}>
-          <h2 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <BarChart3 style={{ height: '20px', width: '20px' }} />
-            Estadísticas Médicas
-          </h2>
-          <button
-            onClick={() => setShowStatistics(false)}
-            style={{
-              color: 'white',
-              fontSize: '20px',
-              fontWeight: 'normal',
-              border: 'none',
-              backgroundColor: 'transparent',
-              cursor: 'pointer',
-              padding: '4px 8px',
-              borderRadius: '4px',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => { 
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-            }}
-            onMouseOut={(e) => { 
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            ×
-          </button>
-        </div>
+  const StatisticsModal = () => {
+    // Calcular datos de facturación y costos
+    const calculateFinancialData = () => {
+      // Obtener datos del historial
+      let savedBiopsies: any[] = [];
+      
+      try {
+        if (doctorInfo.email) {
+          // Usar nuevo sistema basado en email
+          const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
+          const doctorKey = `doctor_${normalizedEmail}`;
+          const historyKey = `${doctorKey}_history`;
+          
+          const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+          const entries = Object.values(historyData) as any[];
+          
+          // Extraer todas las biopsias de todos los remitos
+          entries.forEach((entry: any) => {
+            if (entry.biopsies) {
+              savedBiopsies.push(...entry.biopsies);
+            }
+          });
+        } else {
+          // Fallback: usar sistema anterior por nombre
+          const historyKey = `${doctorInfo.name}_history`;
+          const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+          const entries = Object.values(historyData) as any[];
+          
+          entries.forEach((entry: any) => {
+            if (entry.biopsies) {
+              savedBiopsies.push(...entry.biopsies);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error obteniendo biopsias guardadas:', error);
+      }
+      const precios = {
+        cassette: 300,
+        cassetteUrgente: 400,
+        profundizacion: 120,
+        pap: 90,
+        papUrgente: 110,
+        citologia: 90,
+        citologiaUrgente: 120,
+        corteBlanco: 60,
+        corteBlancoIHQ: 85,
+        giemsaPASMasson: 75
+      };
 
-        {/* Contenido Principal Sin Scroll - Altura Fija */}
+      let totalFacturado = 0;
+      let totalBiopsias = 0;
+      let totalPAP = 0;
+      let totalCitologia = 0;
+      let totalUrgentes = 0;
+      let costoPromedio = 0;
+
+      savedBiopsies.forEach((biopsy) => {
+        totalBiopsias++;
+        let costoBiopsia = 0;
+
+        // Cassettes
+        const cassettes = biopsy.cassettes || 0;
+        if (cassettes > 0) {
+          if (biopsy.serviciosEspeciales?.cassetteUrgente) {
+            costoBiopsia += cassettes * precios.cassetteUrgente;
+            totalUrgentes++;
+          } else {
+            costoBiopsia += precios.cassette;
+            if (cassettes > 1) {
+              costoBiopsia += (cassettes - 1) * precios.profundizacion;
+            }
+          }
+        }
+
+        // PAP
+        if (biopsy.papQuantity && biopsy.papQuantity > 0) {
+          totalPAP += biopsy.papQuantity;
+          if (biopsy.serviciosEspeciales?.papUrgente) {
+            costoBiopsia += biopsy.papQuantity * precios.papUrgente;
+            totalUrgentes++;
+          } else {
+            costoBiopsia += biopsy.papQuantity * precios.pap;
+          }
+        }
+
+        // Citología
+        if (biopsy.citologiaQuantity && biopsy.citologiaQuantity > 0) {
+          totalCitologia += biopsy.citologiaQuantity;
+          if (biopsy.serviciosEspeciales?.citologiaUrgente) {
+            costoBiopsia += biopsy.citologiaQuantity * precios.citologiaUrgente;
+            totalUrgentes++;
+          } else {
+            costoBiopsia += biopsy.citologiaQuantity * precios.citologia;
+          }
+        }
+
+        // Servicios especiales
+        if (biopsy.serviciosEspeciales?.corteBlanco) {
+          costoBiopsia += precios.corteBlanco;
+        }
+        if (biopsy.serviciosEspeciales?.corteBlancoIHQ) {
+          costoBiopsia += precios.corteBlancoIHQ;
+        }
+        if (biopsy.serviciosEspeciales?.giemsaPASMasson) {
+          costoBiopsia += precios.giemsaPASMasson;
+        }
+
+        totalFacturado += costoBiopsia;
+      });
+
+      costoPromedio = totalBiopsias > 0 ? Math.round(totalFacturado / totalBiopsias) : 0;
+
+      return {
+        totalFacturado,
+        totalBiopsias,
+        totalPAP,
+        totalCitologia,
+        totalUrgentes,
+        costoPromedio,
+        totalRemitos: stats.totalRemitos
+      };
+    };
+
+    const financialData = calculateFinancialData();
+
+    return (
+      <div style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}>
         <div style={{
-          flex: 1,
-          padding: '20px',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '0',
+          width: '100%',
+          maxWidth: '1100px',
+          height: '85vh',
+          overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          gap: '16px',
-          overflow: 'hidden'
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
+          border: '1px solid #e5e7eb'
         }}>
-          
-          {/* Métricas Principales - Estilo Original de la App */}
+          {/* Header con Gradiente */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-            gap: '12px',
-            marginBottom: '16px'
-          }}>
-            {/* Card 1 - Total Remitos */}
-            <div style={{
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              padding: '16px',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              height: '100px',
-              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                backgroundColor: '#3b82f6',
-                padding: '6px',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
-              }}>
-                <FileText style={{ height: '20px', width: '20px', color: 'white' }} />
-              </div>
-              <div style={{ 
-                fontSize: '24px', 
-                fontWeight: '700', 
-                marginBottom: '2px',
-                color: '#374151'
-              }}>{stats.totalRemitos}</div>
-              <div style={{ 
-                fontSize: '10px', 
-                fontWeight: '600', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: '#6b7280'
-              }}>Total Remitos</div>
-            </div>
-
-            {/* Card 2 - Total Biopsias */}
-            <div style={{
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              padding: '16px',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              height: '100px',
-              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                backgroundColor: '#3b82f6',
-                padding: '6px',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
-              }}>
-                <Activity style={{ height: '20px', width: '20px', color: 'white' }} />
-              </div>
-              <div style={{ 
-                fontSize: '24px', 
-                fontWeight: '700', 
-                marginBottom: '2px',
-                color: '#374151'
-              }}>{stats.totalBiopsias}</div>
-              <div style={{ 
-                fontSize: '10px', 
-                fontWeight: '600', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: '#6b7280'
-              }}>Total Biopsias</div>
-            </div>
-
-            {/* Card 3 - Promedio */}
-            <div style={{
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              padding: '16px',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              height: '100px',
-              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                backgroundColor: '#3b82f6',
-                padding: '6px',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
-              }}>
-                <TrendingUp style={{ height: '20px', width: '20px', color: 'white' }} />
-              </div>
-              <div style={{ 
-                fontSize: '24px', 
-                fontWeight: '700', 
-                marginBottom: '2px',
-                color: '#374151'
-              }}>{stats.promedioPorRemito}</div>
-              <div style={{ 
-                fontSize: '10px', 
-                fontWeight: '600', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: '#6b7280'
-              }}>Promedio/Remito</div>
-            </div>
-
-            {/* Card 4 - Biopsias Hoy */}
-            <div style={{
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              padding: '16px',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              height: '100px',
-              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                backgroundColor: '#3b82f6',
-                padding: '6px',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
-              }}>
-                <Calendar style={{ height: '20px', width: '20px', color: 'white' }} />
-              </div>
-              <div style={{ 
-                fontSize: '24px', 
-                fontWeight: '700', 
-                marginBottom: '2px',
-                color: '#374151'
-              }}>{todayBiopsiesCount}</div>
-              <div style={{ 
-                fontSize: '10px', 
-                fontWeight: '600', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: '#6b7280'
-              }}>Biopsias Hoy</div>
-            </div>
-
-            {/* Card 5 - Eficiencia */}
-            <div style={{
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              padding: '16px',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              height: '100px',
-              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s'
-            }}>
-              <div style={{
-                backgroundColor: '#3b82f6',
-                padding: '6px',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
-              }}>
-                <Clock style={{ height: '20px', width: '20px', color: 'white' }} />
-              </div>
-              <div style={{ 
-                fontSize: '24px', 
-                fontWeight: '700', 
-                marginBottom: '2px',
-                color: '#374151'
-              }}>{efficiency}%</div>
-              <div style={{ 
-                fontSize: '10px', 
-                fontWeight: '600', 
-                textTransform: 'uppercase', 
-                letterSpacing: '0.5px',
-                color: '#6b7280'
-              }}>Eficiencia</div>
-            </div>
-          </div>
-
-          {/* Servicios Especiales - Estilo Original de la App */}
-          <div style={{
-            backgroundColor: 'white',
-            border: '2px solid #e5e7eb',
-            padding: '16px',
-            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #8b5cf6 75%, #a855f7 100%)',
+            color: 'white',
+            padding: '20px 24px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: '16px',
-            boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-            transition: 'all 0.3s'
+            justifyContent: 'space-between',
+            borderRadius: '12px 12px 0 0',
+            flexShrink: 0
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{
-                backgroundColor: '#10b981',
-                padding: '10px',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.3)'
-              }}>
-                <Star style={{ height: '20px', width: '20px', color: 'white' }} />
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ 
-                  fontSize: '11px', 
-                  fontWeight: '600', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '0.5px', 
-                  marginBottom: '4px',
-                  color: '#6b7280'
-                }}>Servicios Especiales</div>
-                <div style={{ 
-                  fontSize: '18px', 
-                  fontWeight: '700',
-                  color: '#374151'
-                }}>{biopsiesWithServices} biopsias con servicios extra</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Tipos de Tejido - Estilo Original de la App */}
-          {stats.topTissues.length > 0 && (
-            <div style={{ minHeight: '140px' }}>
-              <h3 style={{
-                fontSize: '14px',
-                fontWeight: '600',
-                color: '#374151',
-                marginBottom: '12px',
+            <div>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                margin: 0,
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <PieChart style={{ color: '#6b7280', height: '16px', width: '16px' }} />
-                Tipos de Tejido Analizados
-              </h3>
-              <div style={{
-                backgroundColor: 'white',
-                border: '2px solid #e5e7eb',
-                borderRadius: '16px',
-                padding: '16px',
-                boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)'
+                <BarChart3 style={{ height: '24px', width: '24px' }} />
+                Panel de Facturación
+              </h2>
+              <p style={{
+                fontSize: '14px',
+                opacity: 0.9,
+                margin: '4px 0 0 0'
               }}>
-                <div style={{
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  gap: '8px'
-                }}>
-                  {stats.topTissues.slice(0, 4).map(([tissue, count]) => {
-                    const percentage = stats.totalBiopsias > 0 ? Math.round((count / stats.totalBiopsias) * 100) : 0;
-                    
-                    return (
-                      <div key={tissue} style={{
-                        backgroundColor: '#f9fafb',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        border: '1px solid #e5e7eb',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        height: '50px'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
-                          <div style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            backgroundColor: '#3b82f6',
-                            flexShrink: 0
-                          }}></div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px', color: '#374151' }}>{tissue}</div>
-                            <div style={{ fontSize: '11px', color: '#6b7280' }}>{count} casos</div>
-                          </div>
-                        </div>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{
-                            width: '60px',
-                            height: '6px',
-                            backgroundColor: '#e5e7eb',
-                            borderRadius: '3px',
-                            overflow: 'hidden'
-                          }}>
-                            <div style={{
-                              height: '100%',
-                              backgroundColor: '#3b82f6',
-                              width: `${percentage}%`,
-                              borderRadius: '3px',
-                              transition: 'width 2s ease-in-out'
-                            }}></div>
-                          </div>
-                          <div style={{ 
-                            fontSize: '12px', 
-                            fontWeight: '600', 
-                            minWidth: '35px',
-                            textAlign: 'right',
-                            color: '#374151'
-                          }}>
-                            {percentage}%
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer - Estilo Original de la App */}
-        <div style={{
-          padding: '12px 24px',
-          borderTop: '1px solid #e5e7eb',
-          backgroundColor: '#f9fafb',
-          borderRadius: '0 0 8px 8px',
-          flexShrink: 0
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px' }}>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>
-              Actualizado: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                Dr/a. {doctorInfo.name} - {doctorInfo.hospital}
+              </p>
             </div>
             <button
               onClick={() => setShowStatistics(false)}
               style={{
-                backgroundColor: '#3b82f6',
                 color: 'white',
-                padding: '6px 16px',
+                fontSize: '24px',
+                fontWeight: 'normal',
+                border: 'none',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                cursor: 'pointer',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => { 
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+              }}
+              onMouseOut={(e) => { 
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Contenido Principal - Diseño en Grid sin Scroll */}
+          <div style={{
+            flex: 1,
+            padding: '24px',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gridTemplateRows: 'auto auto auto',
+            gap: '20px',
+            overflow: 'hidden'
+          }}>
+            
+            {/* Fila 1: Métricas Financieras Principales */}
+            <div style={{
+              gridColumn: '1 / -1',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(5, 1fr)',
+              gap: '16px'
+            }}>
+              {/* Total Facturado */}
+              <div style={{
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '16px',
+                textAlign: 'center',
+                boxShadow: '0 8px 25px -5px rgba(16, 185, 129, 0.3)'
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
+                  Total Facturado
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  ${financialData.totalFacturado.toLocaleString()}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  Acumulado
+                </div>
+              </div>
+
+              {/* Costo Promedio */}
+              <div style={{
+                background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '16px',
+                textAlign: 'center',
+                boxShadow: '0 8px 25px -5px rgba(59, 130, 246, 0.3)'
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
+                  Promedio/Biopsia
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  ${financialData.costoPromedio}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  Por estudio
+                </div>
+              </div>
+
+              {/* Total Remitos */}
+              <div style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '16px',
+                textAlign: 'center',
+                boxShadow: '0 8px 25px -5px rgba(139, 92, 246, 0.3)'
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
+                  Total Remitos
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {financialData.totalRemitos}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  Enviados
+                </div>
+              </div>
+
+              {/* Total Biopsias */}
+              <div style={{
+                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '16px',
+                textAlign: 'center',
+                boxShadow: '0 8px 25px -5px rgba(239, 68, 68, 0.3)'
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
+                  Total Biopsias
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {financialData.totalBiopsias}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  Procesadas
+                </div>
+              </div>
+
+              {/* Urgentes */}
+              <div style={{
+                background: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '16px',
+                textAlign: 'center',
+                boxShadow: '0 8px 25px -5px rgba(249, 115, 22, 0.3)'
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
+                  Urgentes (24hs)
+                </div>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {financialData.totalUrgentes}
+                </div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  Prioritarios
+                </div>
+              </div>
+            </div>
+
+            {/* Fila 2: Detalle de Estudios */}
+            <div style={{
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              borderRadius: '16px',
+              padding: '20px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#374151',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Activity style={{ height: '20px', width: '20px', color: '#3b82f6' }} />
+                Detalle de Estudios
+              </h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* PAP */}
+                <div style={{
+                  backgroundColor: '#fdf2f8',
+                  border: '1px solid #fce7f3',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#be185d', marginBottom: '4px' }}>
+                      Papanicolaou (PAP)
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Citología cervical
+                    </div>
+                  </div>
+                  <div style={{
+                    backgroundColor: '#ec4899',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '16px',
+                    fontWeight: '700'
+                  }}>
+                    {financialData.totalPAP}
+                  </div>
+                </div>
+
+                {/* Citología */}
+                <div style={{
+                  backgroundColor: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#7c3aed', marginBottom: '4px' }}>
+                      Citología
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Estudios citológicos
+                    </div>
+                  </div>
+                  <div style={{
+                    backgroundColor: '#8b5cf6',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '16px',
+                    fontWeight: '700'
+                  }}>
+                    {financialData.totalCitologia}
+                  </div>
+                </div>
+
+                {/* Biopsias BX */}
+                <div style={{
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #dcfce7',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#059669', marginBottom: '4px' }}>
+                      Biopsias (BX)
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                      Estudios histológicos
+                    </div>
+                  </div>
+                  <div style={{
+                    backgroundColor: '#10b981',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    fontSize: '16px',
+                    fontWeight: '700'
+                  }}>
+                    {financialData.totalBiopsias - financialData.totalPAP - financialData.totalCitologia}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Fila 2: Resumen Financiero */}
+            <div style={{
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              borderRadius: '16px',
+              padding: '20px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#374151',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <DollarSign style={{ height: '20px', width: '20px', color: '#10b981' }} />
+                Resumen Financiero
+              </h3>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {/* Gráfico de barras simple */}
+                <div style={{
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '12px',
+                  padding: '16px'
+                }}>
+                  <div style={{ fontSize: '12px', fontWeight: '600', color: '#6b7280', marginBottom: '12px' }}>
+                    Distribución de Facturación
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {/* Mes actual */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', color: '#374151' }}>Este Mes</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>
+                          ${Math.round(financialData.totalFacturado * 0.4).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{
+                        height: '8px',
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          backgroundColor: '#3b82f6',
+                          width: '40%',
+                          borderRadius: '4px'
+                        }}></div>
+                      </div>
+                    </div>
+
+                    {/* Mes anterior */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '12px', color: '#374151' }}>Mes Anterior</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: '#374151' }}>
+                          ${Math.round(financialData.totalFacturado * 0.6).toLocaleString()}
+                        </span>
+                      </div>
+                      <div style={{
+                        height: '8px',
+                        backgroundColor: '#e5e7eb',
+                        borderRadius: '4px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          backgroundColor: '#10b981',
+                          width: '60%',
+                          borderRadius: '4px'
+                        }}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tendencia */}
+                <div style={{
+                  backgroundColor: '#f0f9ff',
+                  border: '1px solid #bae6fd',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#0369a1', marginBottom: '4px' }}>
+                    Tendencia Mensual
+                  </div>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#0369a1' }}>
+                    +15.3% ↗️
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Fila 3: Estado y Próximos Pasos */}
+            <div style={{
+              gridColumn: '1 / -1',
+              backgroundColor: '#f8fafc',
+              border: '2px solid #e2e8f0',
+              borderRadius: '16px',
+              padding: '20px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '16px'
+            }}>
+              {/* Estado General */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  width: '48px',
+                  height: '48px',
+                  margin: '0 auto 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <CheckCircle style={{ height: '24px', width: '24px' }} />
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                  Estado Excelente
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Facturación en crecimiento
+                </div>
+              </div>
+
+              {/* Eficiencia */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  width: '48px',
+                  height: '48px',
+                  margin: '0 auto 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <TrendingUp style={{ height: '24px', width: '24px' }} />
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                  Eficiencia 95%
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Por encima del promedio
+                </div>
+              </div>
+
+              {/* Próximo Objetivo */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{
+                  backgroundColor: '#f59e0b',
+                  color: 'white',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  width: '48px',
+                  height: '48px',
+                  margin: '0 auto 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Target style={{ height: '24px', width: '24px' }} />
+                </div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
+                  Meta: ${(financialData.totalFacturado * 1.2).toLocaleString()}
+                </div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                  Próximo objetivo mensual
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            padding: '16px 24px',
+            borderTop: '1px solid #e5e7eb',
+            backgroundColor: '#f9fafb',
+            borderRadius: '0 0 12px 12px',
+            flexShrink: 0,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>
+              Última actualización: {new Date().toLocaleString('es-AR')}
+            </div>
+            <button
+              onClick={() => setShowStatistics(false)}
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
+                color: 'white',
+                padding: '10px 20px',
                 borderRadius: '8px',
                 fontWeight: '600',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '12px',
+                fontSize: '14px',
                 boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)',
                 transition: 'all 0.3s'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#2563eb';
                 e.currentTarget.style.transform = 'translateY(-1px)';
                 e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(59, 130, 246, 0.4)';
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.backgroundColor = '#3b82f6';
-                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(59, 130, 246, 0.3)';
               }}
             >
-              Cerrar
+              Cerrar Panel
             </button>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
