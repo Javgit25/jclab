@@ -108,632 +108,453 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     <div style={{
       position: 'fixed',
       inset: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.75)',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
       zIndex: 50,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
-      backdropFilter: 'blur(8px)'
+      padding: '16px'
     }}>
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '20px',
+        borderRadius: '8px',
         padding: '0',
         width: '100%',
-        maxWidth: '1100px',
-        maxHeight: '90vh',
+        maxWidth: '1000px',
+        height: '85vh',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+        border: '1px solid #d1d5db'
       }}>
-        {/* Header Premium con Gradiente */}
+        {/* Header con Gradiente Original de la App */}
         <div style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #8b5cf6 75%, #a855f7 100%)',
           color: 'white',
-          padding: '24px 28px',
+          padding: '16px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderRadius: '20px 20px 0 0',
-          flexShrink: 0,
-          position: 'relative',
-          overflow: 'hidden'
+          borderRadius: '8px 8px 0 0',
+          flexShrink: 0
         }}>
-          {/* Efecto decorativo de fondo */}
-          <div style={{
-            position: 'absolute',
-            top: '-100px',
-            right: '-100px',
-            width: '300px',
-            height: '300px',
-            background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-            borderRadius: '50%'
-          }}></div>
-          
-          <div style={{
-            position: 'relative',
-            zIndex: 1
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
           }}>
-            <h2 style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-              letterSpacing: '-0.025em'
-            }}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                padding: '8px',
-                borderRadius: '12px',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <BarChart3 style={{ height: '24px', width: '24px' }} />
-              </div>
-              Estadísticas Médicas
-            </h2>
-            <p style={{
-              fontSize: '14px',
-              margin: '8px 0 0 0',
-              opacity: 0.9,
-              fontWeight: '500'
-            }}>
-              Análisis completo de datos clínicos
-            </p>
-          </div>
-          
+            <BarChart3 style={{ height: '20px', width: '20px' }} />
+            Estadísticas Médicas
+          </h2>
           <button
             onClick={() => setShowStatistics(false)}
             style={{
               color: 'white',
-              fontSize: '24px',
-              fontWeight: 'bold',
+              fontSize: '20px',
+              fontWeight: 'normal',
               border: 'none',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              backgroundColor: 'transparent',
               cursor: 'pointer',
-              padding: '12px',
-              borderRadius: '50%',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.3s',
-              width: '48px',
-              height: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              zIndex: 1
+              padding: '4px 8px',
+              borderRadius: '4px',
+              transition: 'background-color 0.2s'
             }}
             onMouseOver={(e) => { 
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
-              e.currentTarget.style.transform = 'scale(1.1)';
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
             }}
             onMouseOut={(e) => { 
-              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.backgroundColor = 'transparent';
             }}
           >
             ×
           </button>
         </div>
 
-        {/* Contenido Principal con Diseño Premium */}
+        {/* Contenido Principal Sin Scroll - Altura Fija */}
         <div style={{
           flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: '28px',
-          background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)'
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          overflow: 'hidden'
         }}>
           
-          {/* Métricas Principales - Cards Premium */}
+          {/* Métricas Principales - Estilo Original de la App */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '20px',
-            marginBottom: '32px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '12px',
+            marginBottom: '16px'
           }}>
             {/* Card 1 - Total Remitos */}
             <div style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              padding: '24px',
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              padding: '16px',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px -8px rgba(102, 126, 234, 0.4)',
-              height: '140px',
               textAlign: 'center',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+              height: '100px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s'
             }}>
               <div style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '-40px',
-                width: '120px',
-                height: '120px',
-                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-                borderRadius: '50%'
-              }}></div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  marginBottom: '12px',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  <FileText style={{ height: '28px', width: '28px' }} />
-                </div>
-                <div style={{ 
-                  fontSize: '36px', 
-                  fontWeight: '700', 
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
-                  marginBottom: '4px',
-                  letterSpacing: '-0.025em'
-                }}>{stats.totalRemitos}</div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  opacity: 0.9, 
-                  fontWeight: '600', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px' 
-                }}>Total Remitos</div>
+                backgroundColor: '#3b82f6',
+                padding: '6px',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
+              }}>
+                <FileText style={{ height: '20px', width: '20px', color: 'white' }} />
               </div>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                marginBottom: '2px',
+                color: '#374151'
+              }}>{stats.totalRemitos}</div>
+              <div style={{ 
+                fontSize: '10px', 
+                fontWeight: '600', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: '#6b7280'
+              }}>Total Remitos</div>
             </div>
 
             {/* Card 2 - Total Biopsias */}
             <div style={{
-              background: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)',
-              color: 'white',
-              padding: '24px',
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              padding: '16px',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px -8px rgba(17, 153, 142, 0.4)',
-              height: '140px',
               textAlign: 'center',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+              height: '100px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s'
             }}>
               <div style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '-40px',
-                width: '120px',
-                height: '120px',
-                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-                borderRadius: '50%'
-              }}></div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  marginBottom: '12px',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  <Activity style={{ height: '28px', width: '28px' }} />
-                </div>
-                <div style={{ 
-                  fontSize: '36px', 
-                  fontWeight: '700', 
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
-                  marginBottom: '4px',
-                  letterSpacing: '-0.025em'
-                }}>{stats.totalBiopsias}</div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  opacity: 0.9, 
-                  fontWeight: '600', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px' 
-                }}>Total Biopsias</div>
+                backgroundColor: '#3b82f6',
+                padding: '6px',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
+              }}>
+                <Activity style={{ height: '20px', width: '20px', color: 'white' }} />
               </div>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                marginBottom: '2px',
+                color: '#374151'
+              }}>{stats.totalBiopsias}</div>
+              <div style={{ 
+                fontSize: '10px', 
+                fontWeight: '600', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: '#6b7280'
+              }}>Total Biopsias</div>
             </div>
 
             {/* Card 3 - Promedio */}
             <div style={{
-              background: 'linear-gradient(135deg, #9d50bb 0%, #6e48aa 100%)',
-              color: 'white',
-              padding: '24px',
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              padding: '16px',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px -8px rgba(157, 80, 187, 0.4)',
-              height: '140px',
               textAlign: 'center',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+              height: '100px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s'
             }}>
               <div style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '-40px',
-                width: '120px',
-                height: '120px',
-                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-                borderRadius: '50%'
-              }}></div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  marginBottom: '12px',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  <TrendingUp style={{ height: '28px', width: '28px' }} />
-                </div>
-                <div style={{ 
-                  fontSize: '36px', 
-                  fontWeight: '700', 
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
-                  marginBottom: '4px',
-                  letterSpacing: '-0.025em'
-                }}>{stats.promedioPorRemito}</div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  opacity: 0.9, 
-                  fontWeight: '600', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px' 
-                }}>Promedio/Remito</div>
+                backgroundColor: '#3b82f6',
+                padding: '6px',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
+              }}>
+                <TrendingUp style={{ height: '20px', width: '20px', color: 'white' }} />
               </div>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                marginBottom: '2px',
+                color: '#374151'
+              }}>{stats.promedioPorRemito}</div>
+              <div style={{ 
+                fontSize: '10px', 
+                fontWeight: '600', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: '#6b7280'
+              }}>Promedio/Remito</div>
             </div>
 
             {/* Card 4 - Biopsias Hoy */}
             <div style={{
-              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-              color: 'white',
-              padding: '24px',
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              padding: '16px',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px -8px rgba(240, 147, 251, 0.4)',
-              height: '140px',
               textAlign: 'center',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+              height: '100px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s'
             }}>
               <div style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '-40px',
-                width: '120px',
-                height: '120px',
-                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-                borderRadius: '50%'
-              }}></div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  marginBottom: '12px',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  <Calendar style={{ height: '28px', width: '28px' }} />
-                </div>
-                <div style={{ 
-                  fontSize: '36px', 
-                  fontWeight: '700', 
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
-                  marginBottom: '4px',
-                  letterSpacing: '-0.025em'
-                }}>{todayBiopsiesCount}</div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  opacity: 0.9, 
-                  fontWeight: '600', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px' 
-                }}>Biopsias Hoy</div>
+                backgroundColor: '#3b82f6',
+                padding: '6px',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
+              }}>
+                <Calendar style={{ height: '20px', width: '20px', color: 'white' }} />
               </div>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                marginBottom: '2px',
+                color: '#374151'
+              }}>{todayBiopsiesCount}</div>
+              <div style={{ 
+                fontSize: '10px', 
+                fontWeight: '600', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: '#6b7280'
+              }}>Biopsias Hoy</div>
             </div>
 
             {/* Card 5 - Eficiencia */}
             <div style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              color: 'white',
-              padding: '24px',
+              backgroundColor: 'white',
+              border: '2px solid #e5e7eb',
+              padding: '16px',
               borderRadius: '16px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px -8px rgba(79, 172, 254, 0.4)',
-              height: '140px',
               textAlign: 'center',
-              border: '1px solid rgba(255, 255, 255, 0.1)'
+              height: '100px',
+              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.3s'
             }}>
               <div style={{
-                position: 'absolute',
-                top: '-40px',
-                right: '-40px',
-                width: '120px',
-                height: '120px',
-                background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-                borderRadius: '50%'
-              }}></div>
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.2)',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  marginBottom: '12px',
-                  backdropFilter: 'blur(10px)'
-                }}>
-                  <Clock style={{ height: '28px', width: '28px' }} />
-                </div>
-                <div style={{ 
-                  fontSize: '36px', 
-                  fontWeight: '700', 
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)', 
-                  marginBottom: '4px',
-                  letterSpacing: '-0.025em'
-                }}>{efficiency}%</div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  opacity: 0.9, 
-                  fontWeight: '600', 
-                  textTransform: 'uppercase', 
-                  letterSpacing: '1px' 
-                }}>Eficiencia</div>
+                backgroundColor: '#3b82f6',
+                padding: '6px',
+                borderRadius: '8px',
+                marginBottom: '8px',
+                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)'
+              }}>
+                <Clock style={{ height: '20px', width: '20px', color: 'white' }} />
               </div>
+              <div style={{ 
+                fontSize: '24px', 
+                fontWeight: '700', 
+                marginBottom: '2px',
+                color: '#374151'
+              }}>{efficiency}%</div>
+              <div style={{ 
+                fontSize: '10px', 
+                fontWeight: '600', 
+                textTransform: 'uppercase', 
+                letterSpacing: '0.5px',
+                color: '#6b7280'
+              }}>Eficiencia</div>
             </div>
           </div>
 
-          {/* Servicios Especiales - Card Premium Horizontal */}
+          {/* Servicios Especiales - Estilo Original de la App */}
           <div style={{
-            background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-            color: 'white',
-            padding: '24px',
+            backgroundColor: 'white',
+            border: '2px solid #e5e7eb',
+            padding: '16px',
             borderRadius: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            position: 'relative',
-            overflow: 'hidden',
-            boxShadow: '0 8px 32px -8px rgba(250, 112, 154, 0.4)',
-            marginBottom: '32px',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
+            marginBottom: '16px',
+            boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
+            transition: 'all 0.3s'
           }}>
-            <div style={{
-              position: 'absolute',
-              top: '-60px',
-              right: '-60px',
-              width: '200px',
-              height: '200px',
-              background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-              borderRadius: '50%'
-            }}></div>
-            <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                padding: '16px',
-                borderRadius: '50%',
-                backdropFilter: 'blur(10px)'
+                backgroundColor: '#10b981',
+                padding: '10px',
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px -2px rgba(16, 185, 129, 0.3)'
               }}>
-                <Star style={{ height: '32px', width: '32px' }} />
+                <Star style={{ height: '20px', width: '20px', color: 'white' }} />
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ 
-                  fontSize: '14px', 
-                  opacity: 0.9, 
+                  fontSize: '11px', 
                   fontWeight: '600', 
                   textTransform: 'uppercase', 
-                  letterSpacing: '1px', 
-                  marginBottom: '4px' 
+                  letterSpacing: '0.5px', 
+                  marginBottom: '4px',
+                  color: '#6b7280'
                 }}>Servicios Especiales</div>
                 <div style={{ 
-                  fontSize: '24px', 
-                  fontWeight: '700', 
-                  textShadow: '0 2px 8px rgba(0,0,0,0.2)',
-                  letterSpacing: '-0.025em'
+                  fontSize: '18px', 
+                  fontWeight: '700',
+                  color: '#374151'
                 }}>{biopsiesWithServices} biopsias con servicios extra</div>
               </div>
             </div>
           </div>
 
-          {/* Tipos de Tejido - Sección Premium */}
+          {/* Tipos de Tejido - Estilo Original de la App */}
           {stats.topTissues.length > 0 && (
-            <div>
+            <div style={{ minHeight: '140px' }}>
               <h3 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#2d3748',
-                marginBottom: '20px',
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                letterSpacing: '-0.025em'
+                gap: '8px'
               }}>
-                <div style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  padding: '8px',
-                  borderRadius: '12px',
-                  color: 'white'
-                }}>
-                  <PieChart style={{ height: '20px', width: '20px' }} />
-                </div>
+                <PieChart style={{ color: '#6b7280', height: '16px', width: '16px' }} />
                 Tipos de Tejido Analizados
               </h3>
               <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                backgroundColor: 'white',
+                border: '2px solid #e5e7eb',
                 borderRadius: '16px',
-                padding: '24px',
-                color: 'white',
-                position: 'relative',
-                overflow: 'hidden',
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                padding: '16px',
+                boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)'
               }}>
                 <div style={{
-                  position: 'absolute',
-                  top: '-80px',
-                  right: '-80px',
-                  width: '250px',
-                  height: '250px',
-                  background: 'radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%)',
-                  borderRadius: '50%'
-                }}></div>
-                <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '12px'
-                  }}>
-                    {stats.topTissues.slice(0, 4).map(([tissue, count]) => {
-                      const percentage = stats.totalBiopsias > 0 ? Math.round((count / stats.totalBiopsias) * 100) : 0;
-                      
-                      return (
-                        <div key={tissue} style={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                          padding: '16px 20px',
-                          borderRadius: '12px',
-                          backdropFilter: 'blur(10px)',
-                          border: '1px solid rgba(255, 255, 255, 0.2)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          minHeight: '60px',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-                            <div style={{
-                              width: '12px',
-                              height: '12px',
-                              borderRadius: '50%',
-                              backgroundColor: 'white',
-                              flexShrink: 0,
-                              boxShadow: '0 0 8px rgba(255, 255, 255, 0.5)'
-                            }}></div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '2px', letterSpacing: '-0.025em' }}>{tissue}</div>
-                              <div style={{ fontSize: '12px', opacity: 0.9, fontWeight: '500' }}>{count} casos registrados</div>
-                            </div>
-                          </div>
-                          
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                            <div style={{
-                              width: '100px',
-                              height: '8px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                              borderRadius: '4px',
-                              overflow: 'hidden'
-                            }}>
-                              <div style={{
-                                height: '100%',
-                                backgroundColor: 'white',
-                                width: `${percentage}%`,
-                                borderRadius: '4px',
-                                transition: 'width 2s ease-in-out',
-                                boxShadow: '0 0 12px rgba(255, 255, 255, 0.6)'
-                              }}></div>
-                            </div>
-                            <div style={{ 
-                              fontSize: '18px', 
-                              fontWeight: '700', 
-                              minWidth: '50px',
-                              textAlign: 'right',
-                              letterSpacing: '-0.025em'
-                            }}>
-                              {percentage}%
-                            </div>
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  {stats.topTissues.slice(0, 4).map(([tissue, count]) => {
+                    const percentage = stats.totalBiopsias > 0 ? Math.round((count / stats.totalBiopsias) * 100) : 0;
+                    
+                    return (
+                      <div key={tissue} style={{
+                        backgroundColor: '#f9fafb',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        height: '50px'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                          <div style={{
+                            width: '6px',
+                            height: '6px',
+                            borderRadius: '50%',
+                            backgroundColor: '#3b82f6',
+                            flexShrink: 0
+                          }}></div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px', color: '#374151' }}>{tissue}</div>
+                            <div style={{ fontSize: '11px', color: '#6b7280' }}>{count} casos</div>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{
+                            width: '60px',
+                            height: '6px',
+                            backgroundColor: '#e5e7eb',
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                          }}>
+                            <div style={{
+                              height: '100%',
+                              backgroundColor: '#3b82f6',
+                              width: `${percentage}%`,
+                              borderRadius: '3px',
+                              transition: 'width 2s ease-in-out'
+                            }}></div>
+                          </div>
+                          <div style={{ 
+                            fontSize: '12px', 
+                            fontWeight: '600', 
+                            minWidth: '35px',
+                            textAlign: 'right',
+                            color: '#374151'
+                          }}>
+                            {percentage}%
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer Premium */}
+        {/* Footer - Estilo Original de la App */}
         <div style={{
-          padding: '20px 28px',
-          borderTop: '1px solid #e2e8f0',
-          backgroundColor: 'white',
-          borderRadius: '0 0 20px 20px',
-          flexShrink: 0,
-          background: 'linear-gradient(135deg, #f8fafc 0%, #ffffff 100%)'
+          padding: '12px 24px',
+          borderTop: '1px solid #e5e7eb',
+          backgroundColor: '#f9fafb',
+          borderRadius: '0 0 8px 8px',
+          flexShrink: 0
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ 
-                fontSize: '13px', 
-                color: '#64748b',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <Clock style={{ height: '16px', width: '16px' }} />
-                Actualizado: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-              </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#10b981',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#10b981',
-                  borderRadius: '50%',
-                  animation: 'pulse 2s infinite'
-                }}></div>
-                Datos en tiempo real
-              </div>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '16px' }}>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>
+              Actualizado: {new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
             </div>
             <button
               onClick={() => setShowStatistics(false)}
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                backgroundColor: '#3b82f6',
                 color: 'white',
-                padding: '12px 28px',
-                borderRadius: '12px',
+                padding: '6px 16px',
+                borderRadius: '8px',
                 fontWeight: '600',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '14px',
-                transition: 'all 0.3s',
-                boxShadow: '0 4px 16px rgba(102, 126, 234, 0.4)',
-                letterSpacing: '-0.025em'
+                fontSize: '12px',
+                boxShadow: '0 4px 12px -2px rgba(59, 130, 246, 0.3)',
+                transition: 'all 0.3s'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.6)';
+                e.currentTarget.style.backgroundColor = '#2563eb';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 6px 16px -2px rgba(59, 130, 246, 0.4)';
               }}
               onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = '#3b82f6';
                 e.currentTarget.style.transform = 'translateY(0px)';
-                e.currentTarget.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.4)';
+                e.currentTarget.style.boxShadow = '0 4px 12px -2px rgba(59, 130, 246, 0.3)';
               }}
             >
-              Cerrar Estadísticas
+              Cerrar
             </button>
           </div>
         </div>
