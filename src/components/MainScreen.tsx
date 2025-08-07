@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target } from 'lucide-react';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy } from 'lucide-react';
 import { BiopsyForm, DoctorInfo } from '../types';
 import { ConnectionStatus } from './ConnectionStatus';
+import QRCodeLib from 'qrcode';
 
 interface MainScreenProps {
   doctorInfo: DoctorInfo;
@@ -27,6 +28,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   onLogout
 }) => {
   const [showStatistics, setShowStatistics] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrData, setQrData] = useState<{
+    type: 'remito' | 'doctor' | 'estadisticas' | 'backup';
+    data: any;
+    title: string;
+  } | null>(null);
+  const [qrImageSrc, setQrImageSrc] = useState<string>('');
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
 
   // Calcular métricas básicas
   const todayBiopsiesCount = todayBiopsies.length;
@@ -771,6 +780,227 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     );
   };
 
+  // Funciones para generar códigos QR
+  const generateQRCode = async (data: string): Promise<string> => {
+    try {
+      // Usar la librería qrcode para generar un QR real
+      const qrDataURL = await QRCodeLib.toDataURL(data, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      return qrDataURL;
+    } catch (error) {
+      console.error('Error generando QR:', error);
+      // Fallback a imagen simple en caso de error
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 200;
+      canvas.height = 200;
+      
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 200, 200);
+        ctx.fillStyle = 'black';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Error generando QR', 100, 100);
+      }
+      
+      return canvas.toDataURL();
+    }
+  };
+
+  const handleQRGeneration = async (type: 'remito' | 'doctor' | 'estadisticas' | 'backup') => {
+    let data: any;
+    let title: string;
+
+    switch (type) {
+      case 'remito':
+        // Generar QR con datos del último remito (información directa)
+        const lastRemito = getLastRemito();
+        data = {
+          tipo: 'REMITO_BIOPSIA',
+          doctor: doctorInfo.name,
+          email: doctorInfo.email,
+          hospital: doctorInfo.hospital,
+          fecha_remito: lastRemito?.date || new Date().toLocaleDateString('es-AR'),
+          numero_remito: lastRemito?.id || 'SIN_REMITO',
+          cantidad_biopsias: lastRemito?.biopsies?.length || 0,
+          biopsias: lastRemito?.biopsies?.map((b: any) => ({
+            cassettes: b.cassettes || 0,
+            tipo_tejido: b.tissueType || 'No especificado',
+            organo: b.organ || 'No especificado',
+            servicios: Object.keys(b.servicios || {}).filter(key => b.servicios[key])
+          })) || [],
+          generado: new Date().toLocaleString('es-AR')
+        };
+        title = 'QR - Último Remito';
+        break;
+
+      case 'doctor':
+        // Generar QR con datos del doctor (tarjeta de contacto)
+        data = {
+          tipo: 'CONTACTO_DOCTOR',
+          nombre: doctorInfo.name,
+          email: doctorInfo.email,
+          hospital: doctorInfo.hospital,
+          especialidad: 'Anatomía Patológica',
+          sistema: 'BiopsyTracker',
+          fecha_registro: doctorInfo.loginDate || new Date().toLocaleDateString('es-AR'),
+          vcard: `BEGIN:VCARD\nVERSION:3.0\nFN:${doctorInfo.name}\nORG:${doctorInfo.hospital}\nEMAIL:${doctorInfo.email}\nTITLE:Anatomía Patológica\nEND:VCARD`
+        };
+        title = 'QR - Datos del Doctor';
+        break;
+
+      case 'estadisticas':
+        // Generar QR con estadísticas del día (resumen completo)
+        data = {
+          tipo: 'ESTADISTICAS_DIARIAS',
+          doctor: doctorInfo.name,
+          hospital: doctorInfo.hospital,
+          fecha: new Date().toLocaleDateString('es-AR'),
+          resumen_hoy: {
+            total_biopsias: todayBiopsiesCount,
+            con_servicios_especiales: biopsiesWithServices,
+            eficiencia_estimada: `${efficiency}%`
+          },
+          resumen_historico: {
+            total_remitos: stats.totalRemitos,
+            total_biopsias: stats.totalBiopsias,
+            promedio_por_remito: stats.promedioPorRemito,
+            tejidos_mas_frecuentes: stats.topTissues.slice(0, 3).map(([tejido, cantidad]) => `${tejido}: ${cantidad}`)
+          },
+          generado: new Date().toLocaleString('es-AR')
+        };
+        title = 'QR - Estadísticas';
+        break;
+
+      case 'backup':
+        // Generar QR con información de backup (metadatos y instrucciones)
+        const backupData = exportAllData();
+        const backupSize = JSON.stringify(backupData).length;
+        data = {
+          tipo: 'BACKUP_DATOS',
+          doctor: doctorInfo.name,
+          hospital: doctorInfo.hospital,
+          fecha_backup: new Date().toLocaleString('es-AR'),
+          informacion: {
+            tamano_datos: `${Math.round(backupSize / 1024)} KB`,
+            checksum: generateChecksum(backupData),
+            incluye: [
+              'Datos del doctor',
+              'Historial de remitos',
+              'Configuraciones',
+              `${stats.totalRemitos} remitos guardados`,
+              `${stats.totalBiopsias} biopsias registradas`
+            ]
+          },
+          instrucciones: 'Para restaurar: contactar con soporte técnico con este código QR',
+          codigo_restauracion: generateChecksum(backupData).substring(0, 8).toUpperCase()
+        };
+        title = 'QR - Backup de Datos';
+        break;
+    }
+
+    // Generar el QR y actualizar estados
+    setIsGeneratingQR(true);
+    try {
+      const qrImage = await generateQRCode(JSON.stringify(data, null, 2));
+      setQrImageSrc(qrImage);
+      setQrData({ type, data, title });
+      setShowQRModal(true);
+    } catch (error) {
+      console.error('Error generando QR:', error);
+      alert('Error generando el código QR. Intenta nuevamente.');
+    } finally {
+      setIsGeneratingQR(false);
+    }
+  };
+
+  const getLastRemito = () => {
+    try {
+      let historyData = {};
+      
+      if (doctorInfo.email) {
+        const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
+        const doctorKey = `doctor_${normalizedEmail}`;
+        const historyKey = `${doctorKey}_history`;
+        historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+      } else {
+        const historyKey = `${doctorInfo.name}_history`;
+        historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+      }
+
+      const entries = Object.values(historyData) as any[];
+      return entries.length > 0 ? entries[entries.length - 1] : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const exportAllData = () => {
+    try {
+      let allData = {};
+      
+      if (doctorInfo.email) {
+        const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
+        const doctorKey = `doctor_${normalizedEmail}`;
+        allData = {
+          doctor: localStorage.getItem(doctorKey),
+          history: localStorage.getItem(`${doctorKey}_history`),
+          settings: localStorage.getItem(`${doctorKey}_settings`)
+        };
+      } else {
+        allData = {
+          doctor: JSON.stringify(doctorInfo),
+          history: localStorage.getItem(`${doctorInfo.name}_history`),
+          settings: localStorage.getItem(`${doctorInfo.name}_settings`)
+        };
+      }
+
+      return allData;
+    } catch {
+      return {};
+    }
+  };
+
+  const generateChecksum = (data: any): string => {
+    const str = JSON.stringify(data);
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16);
+  };
+
+  const copyQRData = () => {
+    if (qrData) {
+      const textData = JSON.stringify(qrData.data, null, 2);
+      navigator.clipboard.writeText(textData).then(() => {
+        alert('Datos copiados al portapapeles');
+      });
+    }
+  };
+
+  const downloadQRData = () => {
+    if (qrData) {
+      const textData = JSON.stringify(qrData.data, null, 2);
+      const blob = new Blob([textData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${qrData.type}_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
       {/* Header Ultra Compacto para Tablet */}
@@ -1014,9 +1244,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             </div>
           </button>
 
-          {/* Remito del Día */}
+          {/* Código QR */}
           <button
-            onClick={onViewToday}
+            onClick={() => handleQRGeneration('remito')}
             style={{
               backgroundColor: 'white',
               color: '#374151',
@@ -1043,10 +1273,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0, 0, 0, 0.1)';
             }}
           >
-            <FileText style={{ height: '28px', width: '28px', color: '#10b981' }} />
+            <QrCode style={{ height: '28px', width: '28px', color: '#8b5cf6' }} />
             <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1.2' }}>Remito del Día</div>
-              <div style={{ color: '#6b7280', fontSize: '14px' }}>{todayBiopsiesCount} biopsias</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1.2' }}>Código QR</div>
+              <div style={{ color: '#6b7280', fontSize: '14px' }}>Compartir datos</div>
             </div>
           </button>
         </div>
@@ -1092,7 +1322,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </button>
 
           <button
-            onClick={() => setShowStatistics(true)}
+            onClick={onViewToday}
             style={{
               backgroundColor: 'white',
               color: '#374151',
@@ -1111,7 +1341,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             onMouseOver={(e) => {
               e.currentTarget.style.backgroundColor = '#f3f4f6';
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.borderColor = '#8b5cf6';
+              e.currentTarget.style.borderColor = '#3b82f6';
             }}
             onMouseOut={(e) => {
               e.currentTarget.style.backgroundColor = 'white';
@@ -1119,9 +1349,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               e.currentTarget.style.borderColor = '#e5e7eb';
             }}
           >
-            <BarChart3 style={{ height: '24px', width: '24px', color: '#8b5cf6' }} />
-            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Facturación</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>{stats.totalBiopsias} biopsias</div>
+            <FileText style={{ height: '24px', width: '24px', color: '#3b82f6' }} />
+            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Remito del Día</div>
+            <div style={{ fontSize: '12px', color: '#6b7280' }}>{todayBiopsiesCount} biopsias</div>
           </button>
         </div>
 
@@ -1237,6 +1467,357 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal de Código QR */}
+      {showQRModal && qrData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            {/* Header del Modal */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '24px',
+              paddingBottom: '16px',
+              borderBottom: '2px solid #f1f5f9'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: '#1e293b',
+                margin: 0
+              }}>
+                {qrData.title}
+              </h2>
+              <button
+                onClick={() => setShowQRModal(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '4px'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f1f5f9';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Opciones de Tipo de QR */}
+            <div style={{ marginBottom: '24px' }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: '600',
+                color: '#374151',
+                marginBottom: '12px'
+              }}>
+                Seleccionar tipo de QR:
+              </h3>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '8px'
+              }}>
+                {[
+                  { type: 'remito', label: 'Último Remito', icon: FileText, color: '#3b82f6' },
+                  { type: 'doctor', label: 'Datos Doctor', icon: Activity, color: '#10b981' },
+                  { type: 'estadisticas', label: 'Estadísticas', icon: BarChart3, color: '#8b5cf6' },
+                  { type: 'backup', label: 'Backup', icon: Share, color: '#f59e0b' }
+                ].map(({ type, label, icon: Icon, color }) => (
+                  <button
+                    key={type}
+                    onClick={() => handleQRGeneration(type as any)}
+                    style={{
+                      backgroundColor: qrData.type === type ? color : 'white',
+                      color: qrData.type === type ? 'white' : '#374151',
+                      border: `2px solid ${qrData.type === type ? color : '#e5e7eb'}`,
+                      padding: '12px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      if (qrData.type !== type) {
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                        e.currentTarget.style.borderColor = color;
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (qrData.type !== type) {
+                        e.currentTarget.style.backgroundColor = 'white';
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                      }
+                    }}
+                  >
+                    <Icon style={{ height: '16px', width: '16px' }} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Código QR Generado */}
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '24px'
+            }}>
+              <div style={{
+                display: 'inline-block',
+                padding: '20px',
+                backgroundColor: '#f8fafc',
+                borderRadius: '12px',
+                border: '2px solid #e2e8f0'
+              }}>
+                {isGeneratingQR ? (
+                  <div style={{
+                    width: '200px',
+                    height: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    color: '#64748b'
+                  }}>
+                    Generando QR...
+                  </div>
+                ) : qrImageSrc ? (
+                  <img
+                    src={qrImageSrc}
+                    alt="Código QR"
+                    style={{
+                      width: '200px',
+                      height: '200px',
+                      display: 'block'
+                    }}
+                  />
+                ) : (
+                  <div style={{
+                    width: '200px',
+                    height: '200px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    color: '#64748b'
+                  }}>
+                    Selecciona un tipo de QR
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Información del QR */}
+            <div style={{
+              backgroundColor: '#f8fafc',
+              padding: '16px',
+              borderRadius: '8px',
+              marginBottom: '24px',
+              fontSize: '14px',
+              color: '#475569'
+            }}>
+              <h4 style={{ margin: '0 0 8px 0', fontWeight: '600', color: '#334155' }}>
+                Datos incluidos:
+              </h4>
+              <pre style={{
+                margin: 0,
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word'
+              }}>
+                {JSON.stringify(qrData.data, null, 2)}
+              </pre>
+            </div>
+
+            {/* Botones de Acción */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '12px'
+            }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(qrData.data, null, 2));
+                  alert('Datos copiados al portapapeles');
+                }}
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#2563eb';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#3b82f6';
+                }}
+              >
+                <Copy style={{ height: '16px', width: '16px' }} />
+                Copiar
+              </button>
+
+              <button
+                onClick={() => {
+                  const canvas = document.createElement('canvas');
+                  const ctx = canvas.getContext('2d');
+                  const img = new Image();
+                  img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx?.drawImage(img, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                      if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `QR_${qrData.type}_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.png`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }
+                    });
+                  };
+                  img.src = qrImageSrc;
+                }}
+                style={{
+                  backgroundColor: '#10b981',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#059669';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#10b981';
+                }}
+              >
+                <Download style={{ height: '16px', width: '16px' }} />
+                Descargar
+              </button>
+
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: qrData.title,
+                      text: JSON.stringify(qrData.data, null, 2)
+                    }).catch(console.error);
+                  } else {
+                    // Fallback para navegadores que no soportan Web Share API
+                    const text = `${qrData.title}\n\n${JSON.stringify(qrData.data, null, 2)}`;
+                    navigator.clipboard.writeText(text);
+                    alert('Datos copiados al portapapeles para compartir');
+                  }
+                }}
+                style={{
+                  backgroundColor: '#8b5cf6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = '#7c3aed';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = '#8b5cf6';
+                }}
+              >
+                <Share style={{ height: '16px', width: '16px' }} />
+                Compartir
+              </button>
+            </div>
+
+            {/* Botón Cerrar */}
+            <button
+              onClick={() => setShowQRModal(false)}
+              style={{
+                backgroundColor: '#f1f5f9',
+                color: '#475569',
+                border: '2px solid #e2e8f0',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                width: '100%',
+                marginTop: '16px',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.backgroundColor = '#e2e8f0';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.backgroundColor = '#f1f5f9';
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Modal de Facturación */}
       {showStatistics && <StatisticsModal />}

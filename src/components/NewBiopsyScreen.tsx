@@ -21,6 +21,7 @@ interface NewBiopsyScreenProps {
   onSaveBiopsy: (biopsy: BiopsyForm) => void;
   onFinishDailyReport: () => void;
   onFinishDailyReportFromStep7?: (currentBiopsy: BiopsyForm) => void;
+  onGoBackToMainScreen: () => void;
   onUpdateFrequentTissues: (tissue: string) => void;
 }
 
@@ -34,6 +35,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   onSaveBiopsy,
   onFinishDailyReport,
   onFinishDailyReportFromStep7,
+  onGoBackToMainScreen,
   onUpdateFrequentTissues
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -579,7 +581,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             todayBiopsies={todayBiopsies}
             onBiopsyNumberChange={(value) => handleBiopsyChange('number', value)}
             onNext={nextStep}
-            onFinishDailyReport={onFinishDailyReport}
+            onFinishDailyReport={onGoBackToMainScreen}
           />
         )}
         

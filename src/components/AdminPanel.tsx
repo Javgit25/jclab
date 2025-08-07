@@ -106,42 +106,77 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
   const loadAdminData = () => {
     try {
-      // Intentar cargar datos del panel de administrador
-      const savedRemitos = localStorage.getItem('adminRemitos');
-      
-      // También intentar cargar datos de la app principal
-      const mainAppRemitos = localStorage.getItem('remitos');
-      const mainAppBiopsies = localStorage.getItem('biopsies');
-      
       let allRemitos: AdminRemito[] = [];
       
-      // Cargar datos del admin panel si existen
-      if (savedRemitos) {
-        const parsedRemitos = JSON.parse(savedRemitos);
-        allRemitos = [...allRemitos, ...parsedRemitos];
-      }
+      // Buscar todas las claves del localStorage que contengan datos de historial
+      const allKeys = Object.keys(localStorage);
+      const historyKeys = allKeys.filter(key => key.includes('_history'));
       
-      // Convertir datos de la app principal si existen
-      if (mainAppRemitos) {
+      console.log('🔍 Buscando datos en claves de historial:', historyKeys);
+      
+      // Cargar datos de cada doctor
+      historyKeys.forEach(historyKey => {
         try {
-          const mainRemitos = JSON.parse(mainAppRemitos);
-          const convertedRemitos = mainRemitos.map((remito: any, index: number) => ({
-            id: remito.id || `main-${index}`,
-            medico: remito.medico || 'Médico no especificado',
-            email: remito.email || 'email@ejemplo.com',
-            fecha: remito.fecha || new Date().toISOString(),
-            hospital: remito.hospital || 'Hospital no especificado',
-            estado: remito.estado || 'pendiente',
-            biopsias: remito.biopsias || []
-          }));
-          allRemitos = [...allRemitos, ...convertedRemitos];
+          const historyData = localStorage.getItem(historyKey);
+          if (historyData) {
+            const parsedHistory = JSON.parse(historyData);
+            
+            // Convertir cada entrada del historial a formato AdminRemito
+            Object.values(parsedHistory).forEach((entry: any) => {
+              if (entry && entry.biopsies && entry.doctorInfo) {
+                const adminRemito: AdminRemito = {
+                  id: entry.id || `hist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  medico: entry.doctorInfo.name || 'Médico no especificado',
+                  email: entry.doctorInfo.email || 'email@ejemplo.com',
+                  fecha: entry.date || entry.timestamp || new Date().toISOString(),
+                  hospital: entry.doctorInfo.hospital || 'Hospital no especificado',
+                  estado: 'pendiente' as const,
+                  biopsias: entry.biopsies.map((biopsy: any) => ({
+                    numero: biopsy.number || 'N/A',
+                    tejido: biopsy.tissueType || 'No especificado',
+                    tipo: biopsy.type || 'Biopsia',
+                    cassettes: parseInt(biopsy.cassettes) || 1,
+                    trozos: parseInt(biopsy.pieces) || 1,
+                    desclasificar: biopsy.declassify || 'No',
+                    servicios: {
+                      cassetteNormal: biopsy.servicios?.cassetteUrgente ? 0 : (parseInt(biopsy.cassettes) || 1),
+                      cassetteUrgente: biopsy.servicios?.cassetteUrgente ? (parseInt(biopsy.cassettes) || 1) : 0,
+                      profundizacion: 0, // No hay equivalente directo
+                      pap: biopsy.servicios?.pap ? (biopsy.papQuantity || 1) : 0,
+                      papUrgente: biopsy.servicios?.papUrgente ? (biopsy.papQuantity || 1) : 0,
+                      citologia: biopsy.servicios?.citologia ? (biopsy.citologiaQuantity || 1) : 0,
+                      citologiaUrgente: biopsy.servicios?.citologiaUrgente ? (biopsy.citologiaQuantity || 1) : 0,
+                      corteBlanco: biopsy.servicios?.corteBlancoComun ? (biopsy.servicios.corteBlancoComunQuantity || 1) : 0,
+                      corteBlancoIHQ: biopsy.servicios?.corteBlancoIHQ ? (biopsy.servicios.corteBlancoIHQQuantity || 1) : 0,
+                      giemsaPASMasson: biopsy.servicios?.giemsaPASMasson ? 1 : 0
+                    },
+                    papQuantity: biopsy.papQuantity || 0,
+                    citologiaQuantity: biopsy.citologiaQuantity || 0
+                  }))
+                };
+                allRemitos.push(adminRemito);
+              }
+            });
+          }
         } catch (error) {
-          console.log('Error procesando datos de la app principal:', error);
+          console.error(`Error procesando datos de ${historyKey}:`, error);
+        }
+      });
+      
+      console.log('📊 Datos encontrados:', allRemitos.length, 'remitos');
+      
+      // Si no hay datos reales, intentar cargar datos del admin panel previos
+      if (allRemitos.length === 0) {
+        const savedRemitos = localStorage.getItem('adminRemitos');
+        if (savedRemitos) {
+          const parsedRemitos = JSON.parse(savedRemitos);
+          allRemitos = [...parsedRemitos];
         }
       }
       
-      // Si no hay datos, generar datos de prueba
+      // Si aún no hay datos, generar datos de prueba
       if (allRemitos.length === 0) {
+        console.log('⚠️ No se encontraron datos reales, generando datos de prueba');
         generateDemoData();
         return;
       }
@@ -155,7 +190,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       const medicosUnicos = [...new Set(remitosUnicos.map(r => r.medico))];
       setMedicos(medicosUnicos);
       
-      console.log('📊 Datos cargados:', remitosUnicos.length, 'remitos de', medicosUnicos.length, 'médicos');
+      console.log('✅ Datos cargados exitosamente:', remitosUnicos.length, 'remitos de', medicosUnicos.length, 'médicos');
 
       const savedConfig = localStorage.getItem('adminConfig');
       if (savedConfig) {
@@ -163,7 +198,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         setConfiguracion(prev => ({ ...prev, ...parsedConfig }));
       }
     } catch (error) {
-      console.error('Error cargando datos del administrador:', error);
+      console.error('❌ Error cargando datos del administrador:', error);
       // En caso de error, generar datos de prueba
       generateDemoData();
     }
@@ -850,8 +885,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         th { background: #f1f5f9; padding: 15px; text-align: left; font-weight: 600; color: #374151; }
         td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
         .tipo-bx { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .tipo-pq { background: #fed7aa; color: #c2410c; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
         .tipo-pap { background: #fce7f3; color: #be185d; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
         .tipo-cito { background: #ede9fe; color: #7c3aed; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
+        .estudio-detalle { font-size: 11px; line-height: 1.3; }
+        .urgente-tag { color: #dc2626; font-weight: 600; }
+        .servicio-tag { color: #7c3aed; }
+        .estandar-tag { color: #10b981; }
         .footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 30px; }
       </style>
     </head>
@@ -894,11 +934,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <thead>
             <tr>
               <th>Fecha</th>
-              <th>Hospital</th>
               <th>N° Biopsia</th>
               <th>Tejido</th>
               <th>Tipo</th>
               <th>Cassettes</th>
+              <th>Estudio Completo</th>
               <th>Subtotal</th>
               <th>Estado</th>
             </tr>
@@ -914,19 +954,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   if (tejido === 'Citología') {
                     return { nombre: 'CITO', clase: 'tipo-cito' };
                   }
+                  // Para biopsias, detectar si es PQ o BX basado en el tipo original
+                  if (tipo.toLowerCase().includes('pq') || tipo.toLowerCase().includes('pequena') || tipo.toLowerCase().includes('pequeña')) {
+                    return { nombre: 'PQ', clase: 'tipo-pq' };
+                  }
+                  // Por defecto es BX
                   return { nombre: 'BX', clase: 'tipo-bx' };
                 };
                 
+                // Generar detalle del estudio completo
+                const getEstudioCompleto = (biopsia: AdminBiopsia) => {
+                  const detalles = [];
+                  
+                  // Verificar servicios urgentes
+                  const urgentes = [];
+                  if (biopsia.servicios.cassetteUrgente > 0) urgentes.push(`Cassette Urgente (${biopsia.servicios.cassetteUrgente})`);
+                  if (biopsia.servicios.papUrgente > 0) urgentes.push(`PAP Urgente (${biopsia.servicios.papUrgente})`);
+                  if (biopsia.servicios.citologiaUrgente > 0) urgentes.push(`Citología Urgente (${biopsia.servicios.citologiaUrgente})`);
+                  
+                  if (urgentes.length > 0) {
+                    detalles.push('<span style="color: #dc2626; font-weight: 600;">🚨 ' + urgentes.join(', ') + '</span>');
+                  }
+                  
+                  // Servicios adicionales
+                  const servicios = [];
+                  if (biopsia.servicios.corteBlancoIHQ > 0) servicios.push(`Corte IHQ (${biopsia.servicios.corteBlancoIHQ})`);
+                  if (biopsia.servicios.corteBlanco > 0) servicios.push(`Corte Común (${biopsia.servicios.corteBlanco})`);
+                  if (biopsia.servicios.giemsaPASMasson > 0) servicios.push('Giemsa/PAS/Masson');
+                  if (biopsia.servicios.profundizacion > 0) servicios.push(`Profundización (${biopsia.servicios.profundizacion})`);
+                  
+                  if (servicios.length > 0) {
+                    detalles.push('<span style="color: #7c3aed;">🔧 ' + servicios.join(', ') + '</span>');
+                  }
+                  
+                  // Si no hay servicios especiales
+                  if (detalles.length === 0) {
+                    detalles.push('<span style="color: #10b981;">✅ Estudio Estándar</span>');
+                  }
+                  
+                  return detalles.join('<br>');
+                };
+                
                 const tipoInfo = getTipoForHTML(biopsia.tipo, biopsia.tejido);
+                const estudioCompleto = getEstudioCompleto(biopsia);
                 
                 return `
                   <tr>
                     <td>${new Date(remito.fecha).toLocaleDateString('es-AR')}</td>
-                    <td>${remito.hospital}</td>
                     <td><strong>${biopsia.numero}</strong></td>
                     <td>${biopsia.tejido}</td>
                     <td><span class="${tipoInfo.clase}">${tipoInfo.nombre}</span></td>
-                    <td>${biopsia.cassettes}</td>
+                    <td>${tipoInfo.nombre === 'PAP' || tipoInfo.nombre === 'CITO' ? '-' : biopsia.cassettes}</td>
+                    <td style="font-size: 12px; line-height: 1.4;">${estudioCompleto}</td>
                     <td><strong>$${calcularTotalBiopsia(biopsia).toLocaleString()}</strong></td>
                     <td><span class="${remito.estado}">${remito.estado === 'facturado' ? 'Facturado' : 'Pendiente'}</span></td>
                   </tr>
@@ -1588,14 +1667,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   <td className="py-2">
                                     {(() => {
                                       const getTipoDisplay = (tipo: string, tejido: string) => {
-                                        // Simplificar: todo es BX
                                         if (tejido === 'PAP') {
                                           return { nombre: 'PAP', color: 'bg-pink-100 text-pink-800' };
                                         }
                                         if (tejido === 'Citología') {
                                           return { nombre: 'CITO', color: 'bg-purple-100 text-purple-800' };
                                         }
-                                        // Todo lo demás es BX
+                                        // Para biopsias, detectar si es PQ o BX basado en el tipo original
+                                        if (tipo.toLowerCase().includes('pq') || tipo.toLowerCase().includes('pequena') || tipo.toLowerCase().includes('pequeña')) {
+                                          return { nombre: 'PQ', color: 'bg-orange-100 text-orange-800' };
+                                        }
+                                        // Por defecto es BX
                                         return { nombre: 'BX', color: 'bg-green-100 text-green-800' };
                                       };
                                       
@@ -1610,12 +1692,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   </td>
                                   <td className="py-2">
                                     <div className="space-y-1">
-                                      <span className="font-medium">{biopsia.cassettes}</span>
-                                      {(biopsia.servicios?.cassetteUrgente || 0) > 0 && (
-                                        <div className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                          URGENTE (24hs)
-                                        </div>
-                                      )}
+                                      {(() => {
+                                        // Solo mostrar cassettes para BX y PQ
+                                        if (biopsia.tejido === 'PAP' || biopsia.tejido === 'Citología') {
+                                          return <span className="text-gray-400">-</span>;
+                                        }
+                                        
+                                        return (
+                                          <>
+                                            <span className="font-medium">{biopsia.cassettes}</span>
+                                            {(biopsia.servicios?.cassetteUrgente || 0) > 0 && (
+                                              <div className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
+                                                URGENTE (24hs)
+                                              </div>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                     </div>
                                   </td>
                                   <td className="py-2">
@@ -1700,7 +1793,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           {(() => {
                             const totales = remito.biopsias.reduce((acc, biopsia) => {
-                              acc.cassettes += biopsia.cassettes || 0;
+                              // Solo contar cassettes para BX y PQ (no PAP ni Citología)
+                              if (biopsia.tejido !== 'PAP' && biopsia.tejido !== 'Citología') {
+                                acc.cassettes += biopsia.cassettes || 0;
+                              }
                               
                               // PAP: si están marcados como urgentes, todas son urgentes, sino normales
                               const esPapUrgente = (biopsia.servicios?.papUrgente || 0) > 0;
@@ -1790,63 +1886,122 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           )}
 
           {currentView === 'facturacion' && (
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">Centro de Facturación</h2>
-                  <p className="text-gray-600">Gestión financiera y reportes por médico</p>
+            <div className="h-full flex flex-col p-3 overflow-hidden">
+              {/* Header super compacto */}
+              <div className="flex-shrink-0 mb-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h2 className="text-lg font-bold text-gray-900 flex items-center">
+                    💰 Facturación
+                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                      {medicos.length} médicos
+                    </span>
+                  </h2>
+                  <div className="text-sm font-bold text-green-600">
+                    Total: ${remitos.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
+                  </div>
+                </div>
+                
+                {/* Resumen general ultra compacto */}
+                <div className="grid grid-cols-4 gap-2">
+                  <div className="bg-blue-50 p-1.5 rounded text-center border">
+                    <div className="text-sm font-bold text-blue-700">{remitos.length}</div>
+                    <div className="text-xs text-blue-600">Remitos</div>
+                  </div>
+                  <div className="bg-purple-50 p-1.5 rounded text-center border">
+                    <div className="text-sm font-bold text-purple-700">{remitos.reduce((acc, r) => acc + r.biopsias.length, 0)}</div>
+                    <div className="text-xs text-purple-600">Biopsias</div>
+                  </div>
+                  <div className="bg-yellow-50 p-1.5 rounded text-center border">
+                    <div className="text-sm font-bold text-yellow-700">
+                      ${remitos.filter(r => r.estado === 'pendiente').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-yellow-600">Pendiente</div>
+                  </div>
+                  <div className="bg-green-50 p-1.5 rounded text-center border">
+                    <div className="text-sm font-bold text-green-700">
+                      ${remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
+                    </div>
+                    <div className="text-xs text-green-600">Facturado</div>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid gap-6">
-                {medicos.map(medico => {
+              {/* Grid de médicos que ocupa el espacio restante */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
+                {medicos.map((medico, index) => {
                   const remitosDelMedico = remitos.filter(r => r.medico === medico);
                   const pendientes = remitosDelMedico.filter(r => r.estado === 'pendiente');
                   const facturados = remitosDelMedico.filter(r => r.estado === 'facturado');
                   const totalPendiente = pendientes.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
                   const totalFacturado = facturados.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
+                  const totalGeneral = totalPendiente + totalFacturado;
+                  const porcentajeFacturado = Math.round(totalFacturado / (totalGeneral || 1) * 100);
                   
                   return (
-                    <div key={medico} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-900">Dr/a. {medico}</h3>
-                          <p className="text-gray-600">{remitosDelMedico.length} remitos totales</p>
+                    <div key={medico} className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                      {/* Header del médico - ultra compacto */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                          </div>
+                          <div>
+                            <h3 className="text-xs font-bold text-gray-900">Dr/a. {medico}</h3>
+                            <p className="text-xs text-gray-500">{remitosDelMedico.length} remitos</p>
+                          </div>
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-1">
                           <button 
                             onClick={() => exportarFacturacionMedico(medico)} 
-                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-1.5 py-0.5 rounded text-xs flex items-center space-x-1"
+                            title="Exportar HTML"
                           >
-                            <Download size={16} />
-                            <span>Reporte HTML</span>
+                            <Download size={8} />
+                            <span>HTML</span>
                           </button>
                           <button 
                             onClick={() => exportarExcel(medico)} 
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                            className="bg-green-500 hover:bg-green-600 text-white px-1.5 py-0.5 rounded text-xs flex items-center space-x-1"
+                            title="Exportar CSV"
                           >
-                            <Download size={16} />
+                            <Download size={8} />
                             <span>CSV</span>
                           </button>
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-yellow-50 rounded-lg p-4">
-                          <p className="text-yellow-600 text-sm font-medium">Por Facturar</p>
-                          <p className="text-2xl font-bold text-yellow-800">${totalPendiente.toLocaleString()}</p>
-                          <p className="text-xs text-yellow-600">{pendientes.length} remitos</p>
+                      {/* Estadísticas ultra compactas */}
+                      <div className="grid grid-cols-3 gap-1 mb-2">
+                        <div className="bg-yellow-50 border border-yellow-200 rounded p-1 text-center">
+                          <div className="text-xs font-bold text-yellow-700">${totalPendiente.toLocaleString()}</div>
+                          <div className="text-xs text-yellow-600">Pendiente</div>
                         </div>
-                        
-                        <div className="bg-green-50 rounded-lg p-4">
-                          <p className="text-green-600 text-sm font-medium">Ya Facturado</p>
-                          <p className="text-2xl font-bold text-green-800">${totalFacturado.toLocaleString()}</p>
-                          <p className="text-xs text-green-600">{facturados.length} remitos</p>
+                        <div className="bg-green-50 border border-green-200 rounded p-1 text-center">
+                          <div className="text-xs font-bold text-green-700">${totalFacturado.toLocaleString()}</div>
+                          <div className="text-xs text-green-600">Facturado</div>
                         </div>
+                        <div className="bg-blue-50 border border-blue-200 rounded p-1 text-center">
+                          <div className="text-xs font-bold text-blue-700">${totalGeneral.toLocaleString()}</div>
+                          <div className="text-xs text-blue-600">Total</div>
+                        </div>
+                      </div>
+
+                      {/* Barra de progreso mini */}
+                      <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
+                        <span>Progreso</span>
+                        <span className="font-medium">{porcentajeFacturado}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-green-500 h-1 rounded-full transition-all duration-300"
+                          style={{ width: `${porcentajeFacturado}%` }}
+                        ></div>
                       </div>
                     </div>
                   );
                 })}
+                </div>
               </div>
             </div>
           )}

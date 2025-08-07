@@ -137,20 +137,54 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b px-4 py-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-3">
+    <div style={{
+      height: '100vh',
+      backgroundColor: '#f8fafc',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
+      {/* Header compacto para tablet 10" */}
+      <div style={{
+        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+        color: 'white',
+        padding: '4px 8px',
+        flexShrink: 0,
+        borderRadius: '6px',
+        boxShadow: '0 1px 3px rgba(59, 130, 246, 0.3)',
+        margin: '4px 8px 2px 8px'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <button
               onClick={onGoBack}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: 'none',
+                padding: '3px 6px',
+                borderRadius: '4px',
+                color: 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '3px'
+              }}
             >
-              <ArrowLeft className="h-5 w-5 text-gray-600" />
+              <ArrowLeft size={12} />
             </button>
             <div>
-              <h2 className="text-lg font-semibold text-gray-800">Remito del Día</h2>
-              <p className="text-sm text-gray-600">
+              <h2 style={{
+                fontSize: '14px',
+                fontWeight: 'bold',
+                color: 'white',
+                margin: '0 0 1px 0',
+                lineHeight: '1.2'
+              }}>Remito del Día</h2>
+              <p style={{
+                fontSize: '10px',
+                color: 'rgba(255, 255, 255, 0.8)',
+                margin: 0
+              }}>
                 {biopsies.length} {biopsies.length === 1 ? 'estudio cargado' : 'estudios cargados'}
               </p>
             </div>
@@ -163,69 +197,166 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
         </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4">
+      {/* Contenido compacto para tablet 10" */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '2px 8px 8px 8px'
+      }}>
         {biopsies.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <FileText className="h-12 w-12 mx-auto" />
+          <div style={{
+            textAlign: 'center',
+            padding: '20px 12px',
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e5e7eb'
+          }}>
+            <div style={{ color: '#9CA3AF', marginBottom: '8px' }}>
+              <FileText style={{ height: '24px', width: '24px', margin: '0 auto' }} />
             </div>
-            <h3 className="text-lg font-medium text-gray-600 mb-2">
+            <h3 style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#6B7280',
+              margin: '0 0 4px 0'
+            }}>
               No hay estudios cargados hoy
             </h3>
-            <p className="text-gray-500 mb-4">
+            <p style={{
+              color: '#9CA3AF',
+              margin: '0 0 12px 0',
+              fontSize: '11px'
+            }}>
               Comienza agregando tu primer estudio del día
             </p>
             <button
               onClick={onStartNewBiopsy}
-              className="bg-blue-500 hover:bg-blue-600 text-white py-3 px-6 rounded-lg flex items-center space-x-2 mx-auto"
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                border: 'none',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                fontSize: '12px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                margin: '0 auto',
+                boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+              }}
             >
-              <Plus className="h-5 w-5" />
-              <span>Nuevo Estudio</span>
+              <Plus size={14} />
+              Nuevo Estudio
             </button>
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Botones de acción */}
-            <div className="flex space-x-3 mb-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {/* Botones de acción compactos */}
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
               <button
                 onClick={onStartNewBiopsy}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 px-4 rounded-lg flex items-center justify-center space-x-2"
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
+                }}
               >
-                <Plus className="h-5 w-5" />
-                <span>Nuevo Estudio</span>
+                <Plus size={12} />
+                Nuevo Estudio
               </button>
               
               <button
                 onClick={onFinishDailyReport}
-                className="flex-1 bg-green-500 hover:bg-green-600 text-white py-3 px-4 rounded-lg flex items-center justify-center space-x-2"
+                style={{
+                  flex: 1,
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  border: 'none',
+                  color: 'white',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '4px',
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
+                }}
               >
-                <Download className="h-5 w-5" />
-                <span>Finalizar</span>
+                <Download size={12} />
+                Finalizar
               </button>
             </div>
 
-            {/* Lista de estudios */}
-            <div className="space-y-4">
+            {/* Lista de estudios compacta */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {biopsies.map((biopsy, index) => {
                 const isPapCitologia = isPAPOrCitologia(biopsy);
                 const serviciosActivos = isPapCitologia ? getPAPCitologiaServices(biopsy) : getServiciosDisplay(biopsy);
                 
                 return (
-                  <div key={index} className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-                    {/* ✅ HEADER DIFERENTE PARA PAP/CITOLOGÍA VS BIOPSIA */}
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-bold text-sm">{index + 1}</span>
+                  <div key={index} style={{
+                    background: 'white',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    {/* Header compacto para cada estudio */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '6px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          background: '#dbeafe',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <span style={{
+                            color: '#1d4ed8',
+                            fontWeight: 'bold',
+                            fontSize: '10px'
+                          }}>{index + 1}</span>
                         </div>
                         <div>
                           {isPapCitologia ? (
-                            // ✅ FORMATO PARA PAP/CITOLOGÍA: "#BX25-002 - PAP"
                             <>
-                              <h4 className="font-semibold text-gray-800">
+                              <h4 style={{
+                                fontWeight: '600',
+                                color: '#1f2937',
+                                fontSize: '11px',
+                                margin: '0 0 1px 0',
+                                lineHeight: '1.2'
+                              }}>
                                 #{biopsy.type}{biopsy.number} - {biopsy.tissueType}
                               </h4>
-                              <p className="text-xs text-gray-500">
+                              <p style={{
+                                fontSize: '8px',
+                                color: '#6B7280',
+                                margin: 0
+                              }}>
                                 {biopsy.timestamp ? new Date(biopsy.timestamp).toLocaleTimeString('es-AR', { 
                                   hour: '2-digit', 
                                   minute: '2-digit' 
@@ -233,12 +364,21 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                               </p>
                             </>
                           ) : (
-                            // ✅ FORMATO NORMAL PARA BIOPSIAS: "Biopsia #88"
                             <>
-                              <h4 className="font-semibold text-gray-800">
+                              <h4 style={{
+                                fontWeight: '600',
+                                color: '#1f2937',
+                                fontSize: '11px',
+                                margin: '0 0 1px 0',
+                                lineHeight: '1.2'
+                              }}>
                                 Biopsia #{biopsy.number}
                               </h4>
-                              <p className="text-xs text-gray-500">
+                              <p style={{
+                                fontSize: '8px',
+                                color: '#6B7280',
+                                margin: 0
+                              }}>
                                 {biopsy.timestamp ? new Date(biopsy.timestamp).toLocaleTimeString('es-AR', { 
                                   hour: '2-digit', 
                                   minute: '2-digit' 
@@ -249,78 +389,107 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                         </div>
                       </div>
                       
-                      <div className="text-right">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          biopsy.type === 'BX' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : 'bg-purple-100 text-purple-800'
-                        }`}>
+                      <div>
+                        <span style={{
+                          padding: '2px 6px',
+                          borderRadius: '12px',
+                          fontSize: '8px',
+                          fontWeight: '600',
+                          ...(biopsy.type === 'BX' 
+                            ? { background: '#dbeafe', color: '#1e40af' }
+                            : { background: '#ede9fe', color: '#7c3aed' })
+                        }}>
                           {biopsy.type}
                         </span>
                       </div>
                     </div>
                     
-                    {/* ✅ INFORMACIÓN PRINCIPAL DIFERENTE PARA PAP/CITOLOGÍA */}
-                    <div className="space-y-2 text-sm mb-3">
+                    {/* Información principal compacta */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '3px',
+                      fontSize: '10px',
+                      marginBottom: '6px'
+                    }}>
                       {isPapCitologia ? (
-                        // ✅ FORMATO PAP/CITOLOGÍA: "Vidrios: 2"
                         <>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Vidrios:</span>
-                            <span className="font-medium">
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#6B7280' }}>Vidrios:</span>
+                            <span style={{ fontWeight: '600', color: '#1f2937' }}>
                               {biopsy.tissueType === 'PAP' ? biopsy.papQuantity : biopsy.citologiaQuantity}
                             </span>
                           </div>
                           
                           {((biopsy.tissueType === 'PAP' && biopsy.papUrgente) || 
                             (biopsy.tissueType === 'Citología' && biopsy.citologiaUrgente)) && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Prioridad:</span>
-                              <span className="font-medium text-orange-600">⚡ Urgente 24hs</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#6B7280' }}>Prioridad:</span>
+                              <span style={{ fontWeight: '600', color: '#ea580c' }}>⚡ Urgente 24hs</span>
                             </div>
                           )}
                         </>
                       ) : (
-                        // ✅ FORMATO NORMAL BIOPSIA: "Tejido:", "Cassettes:", etc.
                         <>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Tejido:</span>
-                            <span className="font-medium text-right max-w-[60%]">
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#6B7280' }}>Tejido:</span>
+                            <span style={{
+                              fontWeight: '600',
+                              color: '#1f2937',
+                              textAlign: 'right',
+                              maxWidth: '60%',
+                              fontSize: '9px'
+                            }}>
                               {getTissueTypeDisplay(biopsy)}
                             </span>
                           </div>
                           
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Cassettes:</span>
-                            <span className="font-medium">{biopsy.cassettes}</span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <span style={{ color: '#6B7280' }}>Cassettes:</span>
+                            <span style={{ fontWeight: '600', color: '#1f2937' }}>{biopsy.cassettes}</span>
                           </div>
                           
                           {biopsy.pieces && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Trozos:</span>
-                              <span className="font-medium">{biopsy.pieces}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#6B7280' }}>Trozos:</span>
+                              <span style={{ fontWeight: '600', color: '#1f2937' }}>{biopsy.pieces}</span>
                             </div>
                           )}
                           
                           {biopsy.declassify && biopsy.declassify !== 'No' && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Desclasificar:</span>
-                              <span className="font-medium text-orange-600">{biopsy.declassify}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: '#6B7280' }}>Desclasificar:</span>
+                              <span style={{ fontWeight: '600', color: '#ea580c' }}>{biopsy.declassify}</span>
                             </div>
                           )}
                         </>
                       )}
                     </div>
 
-                    {/* ✅ NÚMEROS DE CASSETTES - SOLO PARA BIOPSIAS NORMALES */}
+                    {/* Números de cassettes compactos - solo para biopsias */}
                     {!isPapCitologia && biopsy.cassettesNumbers && biopsy.cassettesNumbers.length > 0 && (
-                      <div className="mb-3">
-                        <p className="text-xs text-gray-600 mb-2">Números de cassettes:</p>
-                        <div className="flex flex-wrap gap-1">
+                      <div style={{ marginBottom: '6px' }}>
+                        <p style={{
+                          fontSize: '8px',
+                          color: '#6B7280',
+                          margin: '0 0 3px 0'
+                        }}>Números de cassettes:</p>
+                        <div style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          gap: '2px'
+                        }}>
                           {biopsy.cassettesNumbers.map((cassette, cassIndex) => (
                             <span
                               key={cassIndex}
-                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono"
+                              style={{
+                                padding: '2px 4px',
+                                background: '#f3f4f6',
+                                color: '#374151',
+                                borderRadius: '3px',
+                                fontSize: '8px',
+                                fontFamily: 'monospace'
+                              }}
                             >
                               {typeof cassette === 'string' ? cassette : 
                                cassIndex === 0 ? cassette.base : 
@@ -331,28 +500,61 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                       </div>
                     )}
 
-                    {/* ✅ SERVICIOS ADICIONALES */}
+                    {/* Servicios adicionales compactos */}
                     {serviciosActivos.length > 0 && (
-                      <div className="border-t pt-3">
-                        <p className="text-xs text-gray-600 mb-2">
+                      <div style={{
+                        borderTop: '1px solid #f3f4f6',
+                        paddingTop: '4px',
+                        marginBottom: '4px'
+                      }}>
+                        <p style={{
+                          fontSize: '8px',
+                          color: '#6B7280',
+                          margin: '0 0 3px 0'
+                        }}>
                           🔧 {serviciosActivos.length} servicio{serviciosActivos.length !== 1 ? 's' : ''}
                         </p>
-                        <div className="space-y-1">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                           {serviciosActivos.map((servicio, servIndex) => (
-                            <div key={servIndex} className="flex items-center space-x-2">
-                              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                              <span className="text-xs text-purple-700 font-medium">{servicio}</span>
+                            <div key={servIndex} style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}>
+                              <div style={{
+                                width: '4px',
+                                height: '4px',
+                                background: '#7c3aed',
+                                borderRadius: '50%'
+                              }}></div>
+                              <span style={{
+                                fontSize: '8px',
+                                color: '#7c3aed',
+                                fontWeight: '600'
+                              }}>{servicio}</span>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    {/* Observaciones */}
+                    {/* Observaciones compactas */}
                     {biopsy.observations && (
-                      <div className="border-t pt-3 mt-3">
-                        <p className="text-xs text-gray-600 mb-1">Observaciones:</p>
-                        <p className="text-xs text-gray-700 italic">"{biopsy.observations}"</p>
+                      <div style={{
+                        borderTop: '1px solid #f3f4f6',
+                        paddingTop: '4px'
+                      }}>
+                        <p style={{
+                          fontSize: '8px',
+                          color: '#6B7280',
+                          margin: '0 0 2px 0'
+                        }}>Observaciones:</p>
+                        <p style={{
+                          fontSize: '8px',
+                          color: '#374151',
+                          fontStyle: 'italic',
+                          margin: 0
+                        }}>"{biopsy.observations}"</p>
                       </div>
                     )}
                   </div>
@@ -360,18 +562,44 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
               })}
             </div>
 
-            {/* Resumen final */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mt-6">
-              <div className="text-center">
-                <h4 className="font-semibold text-blue-800 mb-2">📊 Resumen del Día</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Resumen final compacto */}
+            <div style={{
+              background: '#f0f9ff',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: '1px solid #c7d2fe',
+              marginTop: '8px'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{
+                  fontWeight: '600',
+                  color: '#1e40af',
+                  fontSize: '11px',
+                  margin: '0 0 6px 0'
+                }}>📊 Resumen del Día</h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px',
+                  fontSize: '9px'
+                }}>
                   <div>
-                    <p className="text-blue-600">Total Estudios</p>
-                    <p className="text-2xl font-bold text-blue-800">{biopsies.length}</p>
+                    <p style={{ color: '#1d4ed8', margin: '0 0 2px 0' }}>Total Estudios</p>
+                    <p style={{
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      color: '#1e40af',
+                      margin: 0
+                    }}>{biopsies.length}</p>
                   </div>
                   <div>
-                    <p className="text-blue-600">Con Servicios</p>
-                    <p className="text-2xl font-bold text-blue-800">
+                    <p style={{ color: '#1d4ed8', margin: '0 0 2px 0' }}>Con Servicios</p>
+                    <p style={{
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      color: '#1e40af',
+                      margin: 0
+                    }}>
                       {biopsies.filter(b => {
                         const isPapCit = isPAPOrCitologia(b);
                         if (isPapCit) {
@@ -385,19 +613,40 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                     </p>
                   </div>
                 </div>
-                <p className="text-xs text-blue-600 mt-2">
+                <p style={{
+                  fontSize: '8px',
+                  color: '#1d4ed8',
+                  margin: '4px 0 0 0'
+                }}>
                   📅 {new Date().toLocaleDateString('es-AR')}
                 </p>
               </div>
             </div>
 
-            {/* Instrucciones */}
-            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 className="font-medium text-gray-800 mb-2">ℹ️ Acciones disponibles:</h4>
-              <ul className="text-sm text-gray-600 space-y-1">
-                <li>• <strong>Nuevo Estudio:</strong> Agregar otro estudio al remito</li>
-                <li>• <strong>Finalizar:</strong> Guardar el remito en el historial</li>
-                <li>• Puedes agregar tantos estudios como necesites</li>
+            {/* Instrucciones compactas */}
+            <div style={{
+              background: '#f9fafb',
+              padding: '8px 10px',
+              borderRadius: '6px',
+              border: '1px solid #e5e7eb',
+              marginTop: '6px'
+            }}>
+              <h4 style={{
+                fontWeight: '600',
+                color: '#1f2937',
+                fontSize: '10px',
+                margin: '0 0 4px 0'
+              }}>ℹ️ Acciones disponibles:</h4>
+              <ul style={{
+                fontSize: '8px',
+                color: '#6B7280',
+                margin: 0,
+                paddingLeft: '12px',
+                lineHeight: '1.3'
+              }}>
+                <li><strong>Nuevo Estudio:</strong> Agregar otro estudio al remito</li>
+                <li><strong>Finalizar:</strong> Guardar el remito en el historial</li>
+                <li>Puedes agregar tantos estudios como necesites</li>
               </ul>
             </div>
           </div>

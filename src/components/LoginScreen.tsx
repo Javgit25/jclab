@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Users, User, Shield, AlertCircle } from 'lucide-react';
-import { DoctorInfo } from '../types';
+import { DoctorInfo, VirtualKeyboard as VirtualKeyboardType } from '../types';
+import { VirtualKeyboard } from './VirtualKeyboard';
 
 interface LoginScreenProps {
   onLogin: (doctorInfo: DoctorInfo) => void;
@@ -14,6 +15,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
   const [email, setEmail] = useState('');
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estado para el teclado virtual
+  const [keyboard, setKeyboard] = useState<VirtualKeyboardType>({
+    isOpen: false,
+    type: 'full',
+    targetField: '',
+    targetValue: ''
+  });
 
   // Función de validación
   const validateForm = () => {
@@ -77,8 +86,85 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
     }
   }, [firstName, lastName, hospitalName, email, onLogin, isSubmitting]);
 
+  // Funciones para el teclado virtual
+  const openKeyboard = (field: string) => {
+    let currentValue = '';
+    switch (field) {
+      case 'firstName':
+        currentValue = firstName;
+        break;
+      case 'lastName':
+        currentValue = lastName;
+        break;
+      case 'hospitalName':
+        currentValue = hospitalName;
+        break;
+      case 'email':
+        currentValue = email;
+        break;
+    }
+    
+    setKeyboard({
+      isOpen: true,
+      type: 'full',
+      targetField: field,
+      targetValue: currentValue
+    });
+  };
+
+  const handleKeyPress = (key: string) => {
+    let newValue = keyboard.targetValue;
+    
+    if (key === 'BACKSPACE' || key === 'backspace') {
+      newValue = newValue.slice(0, -1);
+    } else if (key === 'SPACE' || key === 'space') {
+      newValue += ' ';
+    } else {
+      // Agregar la tecla tal como viene (números, letras, símbolos)
+      newValue += key;
+    }
+    
+    // Actualizar el estado del teclado
+    setKeyboard(prev => ({ ...prev, targetValue: newValue }));
+    
+    // ✅ NUEVO: Actualizar el campo correspondiente en tiempo real
+    switch (keyboard.targetField) {
+      case 'firstName':
+        setFirstName(newValue);
+        if (errors.firstName) {
+          setErrors(prev => ({...prev, firstName: ''}));
+        }
+        break;
+      case 'lastName':
+        setLastName(newValue);
+        if (errors.lastName) {
+          setErrors(prev => ({...prev, lastName: ''}));
+        }
+        break;
+      case 'hospitalName':
+        setHospitalName(newValue);
+        break;
+      case 'email':
+        setEmail(newValue);
+        if (errors.email) {
+          setErrors(prev => ({...prev, email: ''}));
+        }
+        break;
+    }
+  };
+
+  const handleKeyboardConfirm = () => {
+    // Ya no necesitamos actualizar los valores aquí porque se actualizan en tiempo real
+    // Solo cerramos el teclado
+    setKeyboard(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleSwitchKeyboardType = (type: 'numeric' | 'full') => {
+    setKeyboard(prev => ({ ...prev, type }));
+  };
+
   // Manejar Enter key
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPressOriginal = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isSubmitting) {
       handleLogin();
     }
@@ -87,21 +173,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
       const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && email.trim().length >= 5 && email.includes('@') && email.includes('.');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
-            <Users className="text-blue-600" size={32} />
+    <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-2 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl p-5 w-full max-w-md h-fit">
+        <div className="text-center mb-5">
+          <div className="mb-2">
+            <img 
+              src="/assets/logo-login.svg" 
+              alt="BiopsyTracker Logo" 
+              className="w-52 h-15 mx-auto mb-1"
+              style={{
+                filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+              }}
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800">BiopsyTracker</h1>
-          <p className="text-gray-600 mt-2">Sistema de Gestión de Biopsias</p>
-          <p className="text-sm text-gray-500 mt-1">Complete los datos para acceder</p>
+          <p className="text-sm text-gray-500">Complete los datos para acceder</p>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Campo Nombre - OBLIGATORIO */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Nombre <span className="text-red-500">*</span>
             </label>
             <input
@@ -113,8 +204,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
                   setErrors(prev => ({...prev, firstName: ''}));
                 }
               }}
-              onKeyPress={handleKeyPress}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              onKeyPress={handleKeyPressOriginal}
+              onFocus={() => openKeyboard('firstName')}
+              className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.firstName 
                   ? 'border-red-500 bg-red-50' 
                   : 'border-gray-300'
@@ -133,7 +225,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
 
           {/* Campo Apellido - OBLIGATORIO */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Apellido <span className="text-red-500">*</span>
             </label>
             <input
@@ -145,8 +237,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
                   setErrors(prev => ({...prev, lastName: ''}));
                 }
               }}
-              onKeyPress={handleKeyPress}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              onKeyPress={handleKeyPressOriginal}
+              onFocus={() => openKeyboard('lastName')}
+              className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.lastName 
                   ? 'border-red-500 bg-red-50' 
                   : 'border-gray-300'
@@ -165,15 +258,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
 
           {/* Campo Hospital - OPCIONAL */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Hospital/Clínica <span className="text-gray-400">(opcional)</span>
             </label>
             <input
               type="text"
               value={hospitalName}
               onChange={(e) => setHospitalName(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              onKeyPress={handleKeyPressOriginal}
+              onFocus={() => openKeyboard('hospitalName')}
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               placeholder="Nombre del hospital o clínica"
               autoComplete="organization"
             />
@@ -181,7 +275,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
 
           {/* Campo Email - OBLIGATORIO */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email <span className="text-red-500">*</span>
             </label>
             <input
@@ -193,8 +287,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
                   setErrors(prev => ({...prev, email: ''}));
                 }
               }}
-              onKeyPress={handleKeyPress}
-              className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+              onKeyPress={handleKeyPressOriginal}
+              onFocus={() => openKeyboard('email')}
+              className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.email 
                   ? 'border-red-500 bg-red-50' 
                   : 'border-gray-300'
@@ -211,21 +306,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
             )}
           </div>
 
-          {/* Indicador de campos obligatorios */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+          {/* Indicador de campos obligatorios - compacto */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
             <div className="flex items-center">
-              <AlertCircle className="h-4 w-4 text-yellow-600 mr-2" />
-              <span className="text-sm text-yellow-800">
-                Los campos marcados con <span className="text-red-500 font-medium">*</span> son obligatorios
+              <AlertCircle className="h-3 w-3 text-yellow-600 mr-1" />
+              <span className="text-xs text-yellow-800">
+                Los campos con <span className="text-red-500 font-medium">*</span> son obligatorios
               </span>
             </div>
           </div>
 
-          {/* Botón de Login */}
+          {/* Botón de Login - ajustado */}
           <button
             onClick={handleLogin}
             disabled={!isFormValid || isSubmitting}
-            className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 ${
+            className={`w-full font-medium py-2.5 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 ${
               isFormValid && !isSubmitting
                 ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -233,54 +328,70 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
           >
             {isSubmitting ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Ingresando...</span>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span className="text-sm">Ingresando...</span>
               </>
             ) : (
               <>
-                <User size={20} />
-                <span>Ingresar como Médico</span>
+                <User size={18} />
+                <span className="text-sm">Ingresar como Médico</span>
               </>
             )}
           </button>
 
-          <div className="relative my-6">
+          <div className="relative my-3">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500">o</span>
+              <span className="px-2 bg-white text-gray-500 text-xs">o</span>
             </div>
           </div>
 
-          {/* Botón de Admin */}
+          {/* Botón de Admin - ajustado */}
           <button
             onClick={onGoToAdmin}
             disabled={isSubmitting}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
           >
-            <Shield size={20} />
-            <span>Panel de Administrador</span>
+            <Shield size={18} />
+            <span className="text-sm">Panel de Administrador</span>
           </button>
         </div>
 
-        {/* Información del sistema */}
-        <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800 mb-2">📋 Características:</h3>
-          <ul className="text-xs text-blue-700 space-y-1">
-            <li>• Gestión offline de biopsias</li>
-            <li>• Generación automática de remitos</li>
-            <li>• Historial completo de pacientes</li>
-            <li>• Exportación a CSV e impresión</li>
-            <li>• Sincronización automática</li>
-          </ul>
-        </div>
-
-        <div className="mt-4 text-center">
+        <div className="mt-2 text-center">
           <p className="text-xs text-gray-500">
-            Versión 1.0 • Sistema seguro y confiable
+            BiopsyTracker v1.0 • Sistema seguro y confiable
           </p>
         </div>
+
+        {/* Teclado Virtual - Como overlay modal */}
+        {keyboard.isOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+            <div className="bg-white w-full max-w-4xl rounded-t-2xl shadow-2xl">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  {keyboard.targetField === 'firstName' && 'Ingrese su nombre'}
+                  {keyboard.targetField === 'lastName' && 'Ingrese su apellido'}
+                  {keyboard.targetField === 'hospitalName' && 'Ingrese hospital/clínica'}
+                  {keyboard.targetField === 'email' && 'Ingrese su email'}
+                </h3>
+                <button
+                  onClick={() => setKeyboard(prev => ({ ...prev, isOpen: false }))}
+                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+                >
+                  ×
+                </button>
+              </div>
+              <VirtualKeyboard
+                keyboard={keyboard}
+                onKeyPress={handleKeyPress}
+                onConfirm={handleKeyboardConfirm}
+                onSwitchType={handleSwitchKeyboardType}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

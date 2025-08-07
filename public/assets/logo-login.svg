@@ -1,0 +1,29 @@
+<svg width="300" height="80" viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Logo médico estilizado sin fondo para el login -->
+  <defs>
+    <linearGradient id="crossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F76F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B5BDB;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Logo médico estilizado -->
+  <g transform="translate(15, 15)">
+    <!-- Círculo de fondo para la cruz -->
+    <circle cx="25" cy="25" r="22" fill="url(#crossGrad)" stroke="rgba(75, 118, 246, 0.3)" stroke-width="2"/>
+    <!-- Cruz médica blanca -->
+    <rect x="21" y="12" width="8" height="26" fill="white" rx="3"/>
+    <rect x="12" y="21" width="26" height="8" fill="white" rx="3"/>
+    <!-- Sombra interior en la cruz -->
+    <rect x="21" y="12" width="8" height="26" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.5" rx="3"/>
+    <rect x="12" y="21" width="26" height="8" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.5" rx="3"/>
+  </g>
+  
+  <!-- Texto BiopsyTracker -->
+  <text x="75" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#2d3748">
+    BiopsyTracker
+  </text>
+  <text x="75" y="55" font-family="Arial, sans-serif" font-size="12" fill="#64748b">
+    Sistema de Gestión de Biopsias
+  </text>
+</svg>

@@ -109,6 +109,9 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   ];
 
   const numberRow = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+  
+  // ✅ NUEVO: Fila de símbolos especiales para emails y otros usos
+  const symbolRow = ['@', '.', '_', '-', '+', '=', '!', '?', ':', ';'];
 
   return (
     <div className="bg-white border-t border-gray-200 p-4">
@@ -165,6 +168,19 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
               key={key}
               onClick={() => onKeyPress(key)}
               className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-2 rounded text-sm transition-colors"
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+
+        {/* ✅ NUEVA: Fila de símbolos especiales */}
+        <div className="grid grid-cols-10 gap-1 mb-2">
+          {symbolRow.map((key) => (
+            <button
+              key={key}
+              onClick={() => onKeyPress(key)}
+              className="bg-purple-100 hover:bg-purple-200 text-purple-800 font-semibold py-2 px-2 rounded text-sm transition-colors"
             >
               {key}
             </button>

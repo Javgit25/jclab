@@ -497,6 +497,12 @@ function App() {
     }
   }, [doctorInfo]);
 
+  // Función para volver al inicio sin validaciones (desde Step1)
+  const goBackToMainScreen = useCallback(() => {
+    console.log('App - Volviendo al menú principal sin validaciones');
+    setCurrentScreen('main');
+  }, []);
+
   // Función adicional para debug - CORREGIDA
   const debugHistoryData = useCallback(() => {
     if (!doctorInfo || !doctorInfo.email) return;
@@ -569,6 +575,7 @@ function App() {
         onSaveBiopsy={saveBiopsy}
         onFinishDailyReport={finishDailyReport}
         onFinishDailyReportFromStep7={finishDailyReportFromStep7}
+        onGoBackToMainScreen={goBackToMainScreen}
         onUpdateFrequentTissues={updateFrequentTissues}
       />
     );

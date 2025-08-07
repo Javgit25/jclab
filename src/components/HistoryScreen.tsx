@@ -1,16 +1,8 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Printer, Mail, Calendar, FileText, Trash2 } from 'lucide-react';
-import { BiopsyForm, DoctorInfo } from '../types';
+import { BiopsyForm, DoctorInfo, HistoryEntry } from '../types';
 import { ConnectionStatus } from './ConnectionStatus';
 import { serviciosAdicionales, giemsaOptions } from '../constants/services';
-
-// Tipo temporal para HistoryEntry (simplificado)
-interface HistoryEntry {
-  id: string;
-  date: string;
-  timestamp: string;
-  biopsies: BiopsyForm[];
-}
 
 interface HistoryScreenProps {
   doctorInfo: DoctorInfo;
@@ -58,620 +50,531 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     const serviciosActivos: string[] = [];
     
     if (biopsy.servicios) {
-      Object.entries(biopsy.servicios).forEach(([key, value]) => {
-        if (value && key !== 'giemsaOptions' && key !== 'corteBlancoIHQQuantity' && key !== 'corteBlancoComunQuantity') {
-          const servicio = serviciosAdicionales.find(s => s.key === key);
-          if (servicio) {
-            let servicioLabel = servicio.label;
-            
-            // Manejo especial para Giemsa/PAS/Masson
-            if (key === 'giemsaPASMasson' && biopsy.servicios.giemsaOptions) {
-              const giemsaSelected = Object.entries(biopsy.servicios.giemsaOptions)
-                .filter(([_, selected]) => selected)
-                .map(([optionKey, _]) => {
-                  const option = giemsaOptions.find(opt => opt.key === optionKey);
-                  return option ? option.label : optionKey;
-                });
-              
-              if (giemsaSelected.length > 0) {
-                servicioLabel = giemsaSelected.join(', ');
-              } else {
-                return;
-              }
-            }
-            // Agregar cantidad para cortes en blanco
-            else if (key === 'corteBlancoIHQ') {
-              const quantity = biopsy.servicios.corteBlancoIHQQuantity || 1;
-              servicioLabel += ` (${quantity} corte${quantity !== 1 ? 's' : ''})`;
-            } else if (key === 'corteBlancoComun') {
-              const quantity = biopsy.servicios.corteBlancoComunQuantity || 1;
-              servicioLabel += ` (${quantity} corte${quantity !== 1 ? 's' : ''})`;
-            }
-            
-            serviciosActivos.push(servicioLabel);
-          }
+      // Servicios urgentes
+      if (biopsy.servicios.cassetteUrgente) {
+        serviciosActivos.push('CASSETTE URGENTE');
+      }
+      if (biopsy.servicios.papUrgente) {
+        serviciosActivos.push('PAP URGENTE');
+      }
+      if (biopsy.servicios.citologiaUrgente) {
+        serviciosActivos.push('CITOLOGÍA URGENTE');
+      }
+      
+      // Servicios de cortes
+      if (biopsy.servicios.corteBlancoIHQ) {
+        const quantity = biopsy.servicios.corteBlancoIHQQuantity || 1;
+        serviciosActivos.push(`CORTE IHQ (${quantity})`);
+      }
+      if (biopsy.servicios.corteBlancoComun) {
+        const quantity = biopsy.servicios.corteBlancoComunQuantity || 1;
+        serviciosActivos.push(`CORTE COMÚN (${quantity})`);
+      }
+      
+      // Servicios de tinción
+      if (biopsy.servicios.giemsaPASMasson && biopsy.servicios.giemsaOptions) {
+        const opciones = [];
+        if (biopsy.servicios.giemsaOptions.giemsa) opciones.push('GIEMSA');
+        if (biopsy.servicios.giemsaOptions.pas) opciones.push('PAS');  
+        if (biopsy.servicios.giemsaOptions.masson) opciones.push('MASSON');
+        if (opciones.length > 0) {
+          serviciosActivos.push(opciones.join('/'));
         }
-      });
+      }
     }
     
     return serviciosActivos;
   };
 
+  // Función para determinar si una biopsia es urgente
+  const isUrgentBiopsy = (biopsy: BiopsyForm): boolean => {
+    if (!biopsy.servicios) return false;
+    return !!(biopsy.servicios.cassetteUrgente || 
+              biopsy.servicios.papUrgente || 
+              biopsy.servicios.citologiaUrgente);
+  };
+
   const handlePrint = (entry: HistoryEntry) => {
-    console.log('🖨️ Generando remito profesional para entry:', entry.id);
+    console.log('🖨️ Generando remito con nuevo diseño para entry:', entry.id);
     
-    // Crear HTML profesional para el remito
+    // Crear HTML con diseño completamente nuevo
     const remitoHTML = `<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Remito de Biopsias - ${entry.id}</title>
+    <title>Remito de Laboratorio - ${entry.id}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         
-        @page {
-            margin: 15mm;
-            size: A4;
-        }
+        @page { margin: 8mm; size: A4; }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.4;
-            color: #1a1a1a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            line-height: 1.3;
+            color: #1a202c;
             background: white;
-            font-size: 11pt;
-            -webkit-print-color-adjust: exact;
-            color-adjust: exact;
+            font-size: 8pt;
         }
         
-        .letterhead {
-            text-align: center;
-            margin-bottom: 25px;
-            padding: 20px;
-            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        .header {
+            background: linear-gradient(135deg, #2d3748 0%, #4a5568 100%);
             color: white;
-            border-radius: 10px;
-            position: relative;
-            overflow: hidden;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         
-        .clinic-logo {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 50%;
-            margin: 0 auto 15px;
+        .logo-section {
+            flex: 0 0 auto;
+        }
+        
+        .logo-container {
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            border: 2px solid rgba(255, 255, 255, 0.3);
         }
         
-        .clinic-name {
-            font-size: 22pt;
-            font-weight: 700;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        .logo-circle {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #4F76F6 0%, #3B5BDB 100%);
+            border-radius: 50%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(79, 118, 246, 0.3);
         }
         
-        .clinic-subtitle {
+        .logo-cross-vertical {
+            position: absolute;
+            width: 4px;
+            height: 20px;
+            background: white;
+            border-radius: 2px;
+            z-index: 2;
+        }
+        
+        .logo-cross-horizontal {
+            position: absolute;
+            width: 20px;
+            height: 4px;
+            background: white;
+            border-radius: 2px;
+            z-index: 2;
+        }
+        
+        .header-content {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .app-name {
             font-size: 14pt;
-            margin-bottom: 12px;
-            opacity: 0.9;
-            font-weight: 400;
-        }
-        
-        .remito-title {
-            font-size: 16pt;
             font-weight: 700;
-            background: rgba(255, 255, 255, 0.15);
-            padding: 8px 20px;
-            border-radius: 20px;
-            display: inline-block;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2px;
+            letter-spacing: -0.3px;
         }
         
-        .document-info {
+        .app-subtitle {
+            font-size: 8pt;
+            opacity: 0.85;
+            margin-bottom: 0;
+        }
+        
+        .doc-info {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 4px;
+            flex: 0 0 auto;
+        }
+        
+        .doc-title { font-size: 10pt; font-weight: 600; }
+        .doc-number { font-size: 8pt; margin-top: 1px; }
+        
+        .content-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 25px;
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 12px;
-            border-left: 5px solid #3b82f6;
+            gap: 12px;
+            margin-bottom: 15px;
         }
         
-        .info-section {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
+        .info-panel {
             border: 1px solid #e2e8f0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            overflow: hidden;
         }
         
-        .section-title {
-            font-size: 11pt;
-            font-weight: 700;
-            color: #1e40af;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 5px;
+        .panel-header {
+            background: #f7fafc;
+            padding: 6px 10px;
+            font-weight: 600;
+            font-size: 8pt;
+            color: #2d3748;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .panel-body {
+            padding: 8px;
         }
         
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            align-items: center;
+            margin-bottom: 4px;
+            font-size: 7pt;
         }
         
         .info-label {
-            font-weight: 600;
-            color: #64748b;
-            font-size: 10pt;
+            color: #718096;
+            font-weight: 500;
         }
         
         .info-value {
+            color: #2d3748;
             font-weight: 600;
-            color: #1e293b;
-            font-size: 10pt;
             text-align: right;
         }
         
-        .biopsies-table {
+        .samples-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .samples-header {
+            background: #2d3748;
+            color: white;
+            padding: 8px;
+            font-weight: 600;
+            font-size: 9pt;
+        }
+        
+        .samples-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 25px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            border: 1px solid #e2e8f0;
         }
         
-        .biopsies-table th {
-            background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
-            color: white;
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: 700;
-            font-size: 9pt;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #1e3a8a;
-        }
-        
-        .biopsies-table td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-            font-size: 9pt;
-            text-align: center;
-        }
-        
-        .biopsies-table tr:nth-child(even) {
-            background: #f8fafc;
-        }
-        
-        .biopsy-number {
-            font-weight: 700;
-            color: #1e40af;
-            font-size: 10pt;
-            background: #dbeafe;
-            padding: 4px 8px;
-            border-radius: 4px;
-        }
-        
-        .tissue-type {
-            font-weight: 600;
-            color: #1e293b;
+        .samples-table th {
+            background: #edf2f7;
+            padding: 6px 4px;
             text-align: left;
-        }
-        
-        .quantity-cell {
-            font-weight: 700;
-            color: #059669;
-            font-size: 10pt;
-        }
-        
-        .services-badge {
-            background: #e0e7ff;
-            color: #3730a3;
-            padding: 3px 6px;
-            border-radius: 12px;
-            font-size: 8pt;
             font-weight: 600;
+            font-size: 7pt;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .samples-table td {
+            padding: 6px 4px;
+            border-bottom: 1px solid #f7fafc;
+            font-size: 7pt;
+            vertical-align: top;
+        }
+        
+        .sample-type {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .service-pill {
+            background: #e6fffa;
+            color: #234e52;
+            padding: 1px 4px;
+            border-radius: 8px;
+            font-size: 6pt;
+            font-weight: 500;
             display: inline-block;
             margin: 1px;
-            border: 1px solid #c7d2fe;
+            border: 1px solid #b2f5ea;
         }
         
-        .urgent-badge {
-            background: #fef2f2;
-            color: #dc2626;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 8pt;
+        .urgent-pill {
+            background: #fed7d7;
+            color: #742a2a;
+            border-color: #feb2b2;
             font-weight: 700;
-            border: 1px solid #fecaca;
+            animation: pulse 2s infinite;
         }
         
-        .normal-badge {
-            background: #f0fdf4;
-            color: #166534;
-            padding: 3px 8px;
-            border-radius: 12px;
+        .normal-pill {
+            background: #c6f6d5;
+            color: #22543d;
+            border-color: #9ae6b4;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .instructions {
+            background: #fffaf0;
+            border: 1px solid #fbd38d;
+            border-radius: 4px;
+            padding: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .instructions h3 {
+            color: #744210;
             font-size: 8pt;
-            font-weight: 600;
-            border: 1px solid #bbf7d0;
+            margin-bottom: 4px;
         }
         
-        .summary-section {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-            padding: 20px;
-            border-radius: 12px;
-            border: 1px solid #bae6fd;
-            margin-bottom: 25px;
+        .instructions ul {
+            color: #744210;
+            font-size: 6pt;
+            padding-left: 10px;
         }
         
-        .summary-title {
-            font-size: 14pt;
-            font-weight: 700;
-            color: #0c4a6e;
-            margin-bottom: 15px;
-            text-align: center;
-            text-transform: uppercase;
+        .instructions li {
+            margin-bottom: 2px;
         }
         
-        .summary-grid {
+        .signatures {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-        }
-        
-        .summary-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #e0f2fe;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        
-        .summary-number {
-            font-size: 18pt;
-            font-weight: 700;
-            color: #0c4a6e;
-            margin-bottom: 5px;
-            display: block;
-        }
-        
-        .summary-label {
-            font-size: 8pt;
-            color: #64748b;
-            text-transform: uppercase;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        
-        .instructions-section {
-            background: #fefce8;
-            border: 2px solid #facc15;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 25px;
-        }
-        
-        .instructions-title {
-            font-size: 11pt;
-            font-weight: 700;
-            color: #a16207;
-            margin-bottom: 10px;
-        }
-        
-        .instructions-list {
-            font-size: 9pt;
-            color: #713f12;
-            line-height: 1.6;
-        }
-        
-        .signature-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 30px;
-            margin-top: 30px;
-            page-break-inside: avoid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
         }
         
         .signature-box {
             text-align: center;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
         }
         
         .signature-line {
-            border-bottom: 2px solid #64748b;
-            margin-bottom: 8px;
-            height: 30px;
+            border-bottom: 1px solid #a0aec0;
+            height: 25px;
+            margin-bottom: 4px;
         }
         
         .signature-label {
-            font-size: 8pt;
-            color: #64748b;
-            font-weight: 700;
+            color: #718096;
+            font-size: 6pt;
+            font-weight: 500;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
         
         .footer {
-            margin-top: 30px;
-            padding-top: 15px;
-            border-top: 2px solid #e2e8f0;
             text-align: center;
-            color: #64748b;
-            font-size: 8pt;
-            page-break-inside: avoid;
+            margin-top: 15px;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+            color: #718096;
+            font-size: 6pt;
+        }
+        
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2d3748;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1000;
         }
         
         @media print {
-            body { 
-                margin: 0; 
-                padding: 10mm;
-                font-size: 10pt;
-            }
-            .no-print { display: none !important; }
-            .letterhead { page-break-inside: avoid; }
-            .signature-section { page-break-inside: avoid; }
-            .footer { page-break-inside: avoid; }
-            * { color-adjust: exact; -webkit-print-color-adjust: exact; }
+            .print-btn { display: none !important; }
+            body { font-size: 7pt; margin: 0; padding: 0; }
+            .header { margin-bottom: 8px; padding: 8px; }
+            .content-grid { margin-bottom: 8px; gap: 8px; }
+            .samples-container { margin-bottom: 8px; }
+            .instructions { margin-bottom: 6px; padding: 6px; }
+            .signatures { margin-top: 8px; gap: 15px; }
+            .footer { margin-top: 8px; padding-top: 4px; }
+            * { color-adjust: exact; }
         }
     </style>
 </head>
 <body>
-    <!-- Professional Letterhead -->
-    <div class="letterhead">
-        <div class="clinic-logo">⚕</div>
-        <div class="clinic-name">Laboratorio de Anatomía Patológica</div>
-        <div class="clinic-subtitle">${entry.doctorInfo?.hospital || doctorInfo?.hospital || 'Centro Médico Especializado'}</div>
-        <div class="remito-title">📋 REMITO DE BIOPSIAS</div>
+    <div class="header">
+        <div class="logo-section">
+            <div class="logo-container">
+                <div class="logo-circle">
+                    <div class="logo-cross-vertical"></div>
+                    <div class="logo-cross-horizontal"></div>
+                </div>
+            </div>
+        </div>
+        <div class="header-content">
+            <div class="app-name">BiopsyTracker</div>
+            <div class="app-subtitle">Sistema de Gestión de Biopsias</div>
+        </div>
+        <div class="doc-info">
+            <div class="doc-title">Remito de Laboratorio</div>
+            <div class="doc-number">N° ${entry.id.slice(-8).toUpperCase()} • ${new Date(entry.date).toLocaleDateString('es-AR')}</div>
+        </div>
     </div>
 
-    <!-- Document Information -->
-    <div class="document-info">
-        <div class="info-section">
-            <div class="section-title">👨‍⚕️ Información del Médico</div>
-            <div class="info-row">
-                <span class="info-label">Nombre:</span>
-                <span class="info-value">Dr/a. ${entry.doctorInfo?.name || doctorInfo?.name || 'No especificado'}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Email:</span>
-                <span class="info-value">${entry.doctorInfo?.email || doctorInfo?.email || 'No especificado'}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Hospital:</span>
-                <span class="info-value">${entry.doctorInfo?.hospital || doctorInfo?.hospital || 'No especificado'}</span>
+    <div class="content-grid">
+        <div class="info-panel">
+            <div class="panel-header">Médico</div>
+            <div class="panel-body">
+                <div class="info-row">
+                    <span class="info-label">Dr/a:</span>
+                    <span class="info-value">${entry.doctorInfo?.name || doctorInfo?.name || 'No especificado'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">${entry.doctorInfo?.email || doctorInfo?.email || 'No especificado'}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Hospital:</span>
+                    <span class="info-value">${entry.doctorInfo?.hospital || doctorInfo?.hospital || 'No especificado'}</span>
+                </div>
             </div>
         </div>
         
-        <div class="info-section">
-            <div class="section-title">📅 Información del Remito</div>
-            <div class="info-row">
-                <span class="info-label">Número:</span>
-                <span class="info-value">#${entry.id.slice(-8).toUpperCase()}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Fecha:</span>
-                <span class="info-value">${new Date(entry.date).toLocaleDateString('es-AR', {
-                  day: '2-digit',
-                  month: 'long',
-                  year: 'numeric'
-                })}</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Hora:</span>
-                <span class="info-value">${new Date(entry.timestamp).toLocaleTimeString('es-AR', {
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}</span>
+        <div class="info-panel">
+            <div class="panel-header">Remito</div>
+            <div class="panel-body">
+                <div class="info-row">
+                    <span class="info-label">Fecha:</span>
+                    <span class="info-value">${new Date(entry.date).toLocaleDateString('es-AR')}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Hora:</span>
+                    <span class="info-value">${new Date(entry.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Muestras:</span>
+                    <span class="info-value">${entry.biopsies?.length || 0}</span>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Biopsies Table -->
-    <table class="biopsies-table">
-        <thead>
-            <tr>
-                <th style="width: 8%">N°</th>
-                <th style="width: 12%">Tipo</th>
-                <th style="width: 30%">Tejido/Procedimiento</th>
-                <th style="width: 15%">Cantidad</th>
-                <th style="width: 25%">Servicios Especiales</th>
-                <th style="width: 10%">Prioridad</th>
-            </tr>
-        </thead>
-        <tbody>
-            ${entry.biopsies?.map((biopsy: any, index: number) => {
-              // Determinar servicios activos
-              const serviciosActivos = [];
-              if (biopsy.serviciosEspeciales) {
-                if (biopsy.serviciosEspeciales.cassetteUrgente) serviciosActivos.push('Cassette Urgente');
-                if (biopsy.serviciosEspeciales.papUrgente) serviciosActivos.push('PAP Urgente');
-                if (biopsy.serviciosEspeciales.citologiaUrgente) serviciosActivos.push('Citología Urgente');
-                if (biopsy.serviciosEspeciales.corteBlancoIHQ) serviciosActivos.push('Corte Blanco IHQ');
-                if (biopsy.serviciosEspeciales.corteBlancoComun) serviciosActivos.push('Corte Blanco Común');
-                if (biopsy.serviciosEspeciales.giemsaPASMasson) {
-                  const opciones = [];
-                  if (biopsy.serviciosEspeciales.giemsaOptions?.giemsa) opciones.push('Giemsa');
-                  if (biopsy.serviciosEspeciales.giemsaOptions?.pas) opciones.push('PAS');
-                  if (biopsy.serviciosEspeciales.giemsaOptions?.masson) opciones.push('Masson');
-                  if (opciones.length > 0) serviciosActivos.push(`Tinciones: ${opciones.join(', ')}`);
-                }
-              }
-              
-              const isUrgent = serviciosActivos.some(s => s.includes('Urgente'));
-              
-              return `
+    <div class="samples-container">
+        <div class="samples-header">Detalle de Muestras</div>
+        <table class="samples-table">
+            <thead>
                 <tr>
-                    <td><span class="biopsy-number">${biopsy.number || index + 1}</span></td>
-                    <td style="font-weight: 600;">${biopsy.type || 'BIOPSIA'}</td>
-                    <td class="tissue-type">${biopsy.tissueType || 'No especificado'}${
-                      biopsy.tissueType === 'Endoscopia' && biopsy.endoscopiaSubTypes?.length > 0
-                        ? `<br><small style="font-size: 8pt; color: #64748b;">(${biopsy.endoscopiaSubTypes.join(', ')})</small>`
-                        : ''
-                    }</td>
-                    <td class="quantity-cell">
-                        ${
-                          biopsy.tissueType === 'PAP' 
-                            ? `${biopsy.papQuantity || 0} vidrios`
-                            : biopsy.tissueType === 'Citología' 
-                              ? `${biopsy.citologiaQuantity || 0} vidrios`
-                              : `${biopsy.cassettes || 1} cassettes`
-                        }
-                    </td>
-                    <td style="text-align: left; padding-left: 12px;">
-                        ${serviciosActivos.length > 0 
-                          ? serviciosActivos.map(s => `<span class="services-badge">${s}</span>`).join(' ')
-                          : '<span style="color: #6b7280; font-style: italic;">Sin servicios adicionales</span>'
-                        }
-                    </td>
-                    <td>
-                        ${isUrgent 
-                          ? '<span class="urgent-badge">🚨 URGENTE</span>'
-                          : '<span class="normal-badge">✓ NORMAL</span>'
-                        }
-                    </td>
+                    <th style="width: 5%">N°</th>
+                    <th style="width: 10%">Tipo</th>
+                    <th style="width: 28%">Muestra</th>
+                    <th style="width: 8%">Cant.</th>
+                    <th style="width: 8%">Trozos</th>
+                    <th style="width: 28%">Servicios</th>
+                    <th style="width: 8%">Estado</th>
                 </tr>
-              `;
-            }).join('') || '<tr><td colspan="6" style="text-align: center; color: #6b7280; font-style: italic; padding: 20px;">No hay biopsias registradas en este remito</td></tr>'}
-        </tbody>
-    </table>
-
-    <!-- Summary Section -->
-    <div class="summary-section">
-        <div class="summary-title">📊 Resumen Estadístico del Remito</div>
-        <div class="summary-grid">
-            <div class="summary-item">
-                <span class="summary-number">${entry.biopsies?.length || 0}</span>
-                <div class="summary-label">Total Biopsias</div>
-            </div>
-            <div class="summary-item">
-                <span class="summary-number">${
-                  entry.biopsies?.reduce((sum: number, biopsy: any) => 
-                    sum + (biopsy.cassettes || 0), 0) || 0
-                }</span>
-                <div class="summary-label">Total Cassettes</div>
-            </div>
-            <div class="summary-item">
-                <span class="summary-number">${
-                  entry.biopsies?.reduce((sum: number, biopsy: any) => 
-                    sum + (biopsy.papQuantity || 0) + (biopsy.citologiaQuantity || 0), 0) || 0
-                }</span>
-                <div class="summary-label">Total Vidrios</div>
-            </div>
-            <div class="summary-item">
-                <span class="summary-number">${
-                  entry.biopsies?.filter((biopsy: any) => 
-                    biopsy.serviciosEspeciales && Object.values(biopsy.serviciosEspeciales).some(v => 
-                      typeof v === 'boolean' ? v : false
-                    )
-                  ).length || 0
-                }</span>
-                <div class="summary-label">Con Servicios</div>
-            </div>
-        </div>
+            </thead>
+            <tbody>
+                ${entry.biopsies?.map((biopsy: any, index: number) => {
+                  const serviciosActivos = getServiciosActivos(biopsy);
+                  const isUrgent = isUrgentBiopsy(biopsy);
+                  
+                  // Determinar tipo abreviado
+                  let tipoAbreviado = biopsy.type || 'BIOPSIA';
+                  if (biopsy.tissueType === 'PAP') tipoAbreviado = 'PAP';
+                  if (biopsy.tissueType === 'Citología') tipoAbreviado = 'CITO';
+                  
+                  // Formatear endoscopia en una línea
+                  let tissueDisplay = biopsy.tissueType || 'No especificado';
+                  if (biopsy.tissueType === 'Endoscopia' && biopsy.endoscopiaSubTypes && biopsy.endoscopiaSubTypes.length > 0) {
+                    tissueDisplay = 'Endoscopia (' + biopsy.endoscopiaSubTypes.join(', ') + ')';
+                  }
+                  
+                  return `
+                    <tr>
+                        <td style="text-align: center; font-weight: 700; color: #2d3748;">${biopsy.number || (index + 1)}</td>
+                        <td><span class="sample-type">${tipoAbreviado}</span></td>
+                        <td>${tissueDisplay}</td>
+                        <td style="text-align: center; font-weight: 600;">
+                            ${
+                              biopsy.tissueType === 'PAP' 
+                                ? (biopsy.papQuantity || 0) + ' vid'
+                                : biopsy.tissueType === 'Citología' 
+                                  ? (biopsy.citologiaQuantity || 0) + ' vid'
+                                  : (biopsy.cassettes || 1) + ' cas'
+                            }
+                        </td>
+                        <td style="text-align: center; font-weight: 600; color: #4a5568;">
+                            ${
+                              biopsy.tissueType === 'PAP' || biopsy.tissueType === 'Citología'
+                                ? '-'
+                                : (biopsy.pieces || 1)
+                            }
+                        </td>
+                        <td>
+                            ${serviciosActivos.length > 0 
+                              ? serviciosActivos.map(s => '<span class="service-pill">' + s + '</span>').join(' ')
+                              : '<span style="color: #a0aec0; font-style: italic; font-size: 6pt;">Ninguno</span>'
+                            }
+                        </td>
+                        <td style="text-align: center;">
+                            ${isUrgent 
+                              ? '<span class="service-pill urgent-pill">URGENTE</span>'
+                              : '<span class="service-pill normal-pill">NORMAL</span>'
+                            }
+                        </td>
+                    </tr>
+                  `;
+                }).join('') || '<tr><td colspan="7" style="text-align: center; color: #a0aec0; font-style: italic; padding: 20px;">No hay muestras registradas</td></tr>'}
+            </tbody>
+        </table>
     </div>
 
-    <!-- Instructions Section -->
-    <div class="instructions-section">
-        <div class="instructions-title">⚠️ Instrucciones Importantes</div>
-        <ul class="instructions-list">
-            <li><strong>Conservar este remito</strong> junto con las muestras hasta la entrega de resultados</li>
-            <li><strong>Verificar</strong> que todas las muestras estén debidamente identificadas y rotuladas</li>
-            <li><strong>Contactar inmediatamente</strong> al laboratorio en caso de urgencias o consultas</li>
-            <li><strong>Estudios urgentes</strong> serán procesados en 24-48 horas hábiles</li>
-            <li><strong>Estudios normales</strong> serán procesados en 5-7 días hábiles</li>
+    <div class="instructions">
+        <h3>Instrucciones</h3>
+        <ul>
+            <li><strong>Verificar</strong> etiquetado correcto de muestras</li>
+            <li><strong>Urgentes:</strong> 24-48h • <strong>Normales:</strong> 5-7 días</li>
+            <li><strong>Consultas:</strong> Contactar con N° de remito</li>
         </ul>
     </div>
 
-    <!-- Signature Section -->
-    <div class="signature-section">
+    <div class="signatures">
         <div class="signature-box">
             <div class="signature-line"></div>
-            <div class="signature-label">Firma del Médico Solicitante</div>
+            <div class="signature-label">Firma Médico</div>
         </div>
         <div class="signature-box">
             <div class="signature-line"></div>
-            <div class="signature-label">Sello y Matrícula Profesional</div>
-        </div>
-        <div class="signature-box">
-            <div class="signature-line"></div>
-            <div class="signature-label">Recepción Laboratorio</div>
+            <div class="signature-label">Recepción Lab</div>
         </div>
     </div>
 
-    <!-- Footer -->
     <div class="footer">
-        <p><strong>Remito generado automáticamente por BiopsyTracker</strong></p>
-        <p>Fecha de generación: ${new Date().toLocaleString('es-AR')} | Código: ${entry.id.slice(-8).toUpperCase()}</p>
-        <p style="margin-top: 8px; font-size: 7pt;">
-            Este documento es válido únicamente cuando está acompañado de las muestras correspondientes
-        </p>
+        <p><strong>BiopsyTracker</strong> - ${new Date().toLocaleString('es-AR')}</p>
     </div>
 
-    <!-- Print Controls -->
-    <div class="no-print" style="position: fixed; top: 20px; left: 20px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border: 1px solid #e2e8f0;">
-        <button onclick="window.print(); return false;" 
-                style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); color: white; border: none; padding: 12px 24px; 
-                       border-radius: 8px; font-weight: 600; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); margin-right: 10px;">
-            🖨️ IMPRIMIR REMITO
-        </button>
-        <button onclick="window.close(); return false;" 
-                style="background: #6b7280; color: white; border: none; padding: 12px 24px; 
-                       border-radius: 8px; font-weight: 600; cursor: pointer;">
-            ✕ CERRAR
-        </button>
-    </div>
+    <button class="print-btn" onclick="window.print(); setTimeout(() => window.close(), 100);">
+        🖨️ Imprimir
+    </button>
 </body>
 </html>`;
 
-    // Abrir en nueva ventana para imprimir
+    // Abrir ventana de impresión
     try {
-      const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
+      const printWindow = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
       if (printWindow) {
         printWindow.document.write(remitoHTML);
         printWindow.document.close();
-        
-        // Esperar a que se cargue y luego enfocar
-        printWindow.onload = () => {
-          setTimeout(() => {
-            printWindow.focus();
-          }, 500);
-        };
-        
-        console.log('✅ Remito profesional generado exitosamente');
+        printWindow.focus();
+        console.log('✅ Remito con nuevo diseño generado exitosamente');
       } else {
-        console.warn('⚠️ No se pudo abrir ventana de impresión');
-        alert('Por favor, permite las ventanas emergentes para generar el remito de impresión.');
+        alert('Por favor, permite las ventanas emergentes para generar el remito.');
       }
     } catch (error) {
       console.error('❌ Error al generar remito:', error);
-      alert('Error al generar el remito. Intenta nuevamente o contacta soporte técnico.');
+      alert('Error al generar el remito. Intenta nuevamente.');
     }
   };
 
@@ -690,6 +593,120 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     }
   };
 
+  // Función para crear datos de prueba
+  const createTestData = () => {
+    const testEntry: HistoryEntry = {
+      id: 'test-' + Date.now(),
+      date: new Date().toLocaleDateString('es-ES'),
+      timestamp: new Date().toISOString(),
+      doctorInfo: doctorInfo,
+      biopsies: [
+        {
+          number: '001',
+          tissueType: 'Endoscopia',
+          endoscopiaSubTypes: ['Duodeno', 'Estómago'],
+          type: 'Biopsia múltiple',
+          cassettes: '3',
+          pieces: '6',
+          cassettesNumbers: [
+            { base: 'A', suffix: '001' },
+            { base: 'A', suffix: '002' },
+            { base: 'A', suffix: '003' }
+          ],
+          declassify: 'No',
+          servicios: {
+            cassetteUrgente: true,
+            pap: false,
+            papUrgente: false,
+            citologia: false,
+            citologiaUrgente: false,
+            corteBlancoIHQ: true,
+            corteBlancoIHQQuantity: 2,
+            corteBlancoComun: false,
+            corteBlancoComunQuantity: 0,
+            giemsaPASMasson: true,
+            giemsaOptions: {
+              giemsa: true,
+              pas: false,
+              masson: true
+            }
+          },
+          observations: 'Muestra con sospecha de malignidad',
+          papQuantity: 0,
+          papUrgente: false,
+          citologiaQuantity: 0,
+          citologiaUrgente: false
+        },
+        {
+          number: '002',
+          tissueType: 'PAP',
+          endoscopiaSubTypes: [],
+          type: 'PAP',
+          cassettes: '0',
+          pieces: '0',
+          cassettesNumbers: [],
+          declassify: 'No',
+          servicios: {
+            cassetteUrgente: false,
+            pap: true,
+            papUrgente: true,
+            citologia: false,
+            citologiaUrgente: false,
+            corteBlancoIHQ: false,
+            corteBlancoIHQQuantity: 0,
+            corteBlancoComun: false,
+            corteBlancoComunQuantity: 0,
+            giemsaPASMasson: false,
+            giemsaOptions: {
+              giemsa: false,
+              pas: false,
+              masson: false
+            }
+          },
+          observations: 'Control ginecológico de rutina',
+          papQuantity: 2,
+          papUrgente: true,
+          citologiaQuantity: 0,
+          citologiaUrgente: false
+        },
+        {
+          number: '003',
+          tissueType: 'Citología',
+          endoscopiaSubTypes: [],
+          type: 'Citología',
+          cassettes: '0',
+          pieces: '0',
+          cassettesNumbers: [],
+          declassify: 'No',
+          servicios: {
+            cassetteUrgente: false,
+            pap: false,
+            papUrgente: false,
+            citologia: true,
+            citologiaUrgente: true,
+            corteBlancoIHQ: false,
+            corteBlancoIHQQuantity: 0,
+            corteBlancoComun: true,
+            corteBlancoComunQuantity: 3,
+            giemsaPASMasson: false,
+            giemsaOptions: {
+              giemsa: false,
+              pas: false,
+              masson: false
+            }
+          },
+          observations: 'Análisis urgente solicitado',
+          papQuantity: 0,
+          papUrgente: false,
+          citologiaQuantity: 1,
+          citologiaUrgente: true
+        }
+      ]
+    };
+
+    handlePrint(testEntry);
+  };
+
   const entries = historyEntries || [];
   const sortedEntries = [...entries].sort((a, b) => 
     new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
@@ -703,50 +720,31 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
       flexDirection: 'column',
       overflow: 'hidden'
     }}>
-      {/* Header Compacto y Limpio - MISMA METODOLOGÍA */}
+      {/* Header */}
       <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
-        padding: '12px 16px',
+        padding: '8px 12px',
         flexShrink: 0,
-        borderRadius: '12px',
-        boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-        margin: '16px 16px 8px 16px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)',
+        margin: '8px 12px 4px 12px',
         maxWidth: 'none',
-        width: 'calc(100% - 32px)'
+        width: 'calc(100% - 24px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              padding: '8px',
-              borderRadius: '12px',
-              position: 'relative',
-              backdropFilter: 'blur(10px)'
-            }}>
-              <Calendar style={{ height: '20px', width: '20px', color: 'white' }} />
-            </div>
-            <div>
-              <h1 style={{
-                fontSize: '20px',
-                fontWeight: 'bold',
-                color: 'white',
-                margin: 0,
-                lineHeight: '1.2'
-              }}>Historial de Remitos</h1>
-              <p style={{
-                fontSize: '12px',
-                color: 'rgba(255, 255, 255, 0.8)',
-                margin: 0,
-                fontWeight: '500'
-              }}>
-                {entries.length} remito{entries.length !== 1 ? 's' : ''} guardado{entries.length !== 1 ? 's' : ''}
-              </p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar style={{ height: '20px', width: '20px', color: 'white' }} />
+            <h1 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: 'white',
+              margin: 0,
+              lineHeight: '1.2'
+            }}>Panel de Facturación ({entries.length})</h1>
           </div>
           
-          {/* Navegación integrada en el header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ConnectionStatus 
               isOnline={isOnline}
               backupStatus={backupStatus}
@@ -757,140 +755,106 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               style={{
                 background: 'rgba(255, 255, 255, 0.2)',
                 border: 'none',
-                padding: '8px 12px',
-                borderRadius: '8px',
+                padding: '6px 12px',
+                borderRadius: '6px',
                 color: 'white',
-                fontSize: '12px',
+                fontSize: '14px',
                 fontWeight: '500',
                 cursor: 'pointer',
                 backdropFilter: 'blur(10px)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px'
+                gap: '6px'
               }}
             >
               <ArrowLeft size={16} />
-              Volver
+              ← Inicio
             </button>
           </div>
         </div>
       </div>
 
-      {/* Título principal fuera del box - MISMA METODOLOGÍA */}
-      <div style={{ 
-        padding: '8px 24px 8px 24px',
-        flexShrink: 0
-      }}>
-        <h2 style={{
-          fontSize: '28px',
-          fontWeight: 'bold',
-          color: '#1f2937',
-          margin: 0,
-          textAlign: 'left'
-        }}>
-          Remitos Guardados
-        </h2>
-      </div>
-
-      {/* Contenido principal con scroll */}
+      {/* Contenido */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        padding: '0 24px 24px 24px'
+        padding: '4px 12px 12px 12px'
       }}>
         {entries.length === 0 ? (
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-            padding: '48px 24px',
+            borderRadius: '12px',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+            padding: '24px 16px',
             border: '1px solid #e5e7eb',
             textAlign: 'center'
           }}>
-            <div style={{ marginBottom: '24px' }}>
-              <Calendar style={{ 
-                height: '48px', 
-                width: '48px', 
-                color: '#9CA3AF',
-                margin: '0 auto'
-              }} />
-            </div>
+            <Calendar style={{ 
+              height: '32px', 
+              width: '32px', 
+              color: '#9CA3AF',
+              margin: '0 auto 12px auto'
+            }} />
             <h3 style={{
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: '600',
               color: '#4B5563',
-              margin: '0 0 12px 0'
+              margin: '0 0 8px 0'
             }}>
-              No hay remitos en el historial
+              No hay remitos
             </h3>
             <p style={{
               color: '#6B7280',
-              margin: '0 0 24px 0',
-              fontSize: '16px'
+              margin: 0,
+              fontSize: '14px'
             }}>
-              Los remitos finalizados aparecerán aquí
+              Los remitos generados aparecerán aquí
             </p>
-            <button 
-              onClick={onGoBack}
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)'
-              }}
-            >
-              Volver al Inicio
-            </button>
           </div>
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-            gap: '20px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: '12px'
           }}>
             {sortedEntries.map((entry) => (
               <div key={entry.id} style={{
                 background: 'white',
-                borderRadius: '16px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                borderRadius: '12px',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
                 border: '1px solid #e5e7eb',
                 overflow: 'hidden'
               }}>
                 {/* Header del remito */}
                 <div style={{
                   background: 'linear-gradient(135deg, #f0f4ff 0%, #e0edff 100%)',
-                  padding: '20px',
+                  padding: '12px 16px',
                   borderBottom: '1px solid #e5e7eb'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{
-                        width: '48px',
-                        height: '48px',
+                        width: '32px',
+                        height: '32px',
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        borderRadius: '12px',
+                        borderRadius: '8px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center'
                       }}>
-                        <FileText style={{ height: '24px', width: '24px', color: 'white' }} />
+                        <FileText style={{ height: '18px', width: '18px', color: 'white' }} />
                       </div>
                       <div>
                         <h4 style={{
-                          fontSize: '18px',
+                          fontSize: '16px',
                           fontWeight: '600',
                           color: '#1f2937',
                           margin: '0 0 4px 0'
                         }}>
-                          Remito del {new Date(entry.date).toLocaleDateString('es-AR')}
+                          {new Date(entry.date).toLocaleDateString('es-AR')}
                         </h4>
                         <p style={{
-                          fontSize: '14px',
+                          fontSize: '13px',
                           color: '#6B7280',
                           margin: 0
                         }}>
@@ -898,155 +862,99 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         </p>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{
-                        fontSize: '12px',
-                        color: '#9CA3AF',
-                        margin: 0
-                      }}>
-                        {new Date(entry.timestamp).toLocaleTimeString('es-AR', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </p>
-                    </div>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#9CA3AF',
+                      margin: 0
+                    }}>
+                      {new Date(entry.timestamp).toLocaleTimeString('es-AR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </p>
                   </div>
                 </div>
 
-                {/* Contenido del remito */}
-                <div style={{ padding: '20px' }}>
-                  {/* Estadísticas */}
+                {/* Contenido compacto */}
+                <div style={{ padding: '12px 16px' }}>
+                  {/* Stats compactas - inline */}
                   <div style={{
                     background: '#f8fafc',
-                    padding: '16px',
-                    borderRadius: '12px',
-                    marginBottom: '16px'
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '14px'
                   }}>
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '16px',
-                      fontSize: '14px'
-                    }}>
-                      <div>
-                        <p style={{ color: '#6B7280', margin: '0 0 4px 0' }}>Total Biopsias</p>
-                        <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {entry.biopsies.length}
-                        </p>
-                      </div>
-                      <div>
-                        <p style={{ color: '#6B7280', margin: '0 0 4px 0' }}>Con Servicios</p>
-                        <p style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>
-                          {entry.biopsies.filter(b => getServiciosActivos(b).length > 0).length}
-                        </p>
-                      </div>
-                    </div>
+                    <span style={{ color: '#1f2937', fontWeight: '600' }}>
+                      📊 {entry.biopsies.length}
+                    </span>
+                    <span style={{ color: '#7c3aed', fontWeight: '600' }}>
+                      🔧 {entry.biopsies.filter(b => getServiciosActivos(b).length > 0).length}
+                    </span>
                   </div>
 
-                  {/* Preview de biopsias */}
+                  {/* Preview compacto - solo primera biopsia */}
                   {entry.biopsies.length > 0 && (
                     <div style={{
                       background: '#f0f9ff',
-                      padding: '16px',
-                      borderRadius: '12px',
-                      marginBottom: '16px'
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      marginBottom: '12px'
                     }}>
-                      <p style={{
-                        fontSize: '12px',
-                        color: '#1e40af',
-                        fontWeight: '600',
-                        margin: '0 0 12px 0'
-                      }}>📋 Biopsias incluidas:</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {entry.biopsies.slice(0, 3).map((biopsy, index) => {
-                          const serviciosActivos = getServiciosActivos(biopsy);
-                          return (
-                            <div key={index} style={{
-                              background: 'white',
-                              padding: '12px',
-                              borderRadius: '8px',
-                              border: '1px solid #e0f2fe'
-                            }}>
-                              <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                fontSize: '12px',
-                                marginBottom: '4px'
-                              }}>
-                                <span style={{ color: '#1e40af', fontWeight: '600' }}>#{biopsy.number}</span>
-                                <span style={{ color: '#0ea5e9' }}>{biopsy.type || '-'}</span>
-                              </div>
-                              <div style={{
-                                fontSize: '12px',
-                                color: '#0369a1',
-                                marginBottom: '4px'
-                              }}>
-                                <span style={{ fontWeight: '600' }}>{biopsy.tissueType}</span>
-                                {biopsy.tissueType === 'Endoscopia' && biopsy.endoscopiaSubTypes && biopsy.endoscopiaSubTypes.length > 0 && (
-                                  <span style={{ color: '#0ea5e9' }}> ({biopsy.endoscopiaSubTypes.join(', ')})</span>
-                                )}
-                              </div>
-                              <div style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center',
-                                fontSize: '12px'
-                              }}>
-                                <span style={{ color: '#0369a1' }}>
-                                  {biopsy.tissueType === 'PAP' || biopsy.tissueType === 'Citología' ? 'Vidrios' : 'Cassettes'}: 
-                                  <strong>
-                                    {biopsy.tissueType === 'PAP' 
-                                      ? biopsy.papQuantity 
-                                      : biopsy.tissueType === 'Citología' 
-                                        ? biopsy.citologiaQuantity 
-                                        : biopsy.cassettes
-                                    }
-                                  </strong>
-                                </span>
-                                {serviciosActivos.length > 0 && (
-                                  <span style={{ color: '#7c3aed' }}>
-                                    🔧 {serviciosActivos.length} servicio{serviciosActivos.length !== 1 ? 's' : ''}
-                                  </span>
-                                )}
-                              </div>
-                              {serviciosActivos.length > 0 && (
-                                <div style={{
-                                  marginTop: '8px',
-                                  paddingTop: '8px',
-                                  borderTop: '1px solid #e0f2fe'
-                                }}>
-                                  <p style={{
-                                    fontSize: '12px',
-                                    color: '#7c3aed',
-                                    margin: 0,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }} title={serviciosActivos.join(', ')}>
-                                    {serviciosActivos.join(', ')}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {entry.biopsies.length > 3 && (
-                          <p style={{
-                            fontSize: '12px',
-                            color: '#0369a1',
-                            textAlign: 'center',
-                            margin: '8px 0 0 0'
-                          }}>
-                            ... y {entry.biopsies.length - 3} más
-                          </p>
-                        )}
+                      <div style={{
+                        background: 'white',
+                        padding: '6px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid #e0f2fe',
+                        fontSize: '13px'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ color: '#1e40af', fontWeight: '600' }}>#{entry.biopsies[0].number}</span>
+                            <span style={{ color: '#0369a1', fontWeight: '500', fontSize: '12px' }}>
+                              {entry.biopsies[0].tissueType}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ color: '#0369a1', fontSize: '12px' }}>
+                              {entry.biopsies[0].tissueType === 'PAP' || entry.biopsies[0].tissueType === 'Citología' ? 'V:' : 'C:'}
+                              {entry.biopsies[0].tissueType === 'PAP' 
+                                ? entry.biopsies[0].papQuantity 
+                                : entry.biopsies[0].tissueType === 'Citología' 
+                                  ? entry.biopsies[0].citologiaQuantity 
+                                  : entry.biopsies[0].cassettes
+                              }
+                            </span>
+                            {getServiciosActivos(entry.biopsies[0]).length > 0 && (
+                              <span style={{ color: '#7c3aed', fontSize: '12px' }}>
+                                +{getServiciosActivos(entry.biopsies[0]).length}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
+                      {entry.biopsies.length > 1 && (
+                        <p style={{
+                          fontSize: '11px',
+                          color: '#0369a1',
+                          textAlign: 'center',
+                          margin: '4px 0 0 0'
+                        }}>
+                          +{entry.biopsies.length - 1} más
+                        </p>
+                      )}
                     </div>
                   )}
 
-                  {/* Botones de acción optimizados para tablet */}
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  {/* Botones */}
+                  <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       onClick={() => handlePrint(entry)}
                       style={{
@@ -1054,19 +962,19 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '8px',
+                        gap: '6px',
                         background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                         border: 'none',
-                        padding: '12px 16px',
+                        padding: '10px 16px',
                         borderRadius: '8px',
                         color: 'white',
-                        fontSize: '14px',
+                        fontSize: '13px',
                         fontWeight: '600',
                         cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
                       }}
                     >
-                      <Printer size={16} />
+                      <Printer size={14} />
                       Imprimir
                     </button>
                     
@@ -1077,19 +985,19 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '8px',
+                        gap: '6px',
                         background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                         border: 'none',
-                        padding: '12px 16px',
+                        padding: '10px 16px',
                         borderRadius: '8px',
                         color: 'white',
-                        fontSize: '14px',
+                        fontSize: '13px',
                         fontWeight: '600',
                         cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
                       }}
                     >
-                      <Mail size={16} />
+                      <Mail size={14} />
                       Email
                     </button>
                     
@@ -1101,14 +1009,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         justifyContent: 'center',
                         background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                         border: 'none',
-                        padding: '12px',
+                        padding: '10px 12px',
                         borderRadius: '8px',
                         color: 'white',
                         cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
                       }}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -1118,7 +1026,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         )}
       </div>
 
-      {/* Modal de confirmación de eliminación */}
+      {/* Modal de confirmación */}
       {deleteConfirm.isOpen && (
         <div style={{
           position: 'fixed',
@@ -1134,14 +1042,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         }}>
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '400px',
+            borderRadius: '12px',
+            padding: '20px',
+            maxWidth: '320px',
             width: '90%',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)'
           }}>
             <h3 style={{
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: '600',
               color: '#1f2937',
               margin: '0 0 12px 0'
@@ -1150,16 +1058,17 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             </h3>
             <p style={{
               color: '#6B7280',
-              margin: '0 0 24px 0'
+              margin: '0 0 20px 0',
+              fontSize: '14px'
             }}>
-              ¿Estás seguro de que quieres eliminar este remito? Esta acción no se puede deshacer.
+              ¿Está seguro de que desea eliminar este remito? Esta acción no se puede deshacer.
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setDeleteConfirm({ isOpen: false, entryId: null })}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: '1px solid #d1d5db',
                   background: 'white',
                   color: '#374151',
@@ -1174,14 +1083,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 onClick={confirmDelete}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: 'none',
                   background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                   color: 'white',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                  boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
                 }}
               >
                 Eliminar
@@ -1207,14 +1116,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         }}>
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            padding: '24px',
-            maxWidth: '500px',
+            borderRadius: '12px',
+            padding: '20px',
+            maxWidth: '360px',
             width: '90%',
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.3)'
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)'
           }}>
             <h3 style={{
-              fontSize: '20px',
+              fontSize: '18px',
               fontWeight: '600',
               color: '#1f2937',
               margin: '0 0 12px 0'
@@ -1223,9 +1132,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             </h3>
             <p style={{
               color: '#6B7280',
-              margin: '0 0 16px 0'
+              margin: '0 0 16px 0',
+              fontSize: '14px'
             }}>
-              Ingresa la dirección de email para enviar el remito:
+              Ingrese la dirección de email de destino:
             </p>
             <input
               type="email"
@@ -1234,11 +1144,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               placeholder="correo@ejemplo.com"
               style={{
                 width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
+                padding: '10px',
+                borderRadius: '6px',
                 border: '1px solid #d1d5db',
                 fontSize: '14px',
-                marginBottom: '24px'
+                marginBottom: '20px'
               }}
             />
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
@@ -1246,7 +1156,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 onClick={() => setEmailPopup({ isOpen: false, entry: null })}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: '1px solid #d1d5db',
                   background: 'white',
                   color: '#374151',
@@ -1265,14 +1175,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 }}
                 style={{
                   padding: '8px 16px',
-                  borderRadius: '8px',
+                  borderRadius: '6px',
                   border: 'none',
                   background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                   color: 'white',
                   fontSize: '14px',
                   fontWeight: '600',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)'
+                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
                 }}
               >
                 Enviar

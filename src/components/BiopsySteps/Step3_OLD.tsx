@@ -260,31 +260,31 @@ export const Step3: React.FC<Step3Props> = ({
                   flex: 1,
                   padding: '28px',
                   borderRadius: '16px',
-                  border: `3px solid ${type === 'PQ' ? '#1e293b' : '#475569'}`,
-                  backgroundColor: type === 'PQ' ? '#e2e8f0' : '#f8fafc',
+                  border: `3px solid ${type === 'PQ' ? '#7c2d12' : '#ea580c'}`,
+                  backgroundColor: type === 'PQ' ? '#fed7aa' : '#fff7ed',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   textAlign: 'center',
                   transform: type === 'PQ' ? 'scale(1.02)' : 'scale(1)',
-                  boxShadow: type === 'PQ' ? '0 8px 24px rgba(30, 41, 59, 0.3)' : '0 4px 12px rgba(71, 85, 105, 0.15)'
+                  boxShadow: type === 'PQ' ? '0 8px 24px rgba(234, 88, 12, 0.3)' : '0 4px 12px rgba(234, 88, 12, 0.15)'
                 }}
                 onMouseOver={(e) => {
                   if (type !== 'PQ') {
                     e.currentTarget.style.transform = 'scale(1.01)';
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(71, 85, 105, 0.25)';
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(234, 88, 12, 0.25)';
                   }
                 }}
                 onMouseOut={(e) => {
                   if (type !== 'PQ') {
                     e.currentTarget.style.transform = 'scale(1)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(71, 85, 105, 0.15)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(234, 88, 12, 0.15)';
                   }
                 }}
               >
                 <div style={{
                   width: '80px',
                   height: '80px',
-                  backgroundColor: type === 'PQ' ? '#1e293b' : '#475569',
+                  backgroundColor: type === 'PQ' ? '#7c2d12' : '#ea580c',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -303,14 +303,14 @@ export const Step3: React.FC<Step3Props> = ({
                 <div style={{
                   fontSize: '28px',
                   fontWeight: 'bold',
-                  color: type === 'PQ' ? '#1e293b' : '#475569',
+                  color: type === 'PQ' ? '#7c2d12' : '#ea580c',
                   marginBottom: '12px'
                 }}>
                   PIEZA QUIRÚRGICA
                 </div>
                 <div style={{
                   fontSize: '18px',
-                  color: type === 'PQ' ? '#1e293b' : '#64748b',
+                  color: type === 'PQ' ? '#7c2d12' : '#c2410c',
                   fontWeight: '500',
                   marginBottom: '12px'
                 }}>
@@ -318,11 +318,11 @@ export const Step3: React.FC<Step3Props> = ({
                 </div>
                 <div style={{
                   fontSize: '14px',
-                  color: type === 'PQ' ? '#1e293b' : '#64748b',
+                  color: type === 'PQ' ? '#7c2d12' : '#c2410c',
                   fontStyle: 'italic',
                   lineHeight: '1.3'
                 }}>
-                  🏥 Análisis anatomo-patológico
+                  ⚕️ Análisis anatómico patológico completo
                 </div>
               </button>
             </div>
@@ -375,3 +375,134 @@ export const Step3: React.FC<Step3Props> = ({
     </div>
   );
 };
+                onMouseOut={(e) => {
+                  if (type !== 'PQ') {
+                    e.currentTarget.style.borderColor = '#E5E7EB';
+                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+                  }
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{
+                      fontSize: '24px',
+                      fontWeight: 'bold',
+                      color: type === 'PQ' ? '#667eea' : '#1f2937',
+                      marginBottom: '2px'
+                    }}>
+                      PQ - Pieza Quirúrgica
+                    </div>
+                    <div style={{
+                      fontSize: '15px',
+                      color: type === 'PQ' ? '#4338ca' : '#6b7280',
+                      lineHeight: '1.2'
+                    }}>
+                      Muestra quirúrgica completa para análisis detallado
+                    </div>
+                  </div>
+                  {type === 'PQ' && (
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: '#22c55e',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxShadow: '0 4px 12px rgba(34, 197, 94, 0.3)'
+                    }}>
+                      <Check style={{ width: '22px', height: '22px', color: 'white' }} />
+                    </div>
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {/* Confirmación de selección mejorada */}
+            {type && (
+              <div style={{
+                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                border: '2px solid #22c55e',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                marginBottom: '16px',
+                boxShadow: '0 2px 8px rgba(34, 197, 94, 0.15)'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center'
+                }}>
+                  <span style={{ 
+                    fontSize: '16px', 
+                    fontWeight: 'bold', 
+                    color: '#065f46' 
+                  }}>
+                    Tipo seleccionado: {type === 'BX' ? 'Biopsia' : 'Pieza Quirúrgica'}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Botón fijo en la parte inferior */}
+          <div style={{ 
+            marginTop: '16px', 
+            paddingTop: '16px',
+            borderTop: '1px solid #e5e7eb',
+            backgroundColor: 'white',
+            position: 'sticky',
+            bottom: 0
+          }}>
+            <button
+              onClick={onNext}
+              disabled={!type}
+              style={{
+                width: '100%',
+                padding: '20px 24px',
+                borderRadius: '16px',
+                fontWeight: 'bold',
+                fontSize: '20px',
+                background: type 
+                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  : '#d1d5db',
+                color: 'white',
+                border: 'none',
+                cursor: type ? 'pointer' : 'not-allowed',
+                boxShadow: type ? '0 8px 24px rgba(102, 126, 234, 0.3)' : 'none',
+                transition: 'all 0.3s',
+                outline: 'none',
+                minHeight: '70px'
+              }}
+              onMouseOver={(e) => {
+                if (type) {
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(102, 126, 234, 0.4)';
+                }
+              }}
+              onMouseOut={(e) => {
+                if (type) {
+                  e.currentTarget.style.transform = 'translateY(0px)';
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.3)';
+                }
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px'
+              }}>
+                <span>Continuar a Cantidad de Material</span>
+                <ArrowRight style={{ height: '24px', width: '24px' }} />
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default Step3;

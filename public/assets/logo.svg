@@ -1,0 +1,36 @@
+<svg width="300" height="80" viewBox="0 0 300 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo con gradiente moderno -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4F76F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B5BDB;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="crossGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Fondo redondeado -->
+  <rect width="300" height="80" fill="url(#bgGrad)" rx="12"/>
+  
+  <!-- Logo médico estilizado -->
+  <g transform="translate(15, 15)">
+    <!-- Círculo de fondo para la cruz -->
+    <circle cx="25" cy="25" r="22" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <!-- Cruz médica principal -->
+    <rect x="21" y="12" width="8" height="26" fill="url(#crossGrad)" rx="3"/>
+    <rect x="12" y="21" width="26" height="8" fill="url(#crossGrad)" rx="3"/>
+    <!-- Sombra interior en la cruz -->
+    <rect x="21" y="12" width="8" height="26" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.5" rx="3"/>
+    <rect x="12" y="21" width="26" height="8" fill="none" stroke="rgba(0,0,0,0.1)" stroke-width="0.5" rx="3"/>
+  </g>
+  
+  <!-- Texto BiopsyTracker -->
+  <text x="75" y="35" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white">
+    BiopsyTracker
+  </text>
+  <text x="75" y="55" font-family="Arial, sans-serif" font-size="12" fill="rgba(255,255,255,0.9)">
+    Sistema de Gestión de Biopsias
+  </text>
+</svg>
