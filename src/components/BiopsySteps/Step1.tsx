@@ -90,10 +90,9 @@ export const Step1: React.FC<Step1Props> = ({
         flexShrink: 0,
         borderRadius: '12px',
         boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-        margin: '16px 20px 8px 20px',
-        maxWidth: '600px',
-        marginLeft: 'auto',
-        marginRight: 'auto'
+        margin: '16px 16px 8px 16px',
+        maxWidth: 'none',
+        width: 'calc(100% - 32px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -131,7 +130,7 @@ export const Step1: React.FC<Step1Props> = ({
                 color: 'white',
                 margin: 0,
                 lineHeight: '1.2'
-              }}>Nueva Biopsia</h1>
+              }}>Nuevo Paciente</h1>
               <p style={{
                 fontSize: '12px',
                 color: 'rgba(255, 255, 255, 0.8)',

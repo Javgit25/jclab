@@ -724,7 +724,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
       <div style={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
-        padding: '8px 12px',
+        padding: '12px 16px',
         flexShrink: 0,
         borderRadius: '8px',
         boxShadow: '0 2px 4px rgba(102, 126, 234, 0.3)',
@@ -733,10 +733,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         width: 'calc(100% - 24px)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Calendar style={{ height: '20px', width: '20px', color: 'white' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Calendar style={{ height: '22px', width: '22px', color: 'white' }} />
             <h1 style={{
-              fontSize: '18px',
+              fontSize: '20px',
               fontWeight: 'bold',
               color: 'white',
               margin: 0,
@@ -744,7 +744,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             }}>Panel de Facturación ({entries.length})</h1>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ConnectionStatus 
               isOnline={isOnline}
               backupStatus={backupStatus}
@@ -755,7 +755,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               style={{
                 background: 'rgba(255, 255, 255, 0.2)',
                 border: 'none',
-                padding: '6px 12px',
+                padding: '6px 14px',
                 borderRadius: '6px',
                 color: 'white',
                 fontSize: '14px',

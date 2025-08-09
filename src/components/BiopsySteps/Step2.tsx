@@ -623,23 +623,27 @@ export const Step2: React.FC<Step2Props> = ({
             <div style={{
               marginTop: '24px',
               padding: '20px',
-              backgroundColor: '#f0f9ff',
+              backgroundColor: tissueType === 'PAP' ? '#f0fdf4' : '#eff6ff',
               borderRadius: '16px',
-              border: '2px solid #667eea',
-              boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)'
+              border: `2px solid ${tissueType === 'PAP' ? '#51CF66' : '#7C9BFF'}`,
+              boxShadow: `0 8px 24px ${tissueType === 'PAP' ? 'rgba(81, 207, 102, 0.15)' : 'rgba(124, 155, 255, 0.15)'}`
             }}>
               <h3 style={{
                 fontSize: '18px',
                 fontWeight: 'bold',
-                color: '#667eea',
+                color: tissueType === 'PAP' ? '#51CF66' : '#7C9BFF',
                 marginBottom: '16px',
                 textAlign: 'center',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: '8px'
+                gap: '8px',
+                background: `linear-gradient(135deg, ${tissueType === 'PAP' ? '#51CF66' : '#7C9BFF'} 0%, ${tissueType === 'PAP' ? '#22c55e' : '#4F76F6'} 100%)`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
               }}>
-                🔬 Configuración de {tissueType}
+                {tissueType === 'PAP' ? '🧪' : '🔬'} Configuración de {tissueType}
               </h3>
 
               {/* Campo de Cantidad */}
@@ -697,21 +701,38 @@ export const Step2: React.FC<Step2Props> = ({
                     −
                   </button>
                   
-                  <div style={{
-                    minWidth: '120px',
-                    height: '48px',
-                    backgroundColor: 'white',
-                    border: '2px solid #667eea',
-                    borderRadius: '12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#667eea'
-                  }}>
+                  <button
+                    onClick={() => {
+                      const currentValue = tissueType === 'PAP' ? papQuantity.toString() : citologiaQuantity.toString();
+                      const field = tissueType === 'PAP' ? 'papQuantity' : 'citologiaQuantity';
+                      onOpenVirtualKeyboard('numeric', field, currentValue);
+                    }}
+                    style={{
+                      minWidth: '120px',
+                      height: '48px',
+                      backgroundColor: 'white',
+                      border: '2px solid #667eea',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      color: '#667eea',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f0f4ff';
+                      e.currentTarget.style.borderColor = '#4338ca';
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                      e.currentTarget.style.borderColor = '#667eea';
+                    }}
+                  >
                     {tissueType === 'PAP' ? papQuantity : citologiaQuantity}
-                  </div>
+                  </button>
                   
                   <button
                     onClick={() => {

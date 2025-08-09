@@ -355,6 +355,12 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       handleBiopsyChange('cassettes', newValue);
     } else if (virtualKeyboard.targetField === 'pieces') {
       handleBiopsyChange('pieces', newValue);
+    } else if (virtualKeyboard.targetField === 'papQuantity') {
+      const quantity = parseInt(newValue) || 0;
+      handlePapQuantityChange(quantity);
+    } else if (virtualKeyboard.targetField === 'citologiaQuantity') {
+      const quantity = parseInt(newValue) || 0;
+      handleCitologiaQuantityChange(quantity);
     } else if (virtualKeyboard.targetField.startsWith('cassetteSuffix_')) {
       const index = parseInt(virtualKeyboard.targetField.split('_')[1]);
       updateCassetteSuffix(index, newValue);
