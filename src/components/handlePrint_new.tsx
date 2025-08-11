@@ -40,15 +40,9 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
         }
         
         .logo {
-            width: 60px;
-            height: 60px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
         }
         
         .brand-text h1 {
@@ -354,7 +348,7 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
     <div class="header">
         <div class="app-brand">
             <div class="logo">
-                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 300px; height: 80px; filter: brightness(0) invert(1);" />
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 400px; height: 100px; filter: brightness(0) invert(1);" />
             </div>
             <div class="brand-text">
                 <h1>BiopsyTracker</h1>
