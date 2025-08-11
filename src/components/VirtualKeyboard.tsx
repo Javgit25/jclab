@@ -34,6 +34,28 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     }, 150); // Pequeño delay para asegurar que se procese la selección
   };
 
+  // Función inteligente para manejar letras con capitalización automática
+  const handleLetterPress = (letter: string) => {
+    // Para emails, siempre minúsculas
+    if (keyboard.targetField === 'email') {
+      onKeyPress(letter.toLowerCase());
+      return;
+    }
+
+    // Para otros campos, capitalizar primera letra de cada palabra
+    const currentValue = keyboard.targetValue;
+    const isFirstChar = currentValue.length === 0;
+    const isAfterSpace = currentValue.endsWith(' ');
+    const isAfterPunctuation = /[.!?,:;-]\s*$/.test(currentValue);
+    
+    // Capitalizar si es primera letra, después de espacio o después de puntuación
+    if (isFirstChar || isAfterSpace || isAfterPunctuation) {
+      onKeyPress(letter.toUpperCase());
+    } else {
+      onKeyPress(letter.toLowerCase());
+    }
+  };
+
   if (keyboard.type === 'numeric') {
     const numericKeys = [
       ['1', '2', '3'],
@@ -101,11 +123,11 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     );
   }
 
-  // Teclado completo
+  // Teclado completo - letras en minúsculas por defecto
   const letterRows = [
-    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+    ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
+    ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
+    ['z', 'x', 'c', 'v', 'b', 'n', 'm']
   ];
 
   const numberRow = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
@@ -195,7 +217,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             {row.map((key) => (
               <button
                 key={key}
-                onClick={() => onKeyPress(key)}
+                onClick={() => handleLetterPress(key)}
                 className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-3 px-2 rounded transition-colors"
               >
                 {key}
@@ -221,7 +243,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             onClick={() => onSwitchType('numeric')}
             className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-3 px-4 rounded-lg transition-colors text-sm"
           >
-            123 Números
+            123
           </button>
           <button
             onClick={onConfirm}

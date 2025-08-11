@@ -39,14 +39,20 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
           type="text"
           placeholder="Nombre"
           value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
+          onChange={(e) => {
+            // Capitalizar solo la primera letra
+            const value = e.target.value;
+            const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+            setFirstName(capitalizedValue);
+          }}
           style={{
             width: '250px',
             padding: '10px',
             margin: '10px 0',
             border: '1px solid #ccc',
             borderRadius: '4px',
-            fontSize: '16px'
+            fontSize: '16px',
+            textTransform: 'none'
           }}
         />
         

@@ -199,13 +199,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
               type="text"
               value={firstName}
               onChange={(e) => {
-                setFirstName(e.target.value);
+                // Capitalizar solo la primera letra
+                const value = e.target.value;
+                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+                setFirstName(capitalizedValue);
                 if (errors.firstName) {
                   setErrors(prev => ({...prev, firstName: ''}));
                 }
               }}
               onKeyPress={handleKeyPressOriginal}
               onFocus={() => openKeyboard('firstName')}
+              style={{ textTransform: 'none' }}
               className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.firstName 
                   ? 'border-red-500 bg-red-50' 
@@ -232,13 +236,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
               type="text"
               value={lastName}
               onChange={(e) => {
-                setLastName(e.target.value);
+                // Capitalizar solo la primera letra
+                const value = e.target.value;
+                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+                setLastName(capitalizedValue);
                 if (errors.lastName) {
                   setErrors(prev => ({...prev, lastName: ''}));
                 }
               }}
               onKeyPress={handleKeyPressOriginal}
               onFocus={() => openKeyboard('lastName')}
+              style={{ textTransform: 'none' }}
               className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.lastName 
                   ? 'border-red-500 bg-red-50' 
@@ -264,9 +272,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
             <input
               type="text"
               value={hospitalName}
-              onChange={(e) => setHospitalName(e.target.value)}
+              onChange={(e) => {
+                // Capitalizar solo la primera letra
+                const value = e.target.value;
+                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+                setHospitalName(capitalizedValue);
+              }}
               onKeyPress={handleKeyPressOriginal}
               onFocus={() => openKeyboard('hospitalName')}
+              style={{ textTransform: 'none' }}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
               placeholder="Nombre del hospital o clínica"
               autoComplete="organization"
@@ -282,13 +296,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
               type="email"
               value={email}
               onChange={(e) => {
-                setEmail(e.target.value);
+                // Para email, mantener en minúsculas
+                setEmail(e.target.value.toLowerCase());
                 if (errors.email) {
                   setErrors(prev => ({...prev, email: ''}));
                 }
               }}
               onKeyPress={handleKeyPressOriginal}
               onFocus={() => openKeyboard('email')}
+              style={{ textTransform: 'none' }}
               className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
                 errors.email 
                   ? 'border-red-500 bg-red-50' 
