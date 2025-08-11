@@ -353,7 +353,9 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
     <!-- Header -->
     <div class="header">
         <div class="app-brand">
-            <div class="logo">🩺</div>
+            <div class="logo">
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 120px; height: 30px; filter: brightness(0) invert(1);" />
+            </div>
             <div class="brand-text">
                 <h1>BiopsyTracker</h1>
                 <p>Sistema Profesional de Registro de Biopsias v2.3.0</p>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 1200 300"
+     width="1200" height="300" role="img" aria-label="BiopsyTracker logo">
+  <!-- Fondo transparente por defecto (no hay rect de fondo) -->
+
+  <!-- Ícono: plus / cruz con extremos redondeados (línea negra, sin relleno) -->
+  <g id="icon" transform="translate(80,30)" stroke="#000000" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- vertical line -->
+    <path d="M120 20 L120 200" />
+    <!-- horizontal line -->
+    <path d="M20 110 L220 110" />
+  </g>
+
+  <!-- Texto de marca (ajustá font-family si querés otra) -->
+  <text x="260" y="170"
+        font-family="Montserrat, Arial, Helvetica, sans-serif"
+        font-weight="600"
+        font-size="96"
+        fill="#000000"
+        letter-spacing="0.5">
+    BiopsyTracker
+  </text>
+
+  <!-- Opcional: un subpixel hint - no visible, ayuda a metadatos -->
+  <desc>BiopsyTracker logo: icon (rounded plus) and brand name in sans-serif. Black color, transparent background.</desc>
+</svg>

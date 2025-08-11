@@ -1069,8 +1069,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-gray-100">
           <div className="text-center mb-8">
-            <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Lock className="text-white" size={36} />
+            <div className="mb-6">
+              <img 
+                src="/assets/biopsytracker_logo_final.svg" 
+                alt="BiopsyTracker Logo" 
+                className="w-64 h-16 mx-auto"
+                style={{
+                  filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                }}
+              />
             </div>
             <h1 className="text-3xl font-bold text-gray-800 mb-2">Panel Administrador</h1>
             <p className="text-gray-600">BiopsyTracker Professional</p>

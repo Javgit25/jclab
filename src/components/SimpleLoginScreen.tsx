@@ -30,9 +30,17 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
       alignItems: 'center',
       justifyContent: 'center'
     }}>
-      <h1 style={{ fontSize: '32px', marginBottom: '20px', color: '#333' }}>
-        🩺 BiopsyTracker
-      </h1>
+      <div style={{ marginBottom: '20px', textAlign: 'center' }}>
+        <img 
+          src="/assets/biopsytracker_logo_final.svg" 
+          alt="BiopsyTracker Logo" 
+          style={{
+            width: '300px',
+            height: '75px',
+            filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+          }}
+        />
+      </div>
       
       <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <input
