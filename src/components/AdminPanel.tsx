@@ -1073,7 +1073,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <img 
                 src="/assets/biopsytracker_logo_final.svg" 
                 alt="BiopsyTracker Logo" 
-                className="w-64 h-16 mx-auto"
+                className="w-[1000px] h-72 mx-auto"
                 style={{
                   filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
                 }}

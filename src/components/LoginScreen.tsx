@@ -180,7 +180,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
             <img 
               src="/assets/biopsytracker_logo_final.svg" 
               alt="BiopsyTracker Logo" 
-              className="w-60 h-16 mx-auto mb-1"
+              className="w-[1000px] h-80 mx-auto mb-1"
               style={{
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
               }}
