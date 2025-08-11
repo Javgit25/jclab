@@ -173,23 +173,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
       const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && email.trim().length >= 5 && email.includes('@') && email.includes('.');
 
   return (
-    <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-8 overflow-hidden">
-      <div className="bg-white rounded-xl shadow-2xl p-4 w-full max-w-4xl h-fit">
-        <div className="text-center mb-3">
-          <div className="mb-2">
+    <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-2 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl p-2 w-full max-w-md h-fit">
+        <div className="text-center">
+          <div>
             <img 
               src="/assets/biopsytracker_logo_final.svg" 
               alt="BiopsyTracker Logo" 
-              className="w-full max-w-5xl h-48 mx-auto mb-2"
+              className="w-full max-w-6xl h-32 mx-auto"
               style={{
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
               }}
             />
           </div>
-          <p className="text-sm text-gray-500">Complete los datos para acceder</p>
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {/* Campo Nombre - OBLIGATORIO */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

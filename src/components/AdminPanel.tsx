@@ -1066,22 +1066,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-8 overflow-hidden">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xl border border-gray-100">
-          <div className="text-center mb-6">
-            <div className="mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-4 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl p-2 w-full max-w-md border border-gray-100">
+          <div className="text-center mb-1">
+            <div>
               <img 
                 src="/assets/biopsytracker_logo_final.svg" 
                 alt="BiopsyTracker Logo" 
-                className="w-full max-w-4xl h-56 mx-auto"
+                className="w-full max-w-6xl h-36 mx-auto"
                 style={{
                   filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
                 }}
               />
             </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-1">Panel Administrador</h1>
-            <p className="text-gray-600">BiopsyTracker Professional</p>
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-2 mt-3">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-1 mt-1">
               <p className="text-sm text-gray-700">🔒 Acceso restringido para administradores</p>
             </div>
           </div>

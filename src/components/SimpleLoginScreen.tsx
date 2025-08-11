@@ -22,7 +22,7 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
 
   return (
     <div style={{ 
-      padding: '60px', 
+      padding: '15px', 
       minHeight: '100vh', 
       backgroundColor: '#f0f0f0',
       display: 'flex',
@@ -31,20 +31,20 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
       justifyContent: 'center',
       overflow: 'hidden'
     }}>
-      <div style={{ marginBottom: '15px', textAlign: 'center' }}>
+      <div style={{ marginBottom: '2px', textAlign: 'center' }}>
         <img 
           src="/assets/biopsytracker_logo_final.svg" 
           alt="BiopsyTracker Logo" 
           style={{
             width: '100%',
-            maxWidth: '1400px',
-            height: '280px',
+            maxWidth: '1800px',
+            height: '150px',
             filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
           }}
         />
       </div>
       
-      <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
+      <div style={{ backgroundColor: 'white', padding: '12px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', width: '100%', maxWidth: '220px' }}>
         <input
           type="text"
           placeholder="Nombre"
