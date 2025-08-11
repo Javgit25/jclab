@@ -1066,27 +1066,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-md border border-gray-100">
-          <div className="text-center mb-8">
-            <div className="mb-6">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-4 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl border border-gray-100">
+          <div className="text-center mb-6">
+            <div className="mb-4">
               <img 
                 src="/assets/biopsytracker_logo_final.svg" 
                 alt="BiopsyTracker Logo" 
-                className="w-[1000px] h-72 mx-auto"
+                className="w-full max-w-3xl h-48 mx-auto"
                 style={{
                   filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
                 }}
               />
             </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">Panel Administrador</h1>
+            <h1 className="text-2xl font-bold text-gray-800 mb-1">Panel Administrador</h1>
             <p className="text-gray-600">BiopsyTracker Professional</p>
-            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 mt-4">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-2 mt-3">
               <p className="text-sm text-gray-700">🔒 Acceso restringido para administradores</p>
             </div>
           </div>
           
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">Usuario</label>
               <input

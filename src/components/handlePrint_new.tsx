@@ -354,7 +354,7 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
     <div class="header">
         <div class="app-brand">
             <div class="logo">
-                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 600px; height: 160px; filter: brightness(0) invert(1);" />
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 300px; height: 80px; filter: brightness(0) invert(1);" />
             </div>
             <div class="brand-text">
                 <h1>BiopsyTracker</h1>
