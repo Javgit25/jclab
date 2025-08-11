@@ -22,7 +22,7 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
 
   return (
     <div style={{ 
-      padding: '20px', 
+      padding: '60px', 
       minHeight: '100vh', 
       backgroundColor: '#f0f0f0',
       display: 'flex',
@@ -37,8 +37,8 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
           alt="BiopsyTracker Logo" 
           style={{
             width: '100%',
-            maxWidth: '1200px',
-            height: '240px',
+            maxWidth: '1400px',
+            height: '280px',
             filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
           }}
         />

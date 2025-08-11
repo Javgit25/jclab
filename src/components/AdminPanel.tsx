@@ -1066,14 +1066,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-4 overflow-hidden">
-        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-2xl border border-gray-100">
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-8 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-xl border border-gray-100">
           <div className="text-center mb-6">
             <div className="mb-4">
               <img 
                 src="/assets/biopsytracker_logo_final.svg" 
                 alt="BiopsyTracker Logo" 
-                className="w-full max-w-3xl h-48 mx-auto"
+                className="w-full max-w-4xl h-56 mx-auto"
                 style={{
                   filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
                 }}
@@ -1133,12 +1133,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <ArrowLeft size={16} />
               <span>Volver a la App</span>
             </button>
-          </div>
-          
-          <div className="mt-8 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl">
-            <p className="text-sm text-yellow-800 text-center">
-              <strong>Demo:</strong> Usuario: admin | Contraseña: admin123
-            </p>
           </div>
         </div>
       </div>
