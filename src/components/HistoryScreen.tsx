@@ -406,15 +406,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 <body>
     <div class="header">
         <div class="logo-section">
-            <div class="logo-container">
-                <div class="logo-circle">
-                    <div class="logo-cross-vertical"></div>
-                    <div class="logo-cross-horizontal"></div>
-                </div>
-            </div>
         </div>
         <div class="header-content">
-            <div class="app-name">BiopsyTracker</div>
+            <div class="app-name">
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 400px; height: 100px; filter: brightness(0) invert(1); margin: 0 auto; display: block;" />
+            </div>
             <div class="app-subtitle">Sistema de Gestión de Biopsias</div>
         </div>
         <div class="doc-info">

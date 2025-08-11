@@ -351,7 +351,6 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
                 <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 500px; height: 130px; filter: brightness(0) invert(1);" />
             </div>
             <div class="brand-text">
-                <h1>BiopsyTracker</h1>
                 <p>Sistema Profesional de Registro de Biopsias v2.3.0</p>
             </div>
         </div>
@@ -899,10 +898,8 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
     <!-- Header -->
     <div class="header-container">
         <div class="app-brand">
-            <div class="brand-icon">🩺</div>
-            <div class="brand-text">
-                <h1>BiopsyTracker</h1>
-                <p>Sistema Profesional v2.3.0</p>
+            <div class="logo">
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 300px; height: 80px; filter: brightness(0) invert(1);" />
             </div>
         </div>
         <div class="document-header">

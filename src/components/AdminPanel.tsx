@@ -1069,11 +1069,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-blue-800 flex items-center justify-center p-4 overflow-hidden">
         <div className="bg-white rounded-2xl shadow-2xl p-2 w-full max-w-md border border-gray-100">
           <div className="text-center mb-1">
-            <div>
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-3 border-2 border-blue-200 shadow-sm">
               <img 
                 src="/assets/biopsytracker_logo_final.svg" 
                 alt="BiopsyTracker Logo" 
-                className="w-full max-w-6xl h-36 mx-auto"
+                className="w-full max-w-sm h-32 mx-auto"
                 style={{
                   filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
                 }}

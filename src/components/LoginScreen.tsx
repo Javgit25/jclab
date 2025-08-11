@@ -176,16 +176,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
     <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-2 overflow-hidden">
       <div className="bg-white rounded-xl shadow-2xl p-2 w-full max-w-md h-fit">
         <div className="text-center">
-          <div>
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-3 border-2 border-blue-200 shadow-sm">
             <img 
               src="/assets/biopsytracker_logo_final.svg" 
               alt="BiopsyTracker Logo" 
-              className="w-full max-w-6xl h-32 mx-auto"
+              className="w-full max-w-sm h-32 mx-auto"
               style={{
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
               }}
             />
           </div>
+          <p className="text-sm text-gray-500">Complete los datos para acceder</p>
         </div>
 
         <div className="space-y-1">

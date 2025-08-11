@@ -31,14 +31,22 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
       justifyContent: 'center',
       overflow: 'hidden'
     }}>
-      <div style={{ marginBottom: '2px', textAlign: 'center' }}>
+      <div style={{ 
+        marginBottom: '2px', 
+        textAlign: 'center',
+        background: 'linear-gradient(to right, #eff6ff, #faf5ff)',
+        borderRadius: '12px',
+        padding: '16px',
+        border: '2px solid #bfdbfe',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      }}>
         <img 
           src="/assets/biopsytracker_logo_final.svg" 
           alt="BiopsyTracker Logo" 
           style={{
             width: '100%',
-            maxWidth: '1800px',
-            height: '150px',
+            maxWidth: '320px',
+            height: '128px',
             filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
           }}
         />
