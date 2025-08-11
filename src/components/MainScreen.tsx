@@ -887,89 +887,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               </div>
             </div>
 
-            {/* Fila 3: Estado y Próximos Pasos */}
-            <div style={{
-              gridColumn: '1 / -1',
-              backgroundColor: '#f8fafc',
-              border: '2px solid #e2e8f0',
-              borderRadius: '16px',
-              padding: '20px',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px'
-            }}>
-              {/* Estado General */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  backgroundColor: '#10b981',
-                  color: 'white',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  margin: '0 auto 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <CheckCircle style={{ height: '24px', width: '24px' }} />
-                </div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-                  Estado Excelente
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  Facturación en crecimiento
-                </div>
-              </div>
 
-              {/* Eficiencia */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  margin: '0 auto 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <TrendingUp style={{ height: '24px', width: '24px' }} />
-                </div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-                  Eficiencia 95%
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  Por encima del promedio
-                </div>
-              </div>
-
-              {/* Próximo Objetivo */}
-              <div style={{ textAlign: 'center' }}>
-                <div style={{
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  width: '48px',
-                  height: '48px',
-                  margin: '0 auto 12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Target style={{ height: '24px', width: '24px' }} />
-                </div>
-                <div style={{ fontSize: '14px', fontWeight: '600', color: '#374151', marginBottom: '4px' }}>
-                  Meta: ${(financialData.totalFacturado * 1.2).toLocaleString()}
-                </div>
-                <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                  Próximo objetivo mensual
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Footer */}
@@ -2648,7 +2566,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="Número, tejido, órgano..."
+                  placeholder="Buscar..."
                   value={searchFilters.query}
                   onChange={(e) => setSearchFilters(prev => ({ ...prev, query: e.target.value }))}
                   onFocus={() => handleFieldFocus('search-query')}
@@ -2660,6 +2578,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     fontSize: '13px'
                   }}
                 />
+                <div style={{ fontSize: '9px', color: '#6b7280', marginTop: '2px' }}>
+                  Número, tejido, órgano, médico...
+                </div>
               </div>
 
               {/* Fecha desde */}
