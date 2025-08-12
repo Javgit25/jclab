@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X } from 'lucide-react';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud } from 'lucide-react';
 import { BiopsyForm, DoctorInfo } from '../types';
 import { ConnectionStatus } from './ConnectionStatus';
 import { VirtualKeyboard } from './VirtualKeyboard';
@@ -1918,7 +1918,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             gridTemplateColumns: 'repeat(3, 1fr)',
             gap: '12px'
           }}>
-            {/* Conexión */}
+            {/* Conexión WiFi */}
             <div style={{
               backgroundColor: '#f8fafc',
               padding: '12px',
@@ -1927,25 +1927,27 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               textAlign: 'center'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: isOnline ? '#10b981' : '#ef4444',
+                <Wifi style={{
+                  width: '16px',
+                  height: '16px',
+                  color: isOnline && localStorage.getItem('wifi_ssid') ? '#10b981' : 
+                         localStorage.getItem('wifi_ssid') ? '#f59e0b' : '#ef4444',
                   marginRight: '6px'
-                }}></div>
-                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>CONEXIÓN</span>
+                }} />
+                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>CONEXIÓN WIFI</span>
               </div>
               <div style={{ 
                 fontSize: '14px', 
                 fontWeight: 'bold', 
-                color: isOnline ? '#10b981' : '#ef4444' 
+                color: isOnline && localStorage.getItem('wifi_ssid') ? '#10b981' : 
+                       localStorage.getItem('wifi_ssid') ? '#f59e0b' : '#ef4444'
               }}>
-                {isOnline ? 'En línea' : 'Offline'}
+                {isOnline && localStorage.getItem('wifi_ssid') ? 'Conectado' : 
+                 localStorage.getItem('wifi_ssid') ? 'Configurado' : 'Desconectado'}
               </div>
             </div>
 
-            {/* Datos Locales */}
+            {/* Conexión Impresora */}
             <div style={{
               backgroundColor: '#f8fafc',
               padding: '12px',
@@ -1954,21 +1956,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               textAlign: 'center'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: '#3b82f6',
+                <Printer style={{
+                  width: '16px',
+                  height: '16px',
+                  color: localStorage.getItem('printer_ip') ? '#10b981' : '#ef4444',
                   marginRight: '6px'
-                }}></div>
-                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>DATOS</span>
+                }} />
+                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>IMPRESORA</span>
               </div>
-              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#3b82f6' }}>
-                Seguro
+              <div style={{ 
+                fontSize: '14px', 
+                fontWeight: 'bold', 
+                color: localStorage.getItem('printer_ip') ? '#10b981' : '#ef4444'
+              }}>
+                {localStorage.getItem('printer_ip') ? 'Configurada' : 'No configurada'}
               </div>
             </div>
 
-            {/* Último Backup */}
+            {/* Backup */}
             <div style={{
               backgroundColor: '#f8fafc',
               padding: '12px',
@@ -1977,15 +1982,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               textAlign: 'center'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                <div style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  backgroundColor: backupStatus === 'success' ? '#10b981' : 
-                                   backupStatus === 'syncing' ? '#f59e0b' : 
-                                   backupStatus === 'error' ? '#ef4444' : '#6b7280',
+                <Cloud style={{
+                  width: '16px',
+                  height: '16px',
+                  color: backupStatus === 'success' ? '#10b981' : 
+                         backupStatus === 'syncing' ? '#f59e0b' : 
+                         backupStatus === 'error' ? '#ef4444' : '#6b7280',
                   marginRight: '6px'
-                }}></div>
+                }} />
                 <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>BACKUP</span>
               </div>
               <div style={{ 

@@ -45,8 +45,7 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
           alt="BiopsyTracker Logo" 
           style={{
             width: '100%',
-            maxWidth: '320px',
-            height: '128px',
+            height: '224px',
             filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
           }}
         />

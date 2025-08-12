@@ -23,12 +23,12 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
         
         .header {
             text-align: center;
-            margin-bottom: 25px;
-            padding: 15px;
+            margin-bottom: 20px;
+            padding: 8px;
             background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: white;
-            border-radius: 12px;
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.25);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
         }
         
         .app-brand {
@@ -36,7 +36,7 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
         
         .logo {
@@ -54,19 +54,20 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
         }
         
         .brand-text p {
-            font-size: 12pt;
-            opacity: 0.9;
+            font-size: 10pt;
+            opacity: 0.85;
             font-weight: 400;
+            margin: 0;
         }
         
         .document-title {
             background: rgba(255, 255, 255, 0.15);
-            padding: 8px 24px;
-            border-radius: 25px;
-            font-size: 16pt;
+            padding: 4px 16px;
+            border-radius: 20px;
+            font-size: 14pt;
             font-weight: 700;
             display: inline-block;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(10px);
         }
         
@@ -348,7 +349,7 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
     <div class="header">
         <div class="app-brand">
             <div class="logo">
-                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 650px; height: 170px; filter: brightness(0) invert(1); margin-bottom: 8px;" />
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 800px; height: 210px; filter: brightness(0) invert(1); margin-bottom: 4px;" />
             </div>
             <div class="brand-text">
                 <p>Sistema Profesional de Registro de Biopsias v2.3.0</p>
@@ -899,7 +900,7 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
     <div class="header-container">
         <div class="app-brand">
             <div class="logo">
-                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 450px; height: 120px; filter: brightness(0) invert(1);" />
+                <img src="/assets/biopsytracker_logo_final.svg" alt="BiopsyTracker" style="width: 550px; height: 145px; filter: brightness(0) invert(1);" />
             </div>
         </div>
         <div class="document-header">

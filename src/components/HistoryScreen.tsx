@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Printer, Mail, Calendar, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Printer, Calendar, FileText, Trash2 } from 'lucide-react';
 import { BiopsyForm, DoctorInfo, HistoryEntry } from '../types';
-import { ConnectionStatus } from './ConnectionStatus';
 import { serviciosAdicionales, giemsaOptions } from '../constants/services';
 
 interface HistoryScreenProps {
@@ -35,14 +34,15 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     darkGray: '#64748B'
   };
 
-  const [emailPopup, setEmailPopup] = useState<{isOpen: boolean, entry: HistoryEntry | null}>({
-    isOpen: false,
-    entry: null
-  });
-  const [emailAddress, setEmailAddress] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{isOpen: boolean, entryId: string | null}>({
     isOpen: false,
     entryId: null
+  });
+  
+  // Estado para mostrar el remito en la misma página
+  const [showRemito, setShowRemito] = useState<{isOpen: boolean, entry: HistoryEntry | null}>({
+    isOpen: false,
+    entry: null
   });
 
   // Función para obtener servicios activos
@@ -574,10 +574,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     }
   };
 
-  const handleEmail = (entry: HistoryEntry) => {
-    setEmailPopup({ isOpen: true, entry });
-  };
-
   const handleDelete = (entryId: string) => {
     setDeleteConfirm({ isOpen: true, entryId });
   };
@@ -588,6 +584,571 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
       setDeleteConfirm({ isOpen: false, entryId: null });
     }
   };
+
+  // Función para mostrar el remito en la misma página
+  const handlePrintInPage = (entry: HistoryEntry) => {
+    setShowRemito({ isOpen: true, entry });
+  };
+
+  // Función mejorada para imprimir
+  const handlePrintRemito = () => {
+    // Verificar si hay configuración de impresora
+    const printerIP = localStorage.getItem('printer_ip');
+    const printerPort = localStorage.getItem('printer_port') || '9100';
+    
+    if (printerIP && window.confirm('¿Desea imprimir directamente a la impresora configurada?')) {
+      // Intentar imprimir directamente a la impresora de red
+      handleNetworkPrint(printerIP, printerPort);
+    } else {
+      // Imprimir usando el navegador (método tradicional)
+      handleBrowserPrint();
+    }
+  };
+
+  // Función para imprimir directamente a impresora de red
+  const handleNetworkPrint = async (ip: string, port: string) => {
+    try {
+      // Crear el contenido del remito para impresión directa
+      const printContent = document.querySelector('.print-content');
+      if (!printContent) {
+        alert('Error: No se encontró el contenido del remito');
+        return;
+      }
+
+      // Simular envío a impresora de red
+      // En una implementación real, aquí se enviaría el documento a la impresora
+      console.log(`Enviando a impresora: ${ip}:${port}`);
+      alert(`Enviando remito a impresora ${ip}:${port}\n\nEn una tablet real, esto se conectaría directamente con la impresora de red.`);
+      
+    } catch (error) {
+      console.error('Error al imprimir en red:', error);
+      alert('Error al conectar con la impresora. Usando impresión del navegador...');
+      handleBrowserPrint();
+    }
+  };
+
+  // Función para imprimir usando el navegador
+  const handleBrowserPrint = () => {
+    // Pequeño delay para asegurar que el contenido esté renderizado
+    setTimeout(() => {
+      // Asegurar que el contenido sea visible
+      const printContent = document.querySelector('.print-content');
+      if (printContent) {
+        (printContent as HTMLElement).style.visibility = 'visible';
+        (printContent as HTMLElement).style.opacity = '1';
+      }
+      
+      // Forzar un re-render antes de imprimir
+      window.requestAnimationFrame(() => {
+        window.print();
+      });
+    }, 100);
+  };
+
+  // Si está mostrando el remito, renderizar la vista completa del remito
+  if (showRemito.isOpen && showRemito.entry) {
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'white',
+        zIndex: 1000,
+        overflow: 'auto'
+      }}>
+        {/* Estilos CSS para impresión */}
+        <style>{`
+          @media print {
+            @page {
+              margin: 0.5in !important;
+              size: A4 !important;
+            }
+            
+            * {
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              box-sizing: border-box !important;
+            }
+            
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              font-size: 11pt !important;
+              line-height: 1.4 !important;
+              font-family: Arial, sans-serif !important;
+              color: #000 !important;
+              background: white !important;
+            }
+            
+            .no-print {
+              display: none !important;
+            }
+            
+            .print-content {
+              margin: 0 !important;
+              padding: 0 !important;
+              max-width: none !important;
+              width: 100% !important;
+              background: white !important;
+              color: #000 !important;
+              font-family: Arial, sans-serif !important;
+            }
+            
+            h1, h2, h3, h4, h5, h6 {
+              color: #000 !important;
+              font-family: Arial, sans-serif !important;
+              margin: 0 0 10px 0 !important;
+            }
+            
+            h1 {
+              font-size: 20pt !important;
+              font-weight: bold !important;
+            }
+            
+            h3 {
+              font-size: 14pt !important;
+              font-weight: bold !important;
+            }
+            
+            h4 {
+              font-size: 12pt !important;
+              font-weight: bold !important;
+            }
+            
+            .info-panel {
+              border: 2px solid #000 !important;
+              background: white !important;
+              color: #000 !important;
+              page-break-inside: avoid !important;
+              margin-bottom: 15px !important;
+              padding: 10px !important;
+            }
+            
+            .biopsy-item {
+              border: 1px solid #000 !important;
+              background: white !important;
+              color: #000 !important;
+              page-break-inside: avoid !important;
+              margin-bottom: 10px !important;
+              padding: 8px !important;
+            }
+            
+            div {
+              background: white !important;
+              color: #000 !important;
+            }
+            
+            span {
+              color: #000 !important;
+              background: transparent !important;
+            }
+            
+            p {
+              color: #000 !important;
+              margin: 5px 0 !important;
+            }
+            
+            /* Forzar visibilidad del contenido */
+            .print-content * {
+              visibility: visible !important;
+              opacity: 1 !important;
+              color: #000 !important;
+              background: white !important;
+            }
+            
+            /* Grid responsive para impresión */
+            .info-grid {
+              display: block !important;
+            }
+            
+            .info-grid > div {
+              display: block !important;
+              margin-bottom: 15px !important;
+              width: 100% !important;
+            }
+          }
+          
+          @media screen {
+            .print-content {
+              font-family: Arial, sans-serif;
+              color: #2d3748;
+            }
+          }
+        `}</style>
+
+        {/* Header con botones */}
+        <div className="no-print" style={{
+          position: 'sticky',
+          top: 0,
+          background: 'white',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '16px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 1001
+        }}>
+          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
+            Remito #{showRemito.entry.id.slice(-8).toUpperCase()}
+          </h2>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={handlePrintRemito}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                color: 'white',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Printer size={16} />
+              Imprimir
+            </button>
+            <button
+              onClick={() => setShowRemito({ isOpen: false, entry: null })}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: '1px solid #d1d5db',
+                background: 'white',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer'
+              }}
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+
+        {/* Contenido del remito */}
+        <div className="print-content" style={{
+          maxWidth: '800px',
+          margin: '0 auto',
+          padding: '20px',
+          fontFamily: 'Arial, sans-serif',
+          lineHeight: '1.6'
+        }}>
+          {/* Header del remito */}
+          <div style={{
+            textAlign: 'center',
+            border: '2px solid #2d3748',
+            padding: '15px',
+            marginBottom: '20px',
+            borderRadius: '8px',
+            background: '#f7fafc'
+          }}>
+            <h1 style={{
+              fontSize: '24pt',
+              fontWeight: '700',
+              color: '#2d3748',
+              margin: '0 0 5px 0'
+            }}>
+              BIOPSY TRACKER
+            </h1>
+            <p style={{
+              fontSize: '11pt',
+              color: '#4a5568',
+              margin: '0 0 10px 0'
+            }}>
+              Sistema Profesional de Registro de Biopsias
+            </p>
+            <div style={{
+              fontSize: '14pt',
+              fontWeight: '600',
+              color: '#2d3748'
+            }}>
+              Remito de Laboratorio #{showRemito.entry.id.slice(-8).toUpperCase()}
+            </div>
+            <div style={{
+              fontSize: '11pt',
+              color: '#4a5568',
+              marginTop: '5px'
+            }}>
+              {new Date(showRemito.entry.date).toLocaleDateString('es-AR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })} • {new Date(showRemito.entry.timestamp).toLocaleTimeString('es-AR', {
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </div>
+          </div>
+
+          {/* Grid de información */}
+          <div className="info-grid" style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '20px',
+            marginBottom: '20px'
+          }}>
+            <div className="info-panel" style={{
+              background: '#f7fafc',
+              padding: '15px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{
+                fontWeight: '600',
+                color: '#2d3748',
+                fontSize: '14pt',
+                marginBottom: '10px'
+              }}>
+                👨‍⚕️ Información Médica
+              </h3>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                  Médico:
+                </span>
+                <span style={{ color: '#2d3748' }}>
+                  Dr/a. {showRemito.entry.doctorInfo?.name || doctorInfo?.name || 'No especificado'}
+                </span>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                  Email:
+                </span>
+                <span style={{ color: '#2d3748' }}>
+                  {showRemito.entry.doctorInfo?.email || doctorInfo?.email || 'No especificado'}
+                </span>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                  Hospital:
+                </span>
+                <span style={{ color: '#2d3748' }}>
+                  {showRemito.entry.doctorInfo?.hospital || doctorInfo?.hospital || 'No especificado'}
+                </span>
+              </div>
+            </div>
+
+            <div className="info-panel" style={{
+              background: '#f7fafc',
+              padding: '15px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <h3 style={{
+                fontWeight: '600',
+                color: '#2d3748',
+                fontSize: '14pt',
+                marginBottom: '10px'
+              }}>
+                📊 Resumen del Remito
+              </h3>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                  Total muestras:
+                </span>
+                <span style={{ color: '#2d3748', fontWeight: '600' }}>
+                  {showRemito.entry.biopsies?.length || 0}
+                </span>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                  Muestras urgentes:
+                </span>
+                <span style={{ color: '#2d3748', fontWeight: '600' }}>
+                  {showRemito.entry.biopsies?.filter(b => isUrgentBiopsy(b)).length || 0}
+                </span>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                  Estado:
+                </span>
+                <span style={{ 
+                  color: '#2d3748', 
+                  fontWeight: '600',
+                  background: '#e6fffa',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  fontSize: '10pt'
+                }}>
+                  PROCESADO
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sección de biopsias */}
+          <div style={{
+            background: '#f7fafc',
+            padding: '15px',
+            borderRadius: '8px',
+            border: '1px solid #e2e8f0',
+            marginBottom: '20px'
+          }}>
+            <h3 style={{
+              fontWeight: '600',
+              color: '#2d3748',
+              fontSize: '14pt',
+              marginBottom: '15px'
+            }}>
+              🔬 Detalles de las Biopsias
+            </h3>
+            {showRemito.entry.biopsies?.map((biopsy, index) => {
+              const serviciosActivos = getServiciosActivos(biopsy);
+              const isUrgent = isUrgentBiopsy(biopsy);
+              
+              return (
+                <div key={index} className="biopsy-item" style={{
+                  border: '1px solid #e2e8f0',
+                  padding: '12px',
+                  marginBottom: '12px',
+                  borderRadius: '6px',
+                  background: 'white'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '8px'
+                  }}>
+                    <h4 style={{ margin: '0', fontSize: '12pt', fontWeight: '600' }}>
+                      Biopsia #{biopsy.number || (index + 1)}
+                    </h4>
+                    {isUrgent && (
+                      <span style={{
+                        background: '#fed7d7',
+                        color: '#9b2c2c',
+                        padding: '3px 8px',
+                        borderRadius: '4px',
+                        fontSize: '9pt',
+                        fontWeight: '600'
+                      }}>
+                        URGENTE
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div style={{ marginBottom: '6px' }}>
+                    <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                      Tipo de tejido:
+                    </span>
+                    <span style={{ color: '#2d3748' }}>
+                      {biopsy.tissueType || 'No especificado'}
+                    </span>
+                  </div>
+                  
+                  <div style={{ marginBottom: '6px' }}>
+                    <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                      Tipo:
+                    </span>
+                    <span style={{ color: '#2d3748' }}>
+                      {biopsy.type || 'Biopsia'}
+                    </span>
+                  </div>
+                  
+                  {/* Información de cassettes y trozos */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '12px',
+                    marginBottom: '6px',
+                    background: '#f8fafc',
+                    padding: '8px',
+                    borderRadius: '4px'
+                  }}>
+                    <div>
+                      <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                        Cassettes:
+                      </span>
+                      <span style={{ color: '#2d3748', fontWeight: '600' }}>
+                        {biopsy.tissueType === 'PAP' 
+                          ? (biopsy.papQuantity || 0) + ' vidrios'
+                          : biopsy.tissueType === 'Citología' 
+                            ? (biopsy.citologiaQuantity || 0) + ' vidrios'
+                            : (biopsy.cassettes || 1) + ' cassettes'
+                        }
+                      </span>
+                    </div>
+                    <div>
+                      <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                        Trozos:
+                      </span>
+                      <span style={{ color: '#2d3748', fontWeight: '600' }}>
+                        {biopsy.tissueType === 'PAP' || biopsy.tissueType === 'Citología'
+                          ? 'N/A'
+                          : (biopsy.pieces || 1) + ' trozos'
+                        }
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {biopsy.observations && (
+                    <div style={{ marginBottom: '6px' }}>
+                      <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                        Observaciones:
+                      </span>
+                      <span style={{ color: '#2d3748' }}>
+                        {biopsy.observations}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {serviciosActivos.length > 0 && (
+                    <div style={{ marginTop: '8px' }}>
+                      <span style={{ fontWeight: '500', color: '#4a5568', marginRight: '8px' }}>
+                        Servicios:
+                      </span>
+                      <div style={{ marginTop: '4px' }}>
+                        {serviciosActivos.map((servicio, servicioIndex) => (
+                          <span key={servicioIndex} style={{
+                            background: '#e6fffa',
+                            color: '#234e52',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '8pt',
+                            marginRight: '4px',
+                            marginBottom: '2px',
+                            display: 'inline-block'
+                          }}>
+                            {servicio}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }) || (
+              <p style={{ color: '#718096', fontStyle: 'italic' }}>
+                No hay biopsias registradas
+              </p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{
+            borderTop: '1px solid #e2e8f0',
+            paddingTop: '15px',
+            textAlign: 'center',
+            color: '#718096',
+            fontSize: '9pt'
+          }}>
+            <p style={{ margin: '0 0 5px 0' }}>
+              Documento generado por BiopsyTracker v2.3.0
+            </p>
+            <p style={{ margin: 0 }}>
+              Código de verificación: {showRemito.entry.id.slice(-8).toUpperCase()}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Función para crear datos de prueba
   const createTestData = () => {
@@ -737,15 +1298,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               color: 'white',
               margin: 0,
               lineHeight: '1.2'
-            }}>Panel de Facturación ({entries.length})</h1>
+            }}>Historial de remitos ({entries.length})</h1>
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ConnectionStatus 
-              isOnline={isOnline}
-              backupStatus={backupStatus}
-              syncQueueLength={syncQueueLength}
-            />
             <button
               onClick={onGoBack}
               style={{
@@ -764,7 +1320,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               }}
             >
               <ArrowLeft size={16} />
-              ← Inicio
+              Inicio
             </button>
           </div>
         </div>
@@ -810,214 +1366,349 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         ) : (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '12px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+            gap: '16px'
           }}>
-            {sortedEntries.map((entry) => (
-              <div key={entry.id} style={{
-                background: 'white',
-                borderRadius: '12px',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-                border: '1px solid #e5e7eb',
-                overflow: 'hidden'
-              }}>
-                {/* Header del remito */}
-                <div style={{
-                  background: 'linear-gradient(135deg, #f0f4ff 0%, #e0edff 100%)',
-                  padding: '12px 16px',
-                  borderBottom: '1px solid #e5e7eb'
+            {sortedEntries.map((entry) => {
+              const urgentCount = entry.biopsies.filter(b => isUrgentBiopsy(b)).length;
+              const totalServices = entry.biopsies.reduce((acc, b) => acc + getServiciosActivos(b).length, 0);
+              const biopsyTypes = [...new Set(entry.biopsies.map(b => b.tissueType))].filter(Boolean);
+              
+              return (
+                <div key={entry.id} style={{
+                  background: 'white',
+                  borderRadius: '16px',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: '1px solid #e2e8f0',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{
-                        width: '32px',
-                        height: '32px',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}>
-                        <FileText style={{ height: '18px', width: '18px', color: 'white' }} />
-                      </div>
-                      <div>
-                        <h4 style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: '#1f2937',
-                          margin: '0 0 4px 0'
-                        }}>
-                          {new Date(entry.date).toLocaleDateString('es-AR')}
-                        </h4>
-                        <p style={{
-                          fontSize: '13px',
-                          color: '#6B7280',
-                          margin: 0
-                        }}>
-                          {entry.biopsies.length} biopsia{entry.biopsies.length !== 1 ? 's' : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <p style={{
-                      fontSize: '12px',
-                      color: '#9CA3AF',
-                      margin: 0
-                    }}>
-                      {new Date(entry.timestamp).toLocaleTimeString('es-AR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Contenido compacto */}
-                <div style={{ padding: '12px 16px' }}>
-                  {/* Stats compactas - inline */}
+                  {/* Header Premium */}
                   <div style={{
-                    background: '#f8fafc',
-                    padding: '8px 12px',
-                    borderRadius: '8px',
-                    marginBottom: '12px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    fontSize: '14px'
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    padding: '16px 20px',
+                    color: 'white'
                   }}>
-                    <span style={{ color: '#1f2937', fontWeight: '600' }}>
-                      📊 {entry.biopsies.length}
-                    </span>
-                    <span style={{ color: '#7c3aed', fontWeight: '600' }}>
-                      🔧 {entry.biopsies.filter(b => getServiciosActivos(b).length > 0).length}
-                    </span>
-                  </div>
-
-                  {/* Preview compacto - solo primera biopsia */}
-                  {entry.biopsies.length > 0 && (
-                    <div style={{
-                      background: '#f0f9ff',
-                      padding: '8px 12px',
-                      borderRadius: '8px',
-                      marginBottom: '12px'
-                    }}>
-                      <div style={{
-                        background: 'white',
-                        padding: '6px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid #e0f2fe',
-                        fontSize: '13px'
-                      }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{
+                          width: '40px',
+                          height: '40px',
+                          background: 'rgba(255, 255, 255, 0.2)',
+                          borderRadius: '12px',
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
+                          alignItems: 'center',
+                          justifyContent: 'center'
                         }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ color: '#1e40af', fontWeight: '600' }}>#{entry.biopsies[0].number}</span>
-                            <span style={{ color: '#0369a1', fontWeight: '500', fontSize: '12px' }}>
-                              {entry.biopsies[0].tissueType}
-                            </span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ color: '#0369a1', fontSize: '12px' }}>
-                              {entry.biopsies[0].tissueType === 'PAP' || entry.biopsies[0].tissueType === 'Citología' ? 'V:' : 'C:'}
-                              {entry.biopsies[0].tissueType === 'PAP' 
-                                ? entry.biopsies[0].papQuantity 
-                                : entry.biopsies[0].tissueType === 'Citología' 
-                                  ? entry.biopsies[0].citologiaQuantity 
-                                  : entry.biopsies[0].cassettes
-                              }
-                            </span>
-                            {getServiciosActivos(entry.biopsies[0]).length > 0 && (
-                              <span style={{ color: '#7c3aed', fontSize: '12px' }}>
-                                +{getServiciosActivos(entry.biopsies[0]).length}
-                              </span>
-                            )}
-                          </div>
+                          <FileText style={{ height: '20px', width: '20px', color: 'white' }} />
+                        </div>
+                        <div>
+                          <h3 style={{
+                            fontSize: '18px',
+                            fontWeight: '700',
+                            margin: '0 0 4px 0',
+                            color: 'white'
+                          }}>
+                            Remito #{entry.id.slice(-8).toUpperCase()}
+                          </h3>
+                          <p style={{
+                            fontSize: '14px',
+                            margin: 0,
+                            opacity: 0.9,
+                            color: 'white'
+                          }}>
+                            {new Date(entry.date).toLocaleDateString('es-AR', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </p>
                         </div>
                       </div>
-                      {entry.biopsies.length > 1 && (
-                        <p style={{
-                          fontSize: '11px',
-                          color: '#0369a1',
-                          textAlign: 'center',
-                          margin: '4px 0 0 0'
-                        }}>
-                          +{entry.biopsies.length - 1} más
-                        </p>
-                      )}
+                      <div style={{
+                        background: 'rgba(255, 255, 255, 0.2)',
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: 'white'
+                      }}>
+                        {new Date(entry.timestamp).toLocaleTimeString('es-AR', { 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Botones */}
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={() => handlePrint(entry)}
-                      style={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                        border: 'none',
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        color: 'white',
-                        fontSize: '13px',
+                  {/* Contenido */}
+                  <div style={{ padding: '20px' }}>
+                    {/* Estadísticas principales */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(3, 1fr)',
+                      gap: '12px',
+                      marginBottom: '16px'
+                    }}>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%)',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        textAlign: 'center',
+                        border: '1px solid #81d4fa'
+                      }}>
+                        <div style={{
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          color: '#0277bd'
+                        }}>
+                          {entry.biopsies.length}
+                        </div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#0277bd',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
+                        }}>
+                          Muestras
+                        </div>
+                      </div>
+                      
+                      <div style={{
+                        background: urgentCount > 0 
+                          ? 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)' 
+                          : 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        textAlign: 'center',
+                        border: urgentCount > 0 ? '1px solid #ef5350' : '1px solid #66bb6a'
+                      }}>
+                        <div style={{
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          color: urgentCount > 0 ? '#c62828' : '#2e7d32'
+                        }}>
+                          {urgentCount}
+                        </div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: urgentCount > 0 ? '#c62828' : '#2e7d32',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
+                        }}>
+                          Urgentes
+                        </div>
+                      </div>
+                      
+                      <div style={{
+                        background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
+                        padding: '12px',
+                        borderRadius: '12px',
+                        textAlign: 'center',
+                        border: '1px solid #ce93d8'
+                      }}>
+                        <div style={{
+                          fontSize: '20px',
+                          fontWeight: '700',
+                          color: '#7b1fa2'
+                        }}>
+                          {totalServices}
+                        </div>
+                        <div style={{
+                          fontSize: '11px',
+                          color: '#7b1fa2',
+                          fontWeight: '600',
+                          textTransform: 'uppercase'
+                        }}>
+                          Servicios
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tipos de muestras */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <h5 style={{
+                        fontSize: '14px',
                         fontWeight: '600',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-                      }}
-                    >
-                      <Printer size={14} />
-                      Imprimir
-                    </button>
-                    
-                    <button
-                      onClick={() => handleEmail(entry)}
-                      style={{
-                        flex: 1,
+                        color: '#374151',
+                        marginBottom: '8px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                        border: 'none',
-                        padding: '10px 16px',
-                        borderRadius: '8px',
-                        color: 'white',
-                        fontSize: '13px',
+                        gap: '6px'
+                      }}>
+                        🔬 Tipos de muestras
+                      </h5>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {biopsyTypes.map((type, index) => (
+                          <span key={index} style={{
+                            background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+                            color: '#0369a1',
+                            padding: '4px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            border: '1px solid #7dd3fc'
+                          }}>
+                            {type}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Preview de biopsias */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <h5 style={{
+                        fontSize: '14px',
                         fontWeight: '600',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                      }}
-                    >
-                      <Mail size={14} />
-                      Email
-                    </button>
-                    
-                    <button
-                      onClick={() => handleDelete(entry.id)}
-                      style={{
+                        color: '#374151',
+                        marginBottom: '8px',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                        border: 'none',
-                        padding: '10px 12px',
+                        gap: '6px'
+                      }}>
+                        📋 Detalle
+                      </h5>
+                      <div style={{
+                        background: '#f8fafc',
+                        border: '1px solid #e2e8f0',
                         borderRadius: '8px',
-                        color: 'white',
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)'
-                      }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                        maxHeight: '120px',
+                        overflowY: 'auto'
+                      }}>
+                        {entry.biopsies.slice(0, 3).map((biopsy, index) => (
+                          <div key={index} style={{
+                            padding: '8px 12px',
+                            borderBottom: index < Math.min(entry.biopsies.length, 3) - 1 ? '1px solid #e2e8f0' : 'none',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                background: isUrgentBiopsy(biopsy) ? '#fee2e2' : '#ecfdf5',
+                                color: isUrgentBiopsy(biopsy) ? '#dc2626' : '#16a34a',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: '600'
+                              }}>
+                                #{biopsy.number || (index + 1)}
+                              </span>
+                              <span style={{
+                                fontSize: '12px',
+                                color: '#4b5563',
+                                fontWeight: '500'
+                              }}>
+                                {biopsy.tissueType}
+                              </span>
+                            </div>
+                            <div style={{
+                              fontSize: '11px',
+                              color: '#6b7280',
+                              display: 'flex',
+                              gap: '8px'
+                            }}>
+                              <span>
+                                {biopsy.tissueType === 'PAP' || biopsy.tissueType === 'Citología' ? 'V:' : 'C:'}
+                                {biopsy.tissueType === 'PAP' 
+                                  ? biopsy.papQuantity || 0
+                                  : biopsy.tissueType === 'Citología' 
+                                    ? biopsy.citologiaQuantity || 0
+                                    : biopsy.cassettes || 1
+                                }
+                              </span>
+                              {biopsy.tissueType !== 'PAP' && biopsy.tissueType !== 'Citología' && (
+                                <span>T:{biopsy.pieces || 1}</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {entry.biopsies.length > 3 && (
+                          <div style={{
+                            padding: '8px 12px',
+                            textAlign: 'center',
+                            fontSize: '11px',
+                            color: '#6b7280',
+                            fontStyle: 'italic',
+                            background: '#f1f5f9'
+                          }}>
+                            +{entry.biopsies.length - 3} muestras más...
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Botones de acción */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '10px',
+                      marginTop: '16px'
+                    }}>
+                      <button
+                        onClick={() => handlePrintInPage(entry)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px',
+                          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                          border: 'none',
+                          padding: '12px 16px',
+                          borderRadius: '10px',
+                          color: 'white',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.4)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                        }}
+                      >
+                        <Printer size={16} />
+                        Ver e Imprimir
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDelete(entry.id)}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                          border: 'none',
+                          padding: '12px',
+                          borderRadius: '10px',
+                          color: 'white',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-1px)';
+                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)';
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -1090,98 +1781,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 }}
               >
                 Eliminar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal de email */}
-      {emailPopup.isOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            maxWidth: '360px',
-            width: '90%',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)'
-          }}>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937',
-              margin: '0 0 12px 0'
-            }}>
-              Enviar por Email
-            </h3>
-            <p style={{
-              color: '#6B7280',
-              margin: '0 0 16px 0',
-              fontSize: '14px'
-            }}>
-              Ingrese la dirección de email de destino:
-            </p>
-            <input
-              type="email"
-              value={emailAddress}
-              onChange={(e) => setEmailAddress(e.target.value)}
-              placeholder="correo@ejemplo.com"
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '6px',
-                border: '1px solid #d1d5db',
-                fontSize: '14px',
-                marginBottom: '20px'
-              }}
-            />
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setEmailPopup({ isOpen: false, entry: null })}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: '1px solid #d1d5db',
-                  background: 'white',
-                  color: '#374151',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer'
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  console.log('Enviando email a:', emailAddress);
-                  setEmailPopup({ isOpen: false, entry: null });
-                  setEmailAddress('');
-                }}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  border: 'none',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)'
-                }}
-              >
-                Enviar
               </button>
             </div>
           </div>

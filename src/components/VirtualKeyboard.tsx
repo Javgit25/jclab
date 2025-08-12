@@ -8,6 +8,7 @@ interface VirtualKeyboardProps {
   onSwitchType: (type: 'numeric' | 'full') => void;
   autoCompleteOptions?: string[];
   onSelectAutoComplete?: (option: string) => void;
+  isShiftPressed?: boolean;
 }
 
 export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
@@ -16,7 +17,8 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   onConfirm,
   onSwitchType,
   autoCompleteOptions = [],
-  onSelectAutoComplete
+  onSelectAutoComplete,
+  isShiftPressed = false
 }) => {
   // 🔧 FUNCIÓN MEJORADA: Selecciona sugerencia Y cierra teclado automáticamente
   const handleSelectAutoComplete = (option: string) => {
@@ -217,39 +219,49 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             {row.map((key) => (
               <button
                 key={key}
-                onClick={() => handleLetterPress(key)}
+                onClick={() => onKeyPress(key)}
                 className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-3 px-2 rounded transition-colors"
               >
-                {key}
+                {isShiftPressed ? key.toUpperCase() : key.toLowerCase()}
               </button>
             ))}
           </div>
         ))}
 
-        <div className="grid grid-cols-4 gap-2 mt-3">
+        <div className="grid grid-cols-5 gap-2 mt-3">
           <button
             onClick={() => onKeyPress('space')}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-4 rounded-lg transition-colors"
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-3 px-2 rounded-lg transition-colors text-sm"
           >
             Espacio
           </button>
           <button
+            onClick={() => onKeyPress('shift')}
+            className={`font-medium py-3 px-2 rounded-lg transition-colors text-sm ${
+              isShiftPressed 
+                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+            }`}
+          >
+            {isShiftPressed ? 'ABC' : 'abc'}
+          </button>
+          <button
             onClick={() => onKeyPress('backspace')}
-            className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-3 px-4 rounded-lg transition-colors"
+            className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-3 px-2 rounded-lg transition-colors text-sm"
           >
             ← Borrar
           </button>
           <button
             onClick={() => onSwitchType('numeric')}
-            className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-3 px-4 rounded-lg transition-colors text-sm"
+            className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-3 px-2 rounded-lg transition-colors text-sm"
           >
             123
           </button>
           <button
             onClick={onConfirm}
-            className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+            className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-3 px-2 rounded-lg transition-colors text-sm"
           >
-            ✓ Confirmar
+            ✓ OK
           </button>
         </div>
       </div>
