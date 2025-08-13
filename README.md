@@ -1,8 +1,28 @@
-# 🧬 BiopsyTracker - Optimizado para Tablet v2.0
+# 🧬 BiopsyTracker - Optimizado para Tablet v2.4
 
 ## 📱 Aplicación Profesional para Gestión de Biopsias en Tablet
 
 BiopsyTracker es una aplicación web optimizada específicamente para tablets, diseñada para la gestión profesional de biopsias, PAP, citologías y servicios adicionales en laboratorios de anatomía patológica.
+
+## 🎉 **NUEVAS MEJORAS v2.4.0** ⭐
+
+### 🎨 **Vista Preliminar Profesional del Remito**
+- ✅ **Diseño moderno** con gradientes y efectos visuales
+- ✅ **Componente React nativo** (no más HTML crudo)
+- ✅ **Badges coloridos** para urgencias y estadísticas
+- ✅ **Tabla de muestras mejorada** con servicios destacados
+- ✅ **Layout responsive** que se adapta perfectamente
+
+### 🖨️ **Sistema de Impresión Avanzado**
+- ✅ **Utilidades de impresora** con validación automática
+- ✅ **Feedback visual detallado** durante impresión
+- ✅ **Fallback inteligente** al navegador si falla
+- ✅ **Configuración de IP** con escaneo automático
+
+### 🧪 **Herramientas de Desarrollo**
+- ✅ **Datos de prueba automáticos** para testing
+- ✅ **Debug mejorado** con console logs
+- ✅ **Hot reload** optimizado
 
 ## ✨ Características Principales
 
