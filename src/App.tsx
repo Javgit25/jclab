@@ -608,7 +608,7 @@ function App() {
         doctorInfo={doctorInfo!}
         historyEntries={historyEntries}
         isOnline={isOnline}
-        backupStatus={backupStatus}
+        backupStatus={backupStatus === 'success' ? 'synced' : backupStatus === 'syncing' ? 'pending' : backupStatus === 'idle' ? 'synced' : 'error'}
         syncQueueLength={syncQueue.length}
         onGoBack={() => setCurrentScreen('main')}
         onDeleteEntry={(entryId: string) => {

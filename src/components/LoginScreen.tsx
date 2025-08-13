@@ -373,6 +373,70 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
             <Shield size={18} />
             <span className="text-sm">Panel de Administrador</span>
           </button>
+          
+          {/* BOTÓN DE PRUEBA TEMPORAL */}
+          <button
+            onClick={() => {
+              // Crear datos de prueba en localStorage
+              const testData = {
+                'test-entry-001': {
+                  id: 'test-entry-001',
+                  date: new Date().toISOString(),
+                  timestamp: new Date().toISOString(),
+                  doctorInfo: {
+                    name: 'Dr. Test Médico',
+                    email: 'test@hospital.com',
+                    hospital: 'Hospital de Prueba',
+                    selectedDate: new Date().toDateString()
+                  },
+                  biopsies: [
+                    {
+                      number: '1',
+                      tissueType: 'Piel - Melanoma',
+                      type: 'biopsia',
+                      cassettes: '2',
+                      pieces: '4',
+                      endoscopiaSubTypes: [],
+                      cassettesNumbers: [
+                        { base: 'A', suffix: '001' },
+                        { base: 'A', suffix: '002' }
+                      ],
+                      declassify: 'No',
+                      observations: 'Sospecha de melanoma - URGENTE',
+                      papQuantity: 0,
+                      papUrgente: false,
+                      citologiaQuantity: 0,
+                      citologiaUrgente: false,
+                      servicios: {
+                        cassetteUrgente: true,
+                        pap: false,
+                        papUrgente: false,
+                        citologia: false,
+                        citologiaUrgente: false,
+                        corteBlancoIHQ: true,
+                        corteBlancoIHQQuantity: 3,
+                        corteBlancoComun: false,
+                        corteBlancoComunQuantity: 0,
+                        giemsaPASMasson: false,
+                        giemsaOptions: {
+                          giemsa: false,
+                          pas: false,
+                          masson: false
+                        }
+                      }
+                    }
+                  ]
+                }
+              };
+              localStorage.setItem('test@hospital.com_history', JSON.stringify(testData));
+              console.log('Datos de prueba creados!');
+              alert('✅ Datos de prueba creados!\n\n📧 Email: test@hospital.com\n👨‍⚕️ Nombre: Dr. Test Médico\n🏥 Hospital: Hospital de Prueba\n\nAhora puedes hacer login con estos datos y ver el historial para probar la vista preliminar del remito.');
+            }}
+            disabled={isSubmitting}
+            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 mt-2"
+          >
+            <span className="text-sm">🧪 CREAR DATOS DE PRUEBA</span>
+          </button>
         </div>
 
         <div className="mt-2 text-center">

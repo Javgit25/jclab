@@ -2540,12 +2540,28 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               <button
                 onClick={closeSearchModal}
                 style={{
-                  background: 'none',
-                  border: 'none',
+                  background: 'rgba(107, 114, 128, 0.1)',
+                  border: '1px solid #e5e7eb',
                   cursor: 'pointer',
-                  padding: '2px',
-                  borderRadius: '4px',
-                  color: '#6b7280'
+                  padding: '6px',
+                  borderRadius: '6px',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s ease',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                  e.currentTarget.style.color = '#ef4444';
+                  e.currentTarget.style.borderColor = '#ef4444';
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(107, 114, 128, 0.1)';
+                  e.currentTarget.style.color = '#6b7280';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
                 }}
               >
                 <X style={{ height: '18px', width: '18px' }} />
