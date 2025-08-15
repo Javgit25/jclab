@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico Completo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .status {
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.2);
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        .info { background: rgba(33, 150, 243, 0.3); }
+        h1 { text-align: center; margin-bottom: 30px; }
+        button {
+            background: white;
+            color: #333;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #f0f0f0;
+        }
+        #tests { margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico Completo BiopsyTracker</h1>
+        
+        <div class="status success">
+            ✅ HTML básico funcionando correctamente
+        </div>
+        
+        <div class="status info">
+            📍 URL actual: <span id="current-url"></span>
+        </div>
+        
+        <div class="status info">
+            🕒 Hora de carga: <span id="load-time"></span>
+        </div>
+        
+        <div class="status info">
+            🌐 User Agent: <span id="user-agent"></span>
+        </div>
+        
+        <div class="status" id="js-status">
+            ⏳ Verificando JavaScript...
+        </div>
+        
+        <div class="status" id="fetch-status">
+            ⏳ Verificando conectividad con Vite...
+        </div>
+        
+        <div class="status" id="react-status">
+            ⏳ Verificando React...
+        </div>
+        
+        <div>
+            <button onclick="testAlert()">🔔 Probar Alert</button>
+            <button onclick="testConsole()">📝 Probar Console</button>
+            <button onclick="testFetch()">🌐 Probar Fetch</button>
+            <button onclick="testReact()">⚛️ Probar React</button>
+        </div>
+        
+        <div id="tests"></div>
+    </div>
+
+    <script>
+        console.log('=== DIAGNÓSTICO INICIADO ===');
+        
+        // Información básica
+        document.getElementById('current-url').textContent = window.location.href;
+        document.getElementById('load-time').textContent = new Date().toLocaleString();
+        document.getElementById('user-agent').textContent = navigator.userAgent.substring(0, 100) + '...';
+        
+        // Test JavaScript
+        try {
+            document.getElementById('js-status').className = 'status success';
+            document.getElementById('js-status').innerHTML = '✅ JavaScript funcionando correctamente';
+            console.log('✅ JavaScript OK');
+        } catch (e) {
+            document.getElementById('js-status').className = 'status error';
+            document.getElementById('js-status').innerHTML = '❌ Error en JavaScript: ' + e.message;
+            console.error('❌ JavaScript Error:', e);
+        }
+        
+        // Test de conectividad con Vite
+        fetch('/src/main.tsx')
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('fetch-status').className = 'status success';
+                    document.getElementById('fetch-status').innerHTML = '✅ Conectividad con Vite OK';
+                    console.log('✅ Vite connectivity OK');
+                } else {
+                    throw new Error('Response not OK: ' + response.status);
+                }
+            })
+            .catch(error => {
+                document.getElementById('fetch-status').className = 'status error';
+                document.getElementById('fetch-status').innerHTML = '❌ Error conectividad Vite: ' + error.message;
+                console.error('❌ Vite connectivity error:', error);
+            });
+        
+        // Funciones de prueba
+        function testAlert() {
+            alert('🎉 Alert funcionando correctamente!');
+            addTestResult('✅ Alert test passed');
+        }
+        
+        function testConsole() {
+            console.log('🔍 Console test message');
+            console.warn('⚠️ Console warning test');
+            console.error('❌ Console error test (this is intentional)');
+            addTestResult('✅ Console test passed - check DevTools');
+        }
+        
+        function testFetch() {
+            fetch('/test.html')
+                .then(response => {
+                    addTestResult('✅ Fetch test passed: ' + response.status);
+                })
+                .catch(error => {
+                    addTestResult('❌ Fetch test failed: ' + error.message);
+                });
+        }
+        
+        function testReact() {
+            // Intentar cargar React
+            const script = document.createElement('script');
+            script.src = '/src/main.tsx';
+            script.onload = () => {
+                addTestResult('✅ React script loaded');
+            };
+            script.onerror = (error) => {
+                addTestResult('❌ React script failed: ' + error.message);
+            };
+            document.head.appendChild(script);
+        }
+        
+        function addTestResult(message) {
+            const testsDiv = document.getElementById('tests');
+            const p = document.createElement('p');
+            p.textContent = new Date().toLocaleTimeString() + ' - ' + message;
+            p.style.background = 'rgba(255,255,255,0.1)';
+            p.style.padding = '10px';
+            p.style.marginTop = '10px';
+            p.style.borderRadius = '5px';
+            testsDiv.appendChild(p);
+            console.log(message);
+        }
+        
+        console.log('=== DIAGNÓSTICO COMPLETADO ===');
+    </script>
+</body>
+</html>

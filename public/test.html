@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prueba Directa</title>
+</head>
+<body style="margin: 0; background: linear-gradient(45deg, #ff6b6b, #4ecdc4); color: white; font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;">
+    <div style="text-align: center;">
+        <h1 style="font-size: 48px; margin-bottom: 20px;">🎯 PRUEBA DIRECTA HTML</h1>
+        <p style="font-size: 24px;">Si ves esto, el navegador funciona</p>
+        <p style="font-size: 18px;">Hora actual: <span id="time"></span></p>
+        <button onclick="alert('¡JavaScript funciona!')" style="padding: 15px 30px; font-size: 18px; background: white; color: #333; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px;">Probar JavaScript</button>
+    </div>
+    
+    <script>
+        console.log('=== PRUEBA DIRECTA HTML ===');
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleTimeString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        console.log('Prueba HTML cargada correctamente');
+    </script>
+</body>
+</html>
