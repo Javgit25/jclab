@@ -355,7 +355,7 @@ export const Step4: React.FC<Step4Props> = ({
           {/* Contenido con scroll */}
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
             {/* Inputs de cantidad */}
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '8px' }}>
               <TouchNumericInput
                 label={`Número de ${materialType}`}
                 value={cassettes}
@@ -491,39 +491,28 @@ export const Step4: React.FC<Step4Props> = ({
             {/* Resumen */}
             {isValid && (
               <div style={{
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                border: '2px solid #22c55e',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                marginBottom: '12px',
-                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.1)'
+                background: '#f0fdf4',
+                border: '1px solid #22c55e',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                marginBottom: '8px',
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '16px',
+                fontSize: '12px',
+                color: '#059669',
+                fontWeight: '600'
               }}>
-                <h3 style={{
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  color: '#065f46',
-                  margin: '0 0 6px 0',
-                  textAlign: 'center'
-                }}>
-                  📋 Resumen del Material
-                </h3>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '12px',
-                  color: '#059669'
-                }}>
-                  <span><strong>{materialType}:</strong> {cassettes}</span>
-                  <span><strong>Trozos:</strong> {pieces}</span>
-                </div>
+                <span>📋 {materialType}: {cassettes}</span>
+                <span>Trozos: {pieces}</span>
               </div>
             )}
           </div>
 
           {/* Botón fijo en la parte inferior */}
-          <div style={{ 
-            marginTop: '16px', 
-            paddingTop: '16px',
+          <div style={{
+            marginTop: '8px',
+            paddingTop: '8px',
             borderTop: '1px solid #e5e7eb',
             backgroundColor: 'white',
             position: 'sticky',
@@ -547,7 +536,7 @@ export const Step4: React.FC<Step4Props> = ({
                 boxShadow: isValid ? '0 8px 24px rgba(102, 126, 234, 0.3)' : 'none',
                 transition: 'all 0.3s',
                 outline: 'none',
-                minHeight: '70px'
+                minHeight: '50px'
               }}
               onMouseOver={(e) => {
                 if (isValid) {

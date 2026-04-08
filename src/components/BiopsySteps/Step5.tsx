@@ -160,10 +160,10 @@ export const Step5: React.FC<Step5Props> = ({
             {/* Pregunta principal */}
             <div style={{
               textAlign: 'center',
-              marginBottom: '32px'
+              marginBottom: '16px'
             }}>
               <p style={{
-                fontSize: '20px',
+                fontSize: '18px',
                 color: '#374151',
                 fontWeight: '500',
                 margin: 0
@@ -175,8 +175,8 @@ export const Step5: React.FC<Step5Props> = ({
             {/* Opciones principales - Layout horizontal (igual que Step3) */}
             <div style={{
               display: 'flex',
-              gap: '20px',
-              marginBottom: '24px',
+              gap: '12px',
+              marginBottom: '16px',
               flex: 1
             }}>
               
@@ -185,7 +185,7 @@ export const Step5: React.FC<Step5Props> = ({
                 onClick={() => { onDeclassifyChange('Sí'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
-                  padding: '28px',
+                  padding: '16px',
                   borderRadius: '16px',
                   border: `3px solid ${declassify === 'Sí' ? '#1d4ed8' : '#3b82f6'}`,
                   backgroundColor: declassify === 'Sí' ? '#dbeafe' : '#eff6ff',
@@ -248,7 +248,7 @@ export const Step5: React.FC<Step5Props> = ({
                 onClick={() => { onDeclassifyChange('No'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
-                  padding: '28px',
+                  padding: '16px',
                   borderRadius: '16px',
                   border: `3px solid ${declassify === 'No' ? '#1e293b' : '#475569'}`,
                   backgroundColor: declassify === 'No' ? '#e2e8f0' : '#f8fafc',

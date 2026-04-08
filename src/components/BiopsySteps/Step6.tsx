@@ -415,24 +415,27 @@ export const Step6: React.FC<Step6Props> = ({
             </div>
           )}
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            
+          <div style={{ display: 'flex', flexDirection: 'column', gap: (servicios.corteBlancoIHQ || servicios.corteBlancoComun || servicios.giemsaPASMasson) ? '6px' : '10px' }}>
+
             {/* SERVICIOS BÁSICOS - EXCLUYENDO giemsaPASMasson, corteBlancoIHQ, corteBlancoComun */}
-            {serviciosAdicionales
-              .filter(servicio => !['giemsaPASMasson', 'corteBlancoIHQ', 'corteBlancoComun'].includes(servicio.key))
-              .map((servicio) => {
+            {(() => {
+              const hayExpandido = servicios.corteBlancoIHQ || servicios.corteBlancoComun || servicios.giemsaPASMasson;
+              return serviciosAdicionales
+                .filter(servicio => !['giemsaPASMasson', 'corteBlancoIHQ', 'corteBlancoComun'].includes(servicio.key))
+                .map((servicio) => {
                 const IconComponent = servicio.icon;
                 const isSelected = Boolean(servicios[servicio.key as keyof BiopsyServices]);
                 const colorStyles = getColorClasses(servicio.color, isSelected);
-                
+                const compacto = hayExpandido && !isSelected;
+
                 return (
                   <button
                     key={servicio.key}
                     onClick={() => onServicioChange(servicio.key as keyof BiopsyServices)}
                     style={{
                       width: '100%',
-                      padding: '14px',
-                      borderRadius: '12px',
+                      padding: compacto ? '8px 14px' : '14px',
+                      borderRadius: compacto ? '8px' : '12px',
                       border: `2px solid ${colorStyles.border}`,
                       backgroundColor: colorStyles.bg,
                       color: colorStyles.text,
@@ -467,21 +470,23 @@ export const Step6: React.FC<Step6Props> = ({
                         gap: '12px',
                         flex: '1'
                       }}>
-                        <IconComponent size={24} color={colorStyles.text} />
+                        <IconComponent size={compacto ? 18 : 24} color={colorStyles.text} />
                         <div>
                           <div style={{
                             fontWeight: '600',
-                            fontSize: '15px',
-                            marginBottom: '3px'
+                            fontSize: compacto ? '13px' : '15px',
+                            marginBottom: compacto ? '0' : '3px'
                           }}>
                             {servicio.label}
                           </div>
-                          <div style={{
-                            fontSize: '12px',
-                            opacity: 0.8
-                          }}>
-                            {servicio.description}
-                          </div>
+                          {!compacto && (
+                            <div style={{
+                              fontSize: '12px',
+                              opacity: 0.8
+                            }}>
+                              {servicio.description}
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -500,12 +505,13 @@ export const Step6: React.FC<Step6Props> = ({
                     </div>
                   </button>
                 );
-              })}
+              });
+            })()}
 
             {/* CORTE EN BLANCO PARA IHQ - CON CONTADOR */}
             <div style={{
-              padding: '14px',
-              borderRadius: '12px',
+              padding: (!servicios.corteBlancoIHQ && (servicios.corteBlancoComun || servicios.giemsaPASMasson)) ? '8px 14px' : '14px',
+              borderRadius: '10px',
               border: `2px solid ${servicios.corteBlancoIHQ ? '#6366F1' : '#E5E7EB'}`,
               backgroundColor: servicios.corteBlancoIHQ ? '#EEF2FF' : colors.white,
               transition: 'all 0.2s ease',
@@ -556,13 +562,15 @@ export const Step6: React.FC<Step6Props> = ({
                       }}>
                         CORTE EN BLANCO PARA IHQ
                       </div>
-                      <div style={{
-                        fontSize: '12px',
-                        opacity: 0.8,
-                        color: servicios.corteBlancoIHQ ? '#312E81' : '#374151'
-                      }}>
-                        Vidrios en blanco para inmunohistoquímica
-                      </div>
+                      {(servicios.corteBlancoIHQ || (!servicios.corteBlancoComun && !servicios.giemsaPASMasson)) && (
+                        <div style={{
+                          fontSize: '12px',
+                          opacity: 0.8,
+                          color: servicios.corteBlancoIHQ ? '#312E81' : '#374151'
+                        }}>
+                          Vidrios en blanco para inmunohistoquímica
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -595,8 +603,8 @@ export const Step6: React.FC<Step6Props> = ({
 
             {/* CORTE EN BLANCO COMÚN - CON CONTADOR */}
             <div style={{
-              padding: '14px',
-              borderRadius: '12px',
+              padding: (!servicios.corteBlancoComun && (servicios.corteBlancoIHQ || servicios.giemsaPASMasson)) ? '8px 14px' : '14px',
+              borderRadius: '10px',
               border: `2px solid ${servicios.corteBlancoComun ? '#7C3AED' : '#E5E7EB'}`,
               backgroundColor: servicios.corteBlancoComun ? '#FAF5FF' : colors.white,
               transition: 'all 0.2s ease',
@@ -647,13 +655,15 @@ export const Step6: React.FC<Step6Props> = ({
                       }}>
                         CORTE EN BLANCO COMÚN
                       </div>
-                      <div style={{
-                        fontSize: '12px',
-                        opacity: 0.8,
-                        color: servicios.corteBlancoComun ? '#581C87' : '#374151'
-                      }}>
-                        Vidrios en blanco estándar
-                      </div>
+                      {(servicios.corteBlancoComun || (!servicios.corteBlancoIHQ && !servicios.giemsaPASMasson)) && (
+                        <div style={{
+                          fontSize: '12px',
+                          opacity: 0.8,
+                          color: servicios.corteBlancoComun ? '#581C87' : '#374151'
+                        }}>
+                          Vidrios en blanco estándar
+                        </div>
+                      )}
                     </div>
                   </div>
                   
@@ -686,8 +696,8 @@ export const Step6: React.FC<Step6Props> = ({
 
             {/* ✅ GIEMSA/PAS/MASSON - VERSION CORREGIDA CON CONTADOR AUTOMÁTICO */}
             <div style={{
-              padding: '14px',
-              borderRadius: '12px',
+              padding: (!servicios.giemsaPASMasson && (servicios.corteBlancoIHQ || servicios.corteBlancoComun)) ? '8px 14px' : '14px',
+              borderRadius: '10px',
               border: `2px solid ${servicios.giemsaPASMasson ? colors.primaryBlue : '#E5E7EB'}`,
               backgroundColor: servicios.giemsaPASMasson ? '#EBF8FF' : colors.white,
               transition: 'all 0.2s ease',
@@ -738,13 +748,15 @@ export const Step6: React.FC<Step6Props> = ({
                       }}>
                         GIEMSA / PAS / MASSON
                       </div>
-                      <div style={{
-                        fontSize: '12px',
-                        opacity: 0.8,
-                        color: servicios.giemsaPASMasson ? '#1E3A8A' : '#374151'
-                      }}>
-                        Técnicas de tinción especiales
-                      </div>
+                      {(servicios.giemsaPASMasson || (!servicios.corteBlancoIHQ && !servicios.corteBlancoComun)) && (
+                        <div style={{
+                          fontSize: '12px',
+                          opacity: 0.8,
+                          color: servicios.giemsaPASMasson ? '#1E3A8A' : '#374151'
+                        }}>
+                          Técnicas de tinción especiales
+                        </div>
+                      )}
                     </div>
                   </div>
                   
