@@ -342,8 +342,7 @@ export const Step4: React.FC<Step4Props> = ({
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
-          padding: '16px',
-          minHeight: 'calc(100vh - 220px)',
+          padding: '12px',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',

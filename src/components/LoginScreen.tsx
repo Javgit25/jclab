@@ -24,8 +24,10 @@ const findDoctorByEmail = (email: string): RegisteredDoctor | undefined => {
 };
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToSuperAdmin }) => {
-  const [mode, setMode] = useState<'email' | 'login' | 'register' | 'recover'>('email');
-  const [email, setEmail] = useState('');
+  const savedEmail = localStorage.getItem('lastDoctorEmail') || '';
+  const savedDoctor = savedEmail ? findDoctorByEmail(savedEmail) : null;
+  const [mode, setMode] = useState<'email' | 'login' | 'register' | 'recover'>(savedDoctor ? 'login' : 'email');
+  const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -37,7 +39,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [existingDoctor, setExistingDoctor] = useState<RegisteredDoctor | null>(null);
+  const [existingDoctor, setExistingDoctor] = useState<RegisteredDoctor | null>(savedDoctor);
   const [recoverySuccess, setRecoverySuccess] = useState(false);
 
   // Teclado virtual
@@ -81,6 +83,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
       return;
     }
     setErrors({});
+    localStorage.setItem('lastDoctorEmail', email.trim().toLowerCase());
     const doctor = findDoctorByEmail(email.trim());
     if (doctor) { setExistingDoctor(doctor); setMode('login'); }
     else { setExistingDoctor(null); setMode('register'); }

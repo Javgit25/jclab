@@ -202,70 +202,26 @@ export const Step7: React.FC<Step7Props> = ({
           </div>
           
           {/* Navegación integrada en el header */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={onPrev}
-              style={{
-                background: 'rgba(255, 255, 255, 0.2)',
-                border: 'none',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                backdropFilter: 'blur(10px)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <ChevronLeft size={16} />
-              Anterior
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={onPrev} style={{
+              background: 'rgba(255, 255, 255, 0.2)', border: 'none', padding: '8px 10px', borderRadius: '8px',
+              color: 'white', fontSize: '11px', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px'
+            }}>
+              <ChevronLeft size={14} /> Ant.
             </button>
-            <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.4', textAlign: 'center', padding: '0 8px' }}>
-              <span style={{ fontWeight: '600', color: '#16a34a' }}>GUARDAR</span> = guarda este paciente y seguís cargando más.
-              {' '}<span style={{ fontWeight: '600', color: '#d97706' }}>FINALIZAR</span> = cierra el remito, no se pueden agregar más pacientes.
-            </div>
-            <button
-              onClick={onSave}
-              style={{
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <Save size={16} />
-              Guardar
+            <button onClick={onSave} style={{
+              background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', border: 'none', padding: '8px 14px', borderRadius: '8px',
+              color: 'white', fontSize: '11px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(34, 197, 94, 0.3)',
+              display: 'flex', alignItems: 'center', gap: '4px'
+            }}>
+              <Save size={14} /> Guardar
             </button>
-            <button
-              onClick={onFinishDailyReport}
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '12px',
-                fontWeight: '600',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px'
-              }}
-            >
-              <FileText size={16} />
-              Finalizar
+            <button onClick={onFinishDailyReport} style={{
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', padding: '8px 14px', borderRadius: '8px',
+              color: 'white', fontSize: '11px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+              display: 'flex', alignItems: 'center', gap: '4px'
+            }}>
+              <FileText size={14} /> Finalizar
             </button>
           </div>
         </div>

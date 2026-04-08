@@ -160,10 +160,10 @@ export const Step3: React.FC<Step3Props> = ({
             {/* Pregunta principal */}
             <div style={{
               textAlign: 'center',
-              marginBottom: '32px'
+              marginBottom: '16px'
             }}>
               <p style={{
-                fontSize: '20px',
+                fontSize: '18px',
                 color: '#374151',
                 fontWeight: '500',
                 margin: 0
@@ -175,8 +175,8 @@ export const Step3: React.FC<Step3Props> = ({
             {/* Opciones principales - Layout horizontal */}
             <div style={{
               display: 'flex',
-              gap: '20px',
-              marginBottom: '24px',
+              gap: '12px',
+              marginBottom: '16px',
               flex: 1
             }}>
               
@@ -185,7 +185,7 @@ export const Step3: React.FC<Step3Props> = ({
                 onClick={() => { onTypeChange('BX'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
-                  padding: '28px',
+                  padding: '16px',
                   borderRadius: '16px',
                   border: `3px solid ${type === 'BX' ? '#1d4ed8' : '#3b82f6'}`,
                   backgroundColor: type === 'BX' ? '#dbeafe' : '#eff6ff',
@@ -258,7 +258,7 @@ export const Step3: React.FC<Step3Props> = ({
                 onClick={() => { onTypeChange('PQ'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
-                  padding: '28px',
+                  padding: '16px',
                   borderRadius: '16px',
                   border: `3px solid ${type === 'PQ' ? '#1e293b' : '#475569'}`,
                   backgroundColor: type === 'PQ' ? '#e2e8f0' : '#f8fafc',

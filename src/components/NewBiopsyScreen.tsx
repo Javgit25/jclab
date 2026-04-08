@@ -706,44 +706,35 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       </div>
       {/* Botón flotante "Finalizar Remito" - visible en todo momento si hay biopsias cargadas */}
       {todayBiopsies.length > 0 && currentStep !== 7 && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '16px',
-          left: '16px',
-          zIndex: 40,
-          pointerEvents: 'none'
-        }}>
-          <button
-            onClick={() => {
-              const confirmed = window.confirm(
-                `¿Desea finalizar el remito con ${todayBiopsies.length} paciente(s) cargado(s)?\n\nSe guardarán todos los pacientes ya cargados.`
-              );
-              if (confirmed) onFinishDailyReport();
-            }}
-            style={{
-              pointerEvents: 'auto',
-              float: 'right',
-              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '16px',
-              padding: '16px 28px',
-              fontSize: '16px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              boxShadow: '0 8px 30px rgba(220, 38, 38, 0.5), 0 0 0 3px rgba(255,255,255,0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              transition: 'all 0.3s',
-              touchAction: 'manipulation'
-            }}
-          >
-            <span style={{ fontSize: '20px' }}>📋</span>
-            Finalizar Remito ({todayBiopsies.length})
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            const confirmed = window.confirm(
+              `¿Desea finalizar el remito con ${todayBiopsies.length} paciente(s) cargado(s)?\n\nSe guardarán todos los pacientes ya cargados.`
+            );
+            if (confirmed) onFinishDailyReport();
+          }}
+          style={{
+            position: 'fixed',
+            bottom: '16px',
+            right: '16px',
+            zIndex: 40,
+            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '14px',
+            padding: '12px 20px',
+            fontSize: '14px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            boxShadow: '0 6px 20px rgba(220, 38, 38, 0.5), 0 0 0 2px rgba(255,255,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            touchAction: 'manipulation'
+          }}
+        >
+          📋 Finalizar ({todayBiopsies.length})
+        </button>
       )}
 
       {virtualKeyboard.isOpen && (

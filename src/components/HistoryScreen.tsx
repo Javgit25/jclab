@@ -725,9 +725,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 const fullHtml = generateRemitoHTML(showRemito.entry);
                 // Extraer CSS y body del HTML completo
                 const cssMatch = fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-                const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+                const bodyStart = fullHtml.indexOf('<body');
+                const bodyOpenEnd = bodyStart >= 0 ? fullHtml.indexOf('>', bodyStart) + 1 : -1;
+                const bodyEnd = fullHtml.lastIndexOf('</body>');
                 const css = cssMatch ? cssMatch[1] : '';
-                const body = bodyMatch ? bodyMatch[1] : fullHtml;
+                const body = (bodyOpenEnd > 0 && bodyEnd > bodyOpenEnd) ? fullHtml.substring(bodyOpenEnd, bodyEnd) : fullHtml;
                 // Envolver en un scope para que los estilos no afecten al resto
                 return `<div class="remito-scope"><style>.remito-scope { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.3; color: #1a202c; font-size: 10pt; } .remito-scope * { box-sizing: border-box; } ${css.replace(/body/g, '.remito-scope').replace(/@page[^}]+}/g, '').replace(/@media print[^}]+{[^}]+}/g, '')}</style>${body}</div>`;
               })()
@@ -865,7 +867,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   const n = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                   const entryTimestamp = entry.timestamp || entry.date;
                   const entryBiopsyCount = entry.biopsies.length;
-                  return n.some((x: any) => {
+                  return n.filter((x: any) => x.tipo !== 'listo' && x.tipo !== 'parcial').some((x: any) => {
                     if (x.remitoId === entry.id) return true;
                     if (x.medicoEmail === doctorInfo.email && x.remitoId) {
                       try {

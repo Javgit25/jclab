@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wifi, WifiOff } from 'lucide-react';
+// Icons removed - using simple dot indicator
 
 interface ConnectionStatusProps {
   isOnline: boolean;
@@ -11,29 +11,25 @@ export const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   isOnline,
 }) => {
   return (
-    <div className="flex items-center space-x-3">
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '3px',
+      padding: '2px 6px',
+      borderRadius: '6px',
+      backgroundColor: isOnline ? 'rgba(22,163,106,0.15)' : 'rgba(220,38,38,0.15)',
+    }}>
       <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        padding: '4px 8px',
-        borderRadius: '8px',
-        backgroundColor: isOnline ? '#f0fdf4' : '#fef2f2',
-        border: `1px solid ${isOnline ? '#bbf7d0' : '#fecaca'}`,
+        width: '6px', height: '6px', borderRadius: '50%',
+        backgroundColor: isOnline ? '#16a34a' : '#dc2626',
+      }} />
+      <span style={{
+        fontSize: '9px',
+        fontWeight: '600',
+        color: isOnline ? '#16a34a' : '#dc2626'
       }}>
-        {isOnline ? (
-          <Wifi style={{ width: '14px', height: '14px', color: '#16a34a' }} />
-        ) : (
-          <WifiOff style={{ width: '14px', height: '14px', color: '#dc2626' }} />
-        )}
-        <span style={{
-          fontSize: '11px',
-          fontWeight: '600',
-          color: isOnline ? '#16a34a' : '#dc2626'
-        }}>
-          {isOnline ? 'Online' : 'Offline'}
-        </span>
-      </div>
+        {isOnline ? 'Online' : 'Offline'}
+      </span>
     </div>
   );
 };

@@ -68,7 +68,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   // Detectar notificaciones de "listo para retirar" no leídas
   const [listoAlert, setListoAlert] = useState<any>(null);
   React.useEffect(() => {
-    const listoNotif = notificationsData.find(n => n.tipo === 'listo' && !n.leida);
+    const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida);
     if (listoNotif && !listoAlert) {
       setListoAlert(listoNotif);
     }
@@ -594,25 +594,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Detalle de Estudios
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '8px', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', flex: 1 }}>
                 {[
-                  { label: 'BX', desc: 'Biopsias', val: financialData.totalBX, badge: '#1e40af' },
-                  { label: 'PQ', desc: 'Piezas Quirúrgicas', val: financialData.totalPQ || 0, badge: '#0369a1' },
-                  { label: 'PAP', desc: 'Papanicolaou', val: financialData.totalPAP, badge: '#4338ca' },
-                  { label: 'Citología', desc: 'Citológicos', val: financialData.totalCitologia, badge: '#475569' }
+                  { label: 'BX', val: financialData.totalBX, badge: '#1e40af' },
+                  { label: 'PQ', val: financialData.totalPQ || 0, badge: '#0369a1' },
+                  { label: 'PAP', val: financialData.totalPAP, badge: '#4338ca' },
+                  { label: 'Cito', val: financialData.totalCitologia, badge: '#475569' }
                 ].map((item, i) => (
                   <div key={i} style={{
                     backgroundColor: item.badge, border: 'none',
-                    borderRadius: '10px', padding: '12px',
+                    borderRadius: '10px', padding: '8px 4px',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    boxSizing: 'border-box', textAlign: 'center'
+                    boxSizing: 'border-box', textAlign: 'center', minWidth: 0
                   }}>
-                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'white', marginBottom: '6px' }}>{item.label}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '800', color: 'white', marginBottom: '4px' }}>{item.label}</div>
                     <div style={{
-                      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '8px',
-                      padding: '4px 14px', fontSize: '18px', fontWeight: '700', color: 'white'
+                      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '6px',
+                      padding: '3px 10px', fontSize: '16px', fontWeight: '700', color: 'white'
                     }}>{item.val}</div>
-                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.55)', marginTop: '4px' }}>{item.desc}</div>
                   </div>
                 ))}
               </div>
@@ -1743,7 +1742,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                       {!n.leida && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1e40af', flexShrink: 0 }} />}
-                      <span style={{ fontWeight: '600', color: '#1e40af', fontSize: '12px' }}>Remito modificado</span>
+                      <span style={{ fontWeight: '600', color: n.tipo === 'listo' || n.tipo === 'parcial' ? '#059669' : '#1e40af', fontSize: '12px' }}>{n.tipo === 'listo' ? '✅ Listo para retirar' : n.tipo === 'parcial' ? '🟢 Material listo (parcial)' : 'Remito modificado'}</span>
                     </div>
                     <div style={{ color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '11px' }}>{n.mensaje || n.message || 'Se realizaron cambios en un remito'}</div>
                     <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
@@ -2257,8 +2256,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             padding: '16px',
             width: '100%',
             maxWidth: '800px',
-            // Altura dinámica: grande sin resultados, compacto con resultados
-            height: searchResults.length > 0 ? '90vh' : '60vh',
+            maxHeight: '85vh',
             display: 'flex',
             flexDirection: 'column',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
