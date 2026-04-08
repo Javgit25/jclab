@@ -408,7 +408,7 @@ function App() {
 
           return {
             numero: biopsy.number,
-            tejido: biopsy.tissueType,
+            tejido: biopsy.tissueType ? biopsy.tissueType.charAt(0).toUpperCase() + biopsy.tissueType.slice(1) : '',
             tipo: biopsy.type,
             cassettes: parseInt(biopsy.cassettes) || 0,
             trozos: parseInt(biopsy.pieces) || 0,

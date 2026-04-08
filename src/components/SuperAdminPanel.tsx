@@ -17,6 +17,8 @@ interface Laboratory {
   fechaVencimiento: string;
   medicosActivos: number;
   logoUrl?: string;
+  adminUser: string;
+  adminPassword: string;
   historialPagos: { fecha: string; monto: number; meses: number; metodo?: string }[];
   emailjsConfig?: { serviceId: string; templateId: string; publicKey: string };
 }
@@ -110,6 +112,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
       id: `LAB_${Date.now()}`, labCode: code, ...newLab,
       estado: 'activo', fechaAlta: new Date().toISOString(),
       fechaVencimiento: venc.toISOString(), medicosActivos: 0,
+      adminUser: 'admin', adminPassword: 'admin123',
       historialPagos: [{ fecha: new Date().toISOString(), monto: 0, meses: 1, metodo: 'Primer mes gratis' }]
     };
     const updated = [...labs, lab];
@@ -339,6 +342,21 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
                               <input type="number" defaultValue={lab.medicosActivos} min={0}
                                 onBlur={(e) => updateLab(lab.id, { medicosActivos: Number(e.target.value) })}
                                 style={{ width: '80px', padding: '5px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '13px', fontWeight: '700' }} />
+                            </div>
+                            <div style={{ marginTop: '10px', padding: '8px', background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                              <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>🔐 Credenciales Admin</div>
+                              <div style={{ marginBottom: '4px' }}>
+                                <label style={{ fontSize: '9px', color: '#94a3b8', display: 'block' }}>Usuario</label>
+                                <input type="text" defaultValue={lab.adminUser || 'admin'}
+                                  onBlur={(e) => updateLab(lab.id, { adminUser: e.target.value })}
+                                  style={{ width: '100%', padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box' }} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: '9px', color: '#94a3b8', display: 'block' }}>Contraseña</label>
+                                <input type="text" defaultValue={lab.adminPassword || 'admin123'}
+                                  onBlur={(e) => updateLab(lab.id, { adminPassword: e.target.value })}
+                                  style={{ width: '100%', padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px', boxSizing: 'border-box', fontFamily: 'monospace' }} />
+                              </div>
                             </div>
                           </div>
 

@@ -67,7 +67,8 @@ interface Notification {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' });
+  const [loginForm, setLoginForm] = useState({ username: '', password: '', labCode: localStorage.getItem('lastAdminLabCode') || '' });
+  const [currentLabCode, setCurrentLabCode] = useState('');
   const [currentView, setCurrentView] = useState('dashboard');
   const [remitos, setRemitos] = useState<AdminRemito[]>([]);
   const [medicos, setMedicos] = useState<string[]>([]);
@@ -87,9 +88,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [emailModal, setEmailModal] = useState<{ open: boolean; medico: string; email: string } | null>(null);
   const [emailMessage, setEmailMessage] = useState('');
   const [editingBiopsias, setEditingBiopsias] = useState<any[] | null>(null);
-  const [dashFilter, setDashFilter] = useState('todos');
+  const [dashFilter, setDashFilter] = useState('actual');
   const [cobrosFilter, setCobrosFilter] = useState('todos');
   const [expandedUrgents, setExpandedUrgents] = useState<Set<string>>(new Set());
+  const [showChangePass, setShowChangePass] = useState(false);
+  const [credForm, setCredForm] = useState({ currentPassword: '', newUser: '', newPassword: '', confirmPassword: '' });
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
     precioCassette: 300,
@@ -131,7 +134,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   useEffect(() => {
     loadAdminData();
     generateNotifications();
-  }, []);
+  }, [currentLabCode]);
 
   const loadAdminData = () => {
     try {
@@ -231,23 +234,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         }
       } catch {}
       
-      // Si aún no hay datos, generar datos de prueba
+      // Si no hay datos, mostrar vacío
       if (allRemitos.length === 0) {
-        console.log('⚠️ No se encontraron datos reales, generando datos de prueba');
-        generateDemoData();
+        setRemitos([]);
+        setMedicos([]);
         return;
       }
       
       // Eliminar duplicados por ID
-      const remitosUnicos = allRemitos.filter((remito, index, self) => 
+      const remitosUnicos = allRemitos.filter((remito, index, self) =>
         index === self.findIndex(r => r.id === remito.id)
       );
-      
-      setRemitos(remitosUnicos);
-      const medicosUnicos = [...new Set(remitosUnicos.map(r => r.medico))];
+
+      // Filtrar por labCode: solo mostrar remitos de médicos registrados en este laboratorio
+      let remitosFiltrados = remitosUnicos;
+      if (currentLabCode) {
+        try {
+          const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+          const labDoctorEmails = registeredDoctors
+            .filter((d: any) => (d.labCode || '').toUpperCase() === currentLabCode)
+            .map((d: any) => (d.email || '').toLowerCase().trim());
+
+          remitosFiltrados = remitosUnicos.filter(r =>
+            labDoctorEmails.includes((r.email || '').toLowerCase().trim())
+          );
+          console.log(`🔒 Filtrado por lab ${currentLabCode}: ${remitosFiltrados.length}/${remitosUnicos.length} remitos`);
+        } catch {
+          console.error('Error filtrando por labCode');
+        }
+      }
+
+      setRemitos(remitosFiltrados);
+      const medicosUnicos = [...new Set(remitosFiltrados.map(r => r.medico))];
       setMedicos(medicosUnicos);
-      
-      console.log('✅ Datos cargados exitosamente:', remitosUnicos.length, 'remitos de', medicosUnicos.length, 'médicos');
+
+      console.log('✅ Datos cargados exitosamente:', remitosFiltrados.length, 'remitos de', medicosUnicos.length, 'médicos');
 
       const savedConfig = localStorage.getItem('adminConfig');
       if (savedConfig) {
@@ -256,154 +277,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       }
     } catch (error) {
       console.error('❌ Error cargando datos del administrador:', error);
-      // En caso de error, generar datos de prueba
-      generateDemoData();
+      setRemitos([]);
+      setMedicos([]);
     }
   };
 
-  const generateDemoData = () => {
-    const demoRemitos: AdminRemito[] = [
-      {
-        id: 'demo-1',
-        medico: 'Dr. Juan García',
-        email: 'garcia@hospital.com',
-        fecha: new Date().toISOString(),
-        hospital: 'Hospital Central Buenos Aires',
-        estado: 'pendiente',
-        biopsias: [
-          {
-            numero: 'B001',
-            tejido: 'Gastrica',
-            tipo: 'BX',
-            cassettes: 2,
-            trozos: 3,
-            desclasificar: 'N/A',
-            servicios: {
-              cassetteNormal: 2,
-              cassetteUrgente: 0,
-              profundizacion: 1,
-              pap: 0,
-              papUrgente: 0,
-              citologia: 0,
-              citologiaUrgente: 0,
-              corteBlanco: 0,
-              corteBlancoIHQ: 0,
-              giemsaPASMasson: 0
-            },
-            papQuantity: 0,
-            citologiaQuantity: 0
-          }
-        ]
-      },
-      {
-        id: 'demo-2',
-        medico: 'Dra. María López',
-        email: 'lopez@clinica.com',
-        fecha: new Date(Date.now() - 86400000).toISOString(),
-        hospital: 'Clínica San José',
-        estado: 'facturado',
-        biopsias: [
-          {
-            numero: 'P001',
-            tejido: 'PAP',
-            tipo: 'PAP',
-            cassettes: 0,
-            trozos: 0,
-            desclasificar: 'N/A',
-            servicios: {
-              cassetteNormal: 0,
-              cassetteUrgente: 0,
-              profundizacion: 0,
-              pap: 3,
-              papUrgente: 0,
-              citologia: 0,
-              citologiaUrgente: 0,
-              corteBlanco: 0,
-              corteBlancoIHQ: 0,
-              giemsaPASMasson: 0
-            },
-            papQuantity: 3,
-            citologiaQuantity: 0
-          }
-        ]
-      },
-      {
-        id: 'demo-3',
-        medico: 'Dr. Carlos Rodríguez',
-        email: 'rodriguez@medico.com',
-        fecha: new Date(Date.now() - 2 * 86400000).toISOString(),
-        hospital: 'Instituto Médico Integral',
-        estado: 'pendiente',
-        biopsias: [
-          {
-            numero: 'C001',
-            tejido: 'Citología',
-            tipo: 'CITO',
-            cassettes: 0,
-            trozos: 0,
-            desclasificar: 'N/A',
-            servicios: {
-              cassetteNormal: 0,
-              cassetteUrgente: 0,
-              profundizacion: 0,
-              pap: 0,
-              papUrgente: 0,
-              citologia: 2,
-              citologiaUrgente: 0,
-              corteBlanco: 0,
-              corteBlancoIHQ: 0,
-              giemsaPASMasson: 0
-            },
-            papQuantity: 0,
-            citologiaQuantity: 2
-          }
-        ]
-      }
-    ];
-    
-    setRemitos(demoRemitos);
-    const medicosUnicos = [...new Set(demoRemitos.map(r => r.medico))];
-    setMedicos(medicosUnicos);
-    localStorage.setItem('adminRemitos', JSON.stringify(demoRemitos));
-    console.log('🧪 Datos de prueba generados:', medicosUnicos);
-  };
-
-  const generateNotifications = () => {
-    const notificaciones: Notification[] = [
-      {
-        id: '1',
-        tipo: 'warning',
-        titulo: 'Remitos Pendientes',
-        mensaje: 'Hay 5 remitos pendientes de facturación desde hace más de 7 días',
-        fecha: new Date(),
-        leida: false
-      },
-      {
-        id: '2',
-        tipo: 'success',
-        titulo: 'Meta Alcanzada',
-        mensaje: 'Se ha superado la meta mensual de facturación',
-        fecha: new Date(Date.now() - 86400000),
-        leida: false
-      }
-    ];
-    setNotifications(notificaciones);
-  };
-
-  const refreshData = () => {
-    loadAdminData();
-    generateNotifications();
-    setSelectedRemitos([]);
-    console.log('🔄 Datos actualizados');
-  };
-
-  const resetToDemo = () => {
-    if (confirm('🔄 ¿Desea restablecer los datos a los ejemplos de demostración?\n\nEsto eliminará todos los datos actuales.')) {
-      localStorage.removeItem('adminRemitos');
-      generateDemoData();
-      console.log('🧪 Datos restablecidos a demostración');
-    }
-  };
+  const generateNotifications = () => {};
 
   const toggleNotifications = () => {
     setShowNotifications(!showNotifications);
@@ -474,16 +353,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   };
 
   const handleLogin = () => {
-    if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
+    const code = loginForm.labCode.trim().toUpperCase();
+    if (!code) {
+      alert('Ingrese el código del laboratorio');
+      return;
+    }
+    try {
+      const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+      const lab = labs.find((l: any) => l.labCode === code);
+      if (!lab) {
+        alert('Código de laboratorio no válido');
+        return;
+      }
+      // Validar credenciales contra las del laboratorio
+      const labUser = lab.adminUser || 'admin';
+      const labPass = lab.adminPassword || 'admin123';
+      if (loginForm.username !== labUser || loginForm.password !== labPass) {
+        alert('❌ Credenciales incorrectas');
+        return;
+      }
+      if (lab.estado === 'vencido') {
+        alert('La suscripción de este laboratorio está vencida.\nContacte a BiopsyTracker para renovar.');
+        return;
+      }
+      if (lab.estado === 'suspendido') {
+        alert('Este laboratorio está suspendido.\nContacte a BiopsyTracker.');
+        return;
+      }
+      setCurrentLabCode(code);
+      localStorage.setItem('lastAdminLabCode', code);
       setIsAuthenticated(true);
-    } else {
-      alert('❌ Credenciales incorrectas. Intente con:\nUsuario: admin\nContraseña: admin123');
+    } catch {
+      alert('Error al verificar laboratorio');
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    setLoginForm({ username: '', password: '' });
+    setLoginForm({ username: '', password: '', labCode: '' });
     setCurrentView('dashboard');
     onGoBack();
   };
@@ -1170,10 +1077,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </button>
               </div>
             </div>
-            
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Código de Laboratorio</label>
+              <input
+                type="text"
+                value={loginForm.labCode}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, labCode: e.target.value.toUpperCase() }))}
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 uppercase tracking-widest text-center font-mono text-lg"
+                placeholder="Ej: A1B2C3"
+                maxLength={6}
+              />
+              <p className="text-xs text-gray-500 mt-1">Código de 6 caracteres proporcionado por BiopsyTracker</p>
+            </div>
+
             <button
               onClick={handleLogin}
-              disabled={!loginForm.username || !loginForm.password}
+              disabled={!loginForm.username || !loginForm.password || !loginForm.labCode}
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-400 disabled:to-gray-400 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 disabled:hover:scale-100"
             >
               Iniciar Sesión
@@ -1202,8 +1122,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <FileText className="text-white" size={24} />
             </div>
             <div>
-              <span className="text-xl font-bold">BiopsyTracker</span>
-              <p className="text-xs text-slate-300">Professional Admin</p>
+              <span className="text-xl font-bold">{(() => { try { const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]'); const lab = labs.find((l: any) => l.labCode === currentLabCode); return lab ? lab.nombre : 'BiopsyTracker'; } catch { return 'BiopsyTracker'; } })()}</span>
+              <p className="text-xs text-slate-300">Admin — <span className="font-mono">{currentLabCode}</span></p>
             </div>
           </div>
           
@@ -1270,7 +1190,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     Panel de Administrador
                   </h1>
-                  <p className="text-gray-600">Gestión Central - {(() => { try { return JSON.parse(localStorage.getItem('superAdmin_config') || '{}').appNombre || 'BiopsyTracker'; } catch { return 'BiopsyTracker'; } })()} Professional</p>
+                  <p className="text-gray-600">{(() => { try { const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]'); const lab = labs.find((l: any) => l.labCode === currentLabCode); return lab ? lab.nombre : 'Laboratorio'; } catch { return 'Laboratorio'; } })()} — <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{currentLabCode}</span></p>
                 </div>
               </div>
               
@@ -1303,15 +1223,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         <div className="flex-1 overflow-auto">
           {currentView === 'dashboard' && (() => {
             const sortedRemitos = [...remitos].sort((a, b) => new Date((b as any).timestamp || b.fecha).getTime() - new Date((a as any).timestamp || a.fecha).getTime());
-            const enProceso = remitos.filter(r => (r as any).estadoEnvio !== 'listo');
-            const listos = remitos.filter(r => (r as any).estadoEnvio === 'listo');
-            const urgentes = remitos.filter(r => r.biopsias.some(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0) && (r as any).estadoEnvio !== 'listo');
+            const esRemitoListo = (r: any) => {
+              const bl = r.biopsiaListas || [];
+              return r.estadoEnvio === 'listo' || (bl.length > 0 && bl.length === r.biopsias.length && bl.every(Boolean));
+            };
+            const bEsUrgente = (b: any) => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0;
+            // Un remito tiene urgentes PENDIENTES si tiene alguna biopsia urgente no marcada como lista
+            const tieneUrgentesPendientes = (r: any) => {
+              const bl = r.biopsiaListas || [];
+              return r.biopsias.some((b: any, i: number) => bEsUrgente(b) && !bl[i]);
+            };
+            // Un remito tiene al menos una biopsia pendiente
+            const tienePendientes = (r: any) => {
+              const bl = r.biopsiaListas || [];
+              return r.biopsias.some((_: any, i: number) => !bl[i]);
+            };
+            const enProceso = remitos.filter(r => !esRemitoListo(r));
+            const listos = remitos.filter(r => esRemitoListo(r) || !tienePendientes(r));
+            const urgentes = remitos.filter(r => tieneUrgentesPendientes(r));
 
             const filteredRemitos = sortedRemitos.filter(r => {
-              if (dashFilter === 'proceso') return (r as any).estadoEnvio !== 'listo';
-              if (dashFilter === 'listos') return (r as any).estadoEnvio === 'listo';
-              if (dashFilter === 'urgentes') return r.biopsias.some(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0) && (r as any).estadoEnvio !== 'listo';
-              return true;
+              if (dashFilter === 'actual') return tienePendientes(r);
+              if (dashFilter === 'proceso') return tienePendientes(r) && !tieneUrgentesPendientes(r);
+              if (dashFilter === 'urgentes') return tieneUrgentesPendientes(r);
+              if (dashFilter === 'listos') return !tienePendientes(r);
+              return tienePendientes(r);
             });
 
             // Tiempo promedio de procesamiento
@@ -1369,10 +1305,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <div className="flex items-center justify-between">
                 <div className="flex gap-2">
                   {[
-                    { key: 'todos', label: 'Todos', count: remitos.length },
-                    { key: 'proceso', label: 'En proceso', count: enProceso.length },
+                    { key: 'actual', label: 'Actual', count: enProceso.length },
+                    { key: 'urgentes', label: 'Urgentes', count: urgentes.length },
                     { key: 'listos', label: 'Listos', count: listos.length },
-                    { key: 'urgentes', label: 'Urgentes', count: urgentes.length }
                   ].map(f => (
                     <button key={f.key} onClick={() => setDashFilter(f.key)}
                       className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
@@ -1411,53 +1346,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   </thead>
                   <tbody>
                     {filteredRemitos.slice(0, 15).map(remito => {
-                      const isListo = (remito as any).estadoEnvio === 'listo';
+                      const biopsiaListas: boolean[] = (remito as any).biopsiaListas || remito.biopsias.map(() => false);
+                      const listasCount = biopsiaListas.filter(Boolean).length;
+                      const totalBiopsias = remito.biopsias.length;
+                      const todasListas = listasCount === totalBiopsias && totalBiopsias > 0;
+                      const isListo = (remito as any).estadoEnvio === 'listo' || todasListas;
                       const hasUrgent = remito.biopsias.some(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0);
+                      const isExpanded = expandedUrgents.has(remito.id);
+                      // Biopsias visibles según el filtro activo
+                      const biopsiaEsUrgente = (b: any) => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0;
+                      const biopsiasPendientes = remito.biopsias.filter((_: any, i: number) => !biopsiaListas[i]);
+                      const pendientesCount = biopsiasPendientes.length;
                       let whatsappNum = '';
                       try { const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); const doc = docs.find((d: any) => d.email?.toLowerCase() === (remito.email || (remito as any).doctorEmail || '').toLowerCase()); whatsappNum = doc?.whatsapp || ''; } catch {}
 
+                      const marcarBiopsia = (idx: number, valor: boolean) => {
+                        const nuevasListas = [...biopsiaListas];
+                        while (nuevasListas.length < totalBiopsias) nuevasListas.push(false);
+                        nuevasListas[idx] = valor;
+                        const todasAhoraListas = nuevasListas.every(Boolean);
+                        const updated = remitos.map(r => r.id === remito.id ? {
+                          ...r,
+                          biopsiaListas: nuevasListas,
+                          estadoEnvio: todasAhoraListas ? 'listo' : (r as any).estadoEnvio === 'listo' ? undefined : (r as any).estadoEnvio,
+                          listoAt: todasAhoraListas ? new Date().toISOString() : (r as any).listoAt
+                        } as any : r);
+                        setRemitos(updated);
+                        localStorage.setItem('adminRemitos', JSON.stringify(updated));
+
+                        // Notificar al médico sobre las biopsias marcadas
+                        const biopsia = remito.biopsias[idx];
+                        const esPAP = biopsia.tejido === 'PAP' || (biopsia.papQuantity || 0) > 0;
+                        const esCito = biopsia.tejido === 'Citología' || (biopsia.citologiaQuantity || 0) > 0;
+                        const tipoB = esPAP ? 'PAP' : esCito ? 'Citología' : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
+                        if (valor) {
+                          const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                          if (todasAhoraListas) {
+                            notifications.push({ id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' });
+                          } else {
+                            notifications.push({ id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Paciente #${biopsia.numero} (${tipoB} - ${biopsia.tejido}) está LISTO.\nProgreso del remito: ${nuevasListas.filter(Boolean).length}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' });
+                          }
+                          localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                        }
+                      };
+
+                      const marcarTodas = () => {
+                        const nuevasListas = remito.biopsias.map(() => true);
+                        const updated = remitos.map(r => r.id === remito.id ? { ...r, biopsiaListas: nuevasListas, estadoEnvio: 'listo', listoAt: new Date().toISOString() } as any : r);
+                        setRemitos(updated);
+                        localStorage.setItem('adminRemitos', JSON.stringify(updated));
+                        const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                        notifications.push({ id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' });
+                        localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                      };
+
                       return (
-                        <tr key={remito.id} className={`border-b border-gray-50 ${isListo ? 'bg-green-50/40' : hasUrgent ? 'bg-red-50/40' : ''}`}>
+                        <React.Fragment key={remito.id}>
+                        <tr className={`border-b border-gray-50 cursor-pointer ${isListo ? 'bg-green-50/40' : hasUrgent ? 'bg-red-50/40' : ''}`}
+                          onClick={() => { const next = new Set(expandedUrgents); if (next.has(remito.id)) next.delete(remito.id); else next.add(remito.id); setExpandedUrgents(next); }}>
                           <td className="py-2 px-3">
                             <div className="font-semibold text-gray-900 text-xs">Dr/a. {remito.medico}</div>
-                            {hasUrgent && (dashFilter === 'urgentes' || expandedUrgents.has(remito.id)) && (
-                              <div className="mt-1.5 space-y-1">
-                                {remito.biopsias.filter(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0).map((b, bi) => {
-                                  const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
-                                  const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
-                                  const tipo = esPAP ? 'PAP' : esCito ? 'Citología' : b.tipo === 'PQ' ? 'PQ' : 'BX';
-                                  const cass = parseInt(String(b.cassettes)) || 0;
-                                  return (
-                                    <div key={bi} className="flex items-center gap-2 bg-red-100 rounded px-2 py-1">
-                                      <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded">{tipo}</span>
-                                      <span className="text-xs font-semibold text-red-800">#{b.numero}</span>
-                                      <span className="text-xs text-red-700">{b.tejido}</span>
-                                      {cass > 0 && !esPAP && !esCito && <span className="text-xs text-red-600">{cass} cass.</span>}
-                                      <span className="text-xs font-bold text-red-800 ml-auto">
-                                        {(b.servicios?.cassetteUrgente || 0) > 0 && 'Urgente 24hs'}
-                                        {(b.servicios?.papUrgente || 0) > 0 && 'PAP Urgente'}
-                                        {(b.servicios?.citologiaUrgente || 0) > 0 && 'Cito Urgente'}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
                           </td>
                           <td className="py-2 px-3 text-xs text-gray-500">{new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</td>
                           <td className="py-2 px-3 text-center">
-                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{remito.biopsias.length}</span>
+                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{dashFilter === 'listos' ? listasCount : pendientesCount}/{totalBiopsias}</span>
                           </td>
                           <td className="py-2 px-3 text-right text-xs font-bold text-gray-900">${calcularTotalRemito(remito.biopsias).toLocaleString()}</td>
                           <td className="py-2 px-3 text-center">
                             {hasUrgent ? (
-                              <button onClick={() => {
-                                const next = new Set(expandedUrgents);
-                                if (next.has(remito.id)) next.delete(remito.id); else next.add(remito.id);
-                                setExpandedUrgents(next);
-                              }} className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-200 cursor-pointer hover:bg-red-200 transition-colors">
-                                URGENTE {expandedUrgents.has(remito.id) ? '▲' : '▼'}
-                              </button>
+                              <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-200">URGENTE</span>
                             ) : (
                               <span className="text-xs text-gray-400">Normal</span>
                             )}
@@ -1465,31 +1422,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <td className="py-2 px-3 text-center">
                             {isListo ? (
                               <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded">Listo</span>
+                            ) : listasCount > 0 ? (
+                              <span className="text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded">Parcial</span>
                             ) : (
                               <span className="text-xs font-semibold text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded">En proceso</span>
                             )}
                           </td>
                           <td className="py-2 px-3 text-center">
-                            <div className="flex gap-1 justify-center">
-                              {!isListo ? (
-                                <button onClick={() => {
-                                  const updated = remitos.map(r => r.id === remito.id ? { ...r, estadoEnvio: 'listo', listoAt: new Date().toISOString() } as any : r);
-                                  setRemitos(updated); localStorage.setItem('adminRemitos', JSON.stringify(updated));
-                                  const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                                  notifications.push({ id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\n${remito.biopsias.length} estudio(s) procesado(s).`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' });
-                                  localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
-                                }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Listo ✓</button>
-                              ) : (
-                                <span className="text-xs text-green-600">✓</span>
+                            <div className="flex gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
+                              {!isListo && (
+                                <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Todo ✓</button>
                               )}
+                              {isListo && <span className="text-xs text-green-600 font-bold">✓ Completo</span>}
                               {whatsappNum && (
-                                <a href={`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(`Dr/a. ${remito.medico}, le informamos que su material del remito #${remito.id.slice(-5).toUpperCase()} ya está listo para ser retirado.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`)}`}
-                                  target="_blank" rel="noopener noreferrer"
+                                <a href={`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(`Dr/a. ${remito.medico}, le informamos que ${isListo ? 'todo su material' : listasCount + ' de ' + totalBiopsias + ' estudios'} del remito #${remito.id.slice(-5).toUpperCase()} ${isListo ? 'está listo para ser retirado' : 'ya están listos'}.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`)}`}
+                                  target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                                   className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">WA</a>
                               )}
+                              <span className="text-gray-400 text-xs ml-1">{isExpanded ? '▲' : '▼'}</span>
                             </div>
                           </td>
                         </tr>
+                        {/* Panel expandido con biopsias filtradas según tab */}
+                        {isExpanded && (
+                          <tr><td colSpan={7} className="p-0">
+                            <div className="bg-gray-50 border-y border-gray-200 px-4 py-2">
+                              <div className="grid gap-1">
+                                {remito.biopsias.map((b, bi) => {
+                                  const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
+                                  const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
+                                  const tipo = esPAP ? 'PAP' : esCito ? 'Citología' : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  const cass = parseInt(String(b.cassettes)) || 0;
+                                  const esUrgente = biopsiaEsUrgente(b);
+                                  const estaLista = biopsiaListas[bi] || false;
+
+                                  // Filtrar según tab activo
+                                  if (dashFilter === 'urgentes' && !esUrgente) return null;
+                                  if ((dashFilter === 'actual' || dashFilter === 'proceso') && estaLista) return null;
+                                  if (dashFilter === 'listos' && !estaLista) return null;
+
+                                  return (
+                                    <div key={bi} className={`flex items-center gap-2 rounded px-3 py-1.5 ${estaLista ? 'bg-green-100 border border-green-200' : esUrgente ? 'bg-red-100 border border-red-200' : 'bg-white border border-gray-100'}`}>
+                                      <button onClick={() => { if (!estaLista && confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO para retirar?\n\nEsta acción no se puede deshacer.`)) marcarBiopsia(bi, true); }}
+                                        disabled={estaLista}
+                                        className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${estaLista ? 'bg-green-600 border-green-600 text-white cursor-default' : 'border-gray-300 hover:border-green-500 cursor-pointer'}`}>
+                                        {estaLista && <CheckCircle size={14} />}
+                                      </button>
+                                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${esUrgente ? 'bg-red-600 text-white' : 'bg-blue-100 text-blue-700'}`}>{tipo}</span>
+                                      <span className="text-xs font-semibold text-gray-800">#{b.numero}</span>
+                                      <span className="text-xs text-gray-600">{b.tejido}</span>
+                                      {cass > 0 && !esPAP && !esCito && <span className="text-xs text-gray-400">{cass} cass.</span>}
+                                      {esUrgente && !estaLista && <span className="text-xs font-bold text-red-700 ml-auto">⚡ 24hs</span>}
+                                      {estaLista && <span className="text-xs font-bold text-green-700 ml-auto">✓ Listo</span>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </td></tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
@@ -1568,7 +1560,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   </select>
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-300" size={14} />
-                    <input type="text" placeholder="Buscar..."
+                    <input type="text" placeholder="N° paciente, médico, hospital..."
                       value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
                       className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
                     />
@@ -1622,7 +1614,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${(remito as any).modificadoPorAdmin ? 'bg-amber-50/40' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="text-xs font-mono text-gray-400">#{remito.id.slice(-5).toUpperCase()}</div>
-                          {(remito as any).modificadoPorAdmin && (
+                          {(remito as any).esServicioAdicional && (
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">Serv. Adicional</span>
+                          )}
+                          {(remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Editado</span>
                           )}
                         </td>
@@ -1633,6 +1628,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4 text-xs text-gray-600">
                           {new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: '2-digit' })}
                           <div className="text-gray-400">{(remito as any).timestamp ? new Date((remito as any).timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                          {(remito as any).esServicioAdicional && (remito as any).remitoOriginalFecha && (
+                            <div className="text-purple-500 text-xs mt-0.5">Orig: {new Date((remito as any).remitoOriginalFecha).toLocaleDateString('es-AR', { month: 'short', year: '2-digit' })}</div>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-center">
                           <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">{remito.biopsias.length}</span>
@@ -1921,22 +1919,99 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
                             // Solo guardar, notificar y sincronizar si hubo cambios reales
                             if (cambiosDetalle.length === 0) {
-                              // Sin cambios: solo cerrar
                               setEditingBiopsias(null);
                               setOriginalBiopsiaSnapshot(null);
                               setEditingRemito(null);
                               return;
                             }
 
-                            // Aplicar cambios al remito real
-                            const updatedRemitos = remitos.map(r => {
-                              if (r.id === remito.id) return { ...r, biopsias: editingBiopsias, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() } as any;
-                              return r;
-                            });
-                            setRemitos(updatedRemitos);
-                            localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+                            // Detectar si el remito es de un mes anterior
+                            const now = new Date();
+                            const remitoFecha = new Date((remito as any).timestamp || remito.fecha);
+                            const esOtroMes = remitoFecha.getMonth() !== now.getMonth() || remitoFecha.getFullYear() !== now.getFullYear();
 
-                            if (cambiosDetalle.length > 0) {
+                            if (esOtroMes) {
+                              // MES ANTERIOR: crear nuevo remito "Servicio Adicional" en el mes actual
+                              // Solo incluir las biopsias que tuvieron cambios (con los servicios nuevos únicamente)
+                              const biopsiasConCambios: any[] = [];
+                              editingBiopsias.forEach((curr: any, idx: number) => {
+                                const orig = origBiopsias[idx];
+                                if (!orig) return;
+                                // Calcular solo la diferencia (servicios nuevos)
+                                const diffServicios: any = { ...curr.servicios };
+                                const origS = orig.servicios || {};
+                                // Restar los valores originales para dejar solo lo nuevo
+                                diffServicios.cassetteNormal = Math.max(0, (Number(curr.cassettes) || 0) - (Number(orig.cassettes) || 0));
+                                diffServicios.cassetteUrgente = 0; // No se cambia urgencia retroactivamente
+                                diffServicios.corteBlancoIHQ = Math.max(0, (diffServicios.corteBlancoIHQ || 0) - (origS.corteBlancoIHQ || 0));
+                                diffServicios.corteBlanco = Math.max(0, (diffServicios.corteBlanco || 0) - (origS.corteBlanco || 0));
+                                const origGiemsa = typeof origS.giemsaPASMasson === 'number' ? origS.giemsaPASMasson : (origS.giemsaPASMasson ? 1 : 0);
+                                const currGiemsa = typeof diffServicios.giemsaPASMasson === 'number' ? diffServicios.giemsaPASMasson : (diffServicios.giemsaPASMasson ? 1 : 0);
+                                diffServicios.giemsaPASMasson = Math.max(0, currGiemsa - origGiemsa);
+
+                                const tieneNuevos = diffServicios.cassetteNormal > 0 || diffServicios.corteBlancoIHQ > 0 ||
+                                  diffServicios.corteBlanco > 0 || diffServicios.giemsaPASMasson > 0;
+
+                                if (tieneNuevos) {
+                                  biopsiasConCambios.push({
+                                    ...curr,
+                                    cassettes: diffServicios.cassetteNormal,
+                                    servicios: diffServicios,
+                                    cassettesNumbers: curr.cassettesNumbers || [],
+                                  });
+                                }
+                              });
+
+                              if (biopsiasConCambios.length > 0) {
+                                const mesOriginal = remitoFecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                const nuevoRemito: any = {
+                                  id: `SA_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                                  medico: remito.medico,
+                                  email: remito.email,
+                                  doctorEmail: (remito as any).doctorEmail || remito.email,
+                                  fecha: now.toISOString(),
+                                  timestamp: now.toISOString(),
+                                  hospital: remito.hospital,
+                                  estado: 'pendiente',
+                                  biopsias: biopsiasConCambios,
+                                  esServicioAdicional: true,
+                                  remitoOriginalId: remito.id,
+                                  remitoOriginalFecha: remito.fecha,
+                                  notaServicioAdicional: `Servicio adicional sobre pacientes de ${mesOriginal}`,
+                                };
+
+                                const updatedRemitos = [...remitos, nuevoRemito];
+                                // También marcar el original como que tiene servicios adicionales
+                                const finalRemitos = updatedRemitos.map(r => {
+                                  if (r.id === remito.id) return { ...r, tieneServiciosAdicionales: true } as any;
+                                  return r;
+                                });
+                                setRemitos(finalRemitos);
+                                localStorage.setItem('adminRemitos', JSON.stringify(finalRemitos));
+
+                                const mensajeDetalle = `SERVICIO ADICIONAL (original de ${mesOriginal})\n\n` + cambiosDetalle.join('\n\n');
+                                const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                                notifications.push({
+                                  id: `NOTIF_${Date.now()}`,
+                                  remitoId: nuevoRemito.id,
+                                  medicoEmail: (remito as any).doctorEmail || remito.email,
+                                  mensaje: mensajeDetalle,
+                                  fecha: now.toISOString(),
+                                  leida: false
+                                });
+                                localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+
+                                alert(`✅ Se creó un "Servicio Adicional" en el mes actual.\nEl remito original de ${mesOriginal} no fue modificado.\nLos nuevos servicios se facturarán este mes.`);
+                              }
+                            } else {
+                              // MISMO MES: editar el remito normalmente
+                              const updatedRemitos = remitos.map(r => {
+                                if (r.id === remito.id) return { ...r, biopsias: editingBiopsias, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() } as any;
+                                return r;
+                              });
+                              setRemitos(updatedRemitos);
+                              localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+
                               const mensajeDetalle = cambiosDetalle.join('\n\n');
                               const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                               notifications.push({
@@ -1948,52 +2023,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 leida: false
                               });
                               localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
-                            }
 
-                            // SINCRONIZAR con historial del médico - match por timestamp + cantidad de biopsias
-                            try {
-                              const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
-                              if (doctorEmail) {
-                                const doctorKey = `doctor_${doctorEmail}`;
-                                const historyKey = `${doctorKey}_history`;
-                                const history = JSON.parse(localStorage.getItem(historyKey) || '{}');
-                                const remitoTimestamp = (remito as any).timestamp || remito.fecha;
-                                const remitoDate = new Date(remito.fecha).toDateString();
-                                const remitoBiopsyCount = editingBiopsias.length;
+                              // SINCRONIZAR con historial del médico
+                              try {
+                                const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
+                                if (doctorEmail) {
+                                  const doctorKey = `doctor_${doctorEmail}`;
+                                  const historyKey = `${doctorKey}_history`;
+                                  const history = JSON.parse(localStorage.getItem(historyKey) || '{}');
+                                  const remitoTimestamp = (remito as any).timestamp || remito.fecha;
+                                  const remitoDate = new Date(remito.fecha).toDateString();
+                                  const remitoBiopsyCount = editingBiopsias.length;
 
-                                // Match exacto: timestamp + misma cantidad de biopsias
-                                let matched = false;
-                                Object.keys(history).forEach(key => {
-                                  if (matched) return;
-                                  const entry = history[key];
-                                  if (!entry?.biopsies) return;
+                                  let matched = false;
+                                  Object.keys(history).forEach(key => {
+                                    if (matched) return;
+                                    const entry = history[key];
+                                    if (!entry?.biopsies) return;
+                                    const entryTimestamp = entry.timestamp || entry.date;
+                                    const sameTimestamp = entryTimestamp === remitoTimestamp;
+                                    const sameDate = entry.date && new Date(entry.date).toDateString() === remitoDate;
+                                    const sameBiopsyCount = entry.biopsies.length === remitoBiopsyCount;
 
-                                  // Match por timestamp exacto
-                                  const entryTimestamp = entry.timestamp || entry.date;
-                                  const sameTimestamp = entryTimestamp === remitoTimestamp;
-                                  // Fallback: misma fecha + misma cantidad de biopsias
-                                  const sameDate = entry.date && new Date(entry.date).toDateString() === remitoDate;
-                                  const sameBiopsyCount = entry.biopsies.length === remitoBiopsyCount;
-
-                                  if (sameTimestamp || (sameDate && sameBiopsyCount)) {
-                                    // Solo actualizar cassettes (lo que el admin puede modificar)
-                                    entry.biopsies.forEach((biopsy: any, i: number) => {
-                                      const edited = editingBiopsias[i];
-                                      if (edited) {
-                                        biopsy.cassettes = String(edited.cassettes ?? biopsy.cassettes);
-                                        // Sincronizar también servicios editados por el lab
-                                        if (edited.servicios) {
-                                          biopsy.servicios = { ...biopsy.servicios, ...edited.servicios };
+                                    if (sameTimestamp || (sameDate && sameBiopsyCount)) {
+                                      entry.biopsies.forEach((biopsy: any, i: number) => {
+                                        const edited = editingBiopsias[i];
+                                        if (edited) {
+                                          biopsy.cassettes = String(edited.cassettes ?? biopsy.cassettes);
+                                          if (edited.servicios) {
+                                            biopsy.servicios = { ...biopsy.servicios, ...edited.servicios };
+                                          }
                                         }
-                                      }
-                                    });
-                                    matched = true;
-                                  }
-                                });
-                                localStorage.setItem(historyKey, JSON.stringify(history));
+                                      });
+                                      matched = true;
+                                    }
+                                  });
+                                  localStorage.setItem(historyKey, JSON.stringify(history));
+                                }
+                              } catch (e) {
+                                console.error('Error sincronizando historial del médico:', e);
                               }
-                            } catch (e) {
-                              console.error('Error sincronizando historial del médico:', e);
                             }
 
                             setEditingBiopsias(null);
@@ -2751,20 +2820,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <span>Guardar Configuración del Laboratorio</span>
                 </button>
 
-                {/* Preview en tiempo real */}
+                {/* Preview en tiempo real con controles de posición */}
                 <div className="mt-4 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                  <div className="text-xs font-semibold text-gray-400 uppercase mb-3">Vista previa — Encabezado de reportes</div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-xs font-semibold text-gray-400 uppercase">Vista previa — Encabezado de reportes</div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <span>Logo</span>
+                        <button onClick={() => { const v = (labConfig.logoMarginTop || 0) - 2; setLabConfig((prev: any) => ({ ...prev, logoMarginTop: v })); }}
+                          className="w-6 h-6 bg-white border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100 text-sm font-bold">▲</button>
+                        <button onClick={() => { const v = (labConfig.logoMarginTop || 0) + 2; setLabConfig((prev: any) => ({ ...prev, logoMarginTop: v })); }}
+                          className="w-6 h-6 bg-white border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100 text-sm font-bold">▼</button>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <span>Info</span>
+                        <button onClick={() => { const v = (labConfig.infoMarginTop || 0) - 2; setLabConfig((prev: any) => ({ ...prev, infoMarginTop: v })); }}
+                          className="w-6 h-6 bg-white border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100 text-sm font-bold">▲</button>
+                        <button onClick={() => { const v = (labConfig.infoMarginTop || 0) + 2; setLabConfig((prev: any) => ({ ...prev, infoMarginTop: v })); }}
+                          className="w-6 h-6 bg-white border border-gray-300 rounded flex items-center justify-center hover:bg-gray-100 text-sm font-bold">▼</button>
+                      </div>
+                    </div>
+                  </div>
                   <div style={{
                     background: 'linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%)',
                     borderRadius: '10px', padding: '16px', color: 'white', textAlign: 'center'
                   }}>
-                    {labConfig.logoUrl ? (
-                      <img src={labConfig.logoUrl} alt="Logo" style={{ height: '50px', maxWidth: '200px', objectFit: 'contain', margin: '0 auto 8px' }}
-                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    ) : (
-                      <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px' }}>{labConfig.nombre || 'Nombre del laboratorio'}</div>
-                    )}
-                    <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    <div style={{ marginTop: (labConfig.logoMarginTop || 0) + 'px' }}>
+                      {labConfig.logoUrl ? (
+                        <img src={labConfig.logoUrl} alt="Logo" style={{ height: '50px', maxWidth: '200px', objectFit: 'contain', margin: '0 auto 8px' }}
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                      ) : (
+                        <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px' }}>{labConfig.nombre || 'Nombre del laboratorio'}</div>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '11px', opacity: 0.8, marginTop: (labConfig.infoMarginTop || 0) + 'px' }}>
                       {labConfig.direccion || 'Dirección'} | {labConfig.telefono || 'Teléfono'} | {labConfig.email || 'Email'}
                     </div>
                   </div>
@@ -2835,6 +2924,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* Cambio de Credenciales Admin */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Settings className="mr-2 text-red-600" size={20} />
+                  Cambiar Credenciales de Acceso
+                </h3>
+                <div>
+                  <p className="text-sm text-gray-500 mb-3">Cambiá tu usuario y/o contraseña de acceso al panel de administración. Nadie más tiene acceso a estas credenciales.</p>
+                  {!showChangePass ? (
+                    <button onClick={() => setShowChangePass(true)}
+                      className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors">
+                      🔐 Cambiar credenciales
+                    </button>
+                  ) : (
+                    <div className="space-y-3 max-w-md">
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Contraseña actual</label>
+                        <input type="password" value={credForm.currentPassword}
+                          onChange={(e) => setCredForm(prev => ({ ...prev, currentPassword: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Ingresá tu contraseña actual" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Nuevo usuario (opcional)</label>
+                        <input type="text" value={credForm.newUser}
+                          onChange={(e) => setCredForm(prev => ({ ...prev, newUser: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Dejá vacío para mantener el actual" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Nueva contraseña</label>
+                        <input type="password" value={credForm.newPassword}
+                          onChange={(e) => setCredForm(prev => ({ ...prev, newPassword: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Mínimo 4 caracteres" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1">Confirmar nueva contraseña</label>
+                        <input type="password" value={credForm.confirmPassword}
+                          onChange={(e) => setCredForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Repetí la nueva contraseña" />
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button onClick={() => {
+                          try {
+                            const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+                            const lab = labs.find((l: any) => l.labCode === currentLabCode);
+                            if (!lab) { alert('Error: laboratorio no encontrado'); return; }
+                            if (credForm.currentPassword !== (lab.adminPassword || 'admin123')) {
+                              alert('❌ La contraseña actual es incorrecta'); return;
+                            }
+                            if (!credForm.newPassword || credForm.newPassword.length < 4) {
+                              alert('La nueva contraseña debe tener al menos 4 caracteres'); return;
+                            }
+                            if (credForm.newPassword !== credForm.confirmPassword) {
+                              alert('Las contraseñas nuevas no coinciden'); return;
+                            }
+                            const updatedLabs = labs.map((l: any) => l.labCode === currentLabCode ? {
+                              ...l,
+                              adminUser: credForm.newUser.trim() || l.adminUser || 'admin',
+                              adminPassword: credForm.newPassword
+                            } : l);
+                            localStorage.setItem('superAdmin_laboratories', JSON.stringify(updatedLabs));
+                            alert('✅ Credenciales actualizadas correctamente');
+                            setCredForm({ currentPassword: '', newUser: '', newPassword: '', confirmPassword: '' });
+                            setShowChangePass(false);
+                          } catch { alert('Error al actualizar credenciales'); }
+                        }}
+                          disabled={!credForm.currentPassword || !credForm.newPassword || !credForm.confirmPassword}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                          Guardar cambios
+                        </button>
+                        <button onClick={() => { setShowChangePass(false); setCredForm({ currentPassword: '', newUser: '', newPassword: '', confirmPassword: '' }); }}
+                          className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Control de Médicos */}
@@ -3105,6 +3277,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
+              {/* Botón recordatorio de deuda (después del día 10) */}
+              {(() => {
+                const hoy = new Date();
+                if (hoy.getDate() < 10) return null;
+                const deudores: { medico: string; email: string; deuda: number }[] = [];
+                medicos.forEach(medico => {
+                  const rm = remitos.filter(r => r.medico === medico);
+                  const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                  let pag = 0;
+                  try { pag = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
+                  const debe = Math.max(0, tot - pag);
+                  if (debe > 0) {
+                    const emailDoc = rm[0]?.email || '';
+                    deudores.push({ medico, email: emailDoc, deuda: debe });
+                  }
+                });
+                if (deudores.length === 0) return null;
+                const mesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1).toLocaleDateString('es-AR', { month: 'long' });
+                return (
+                  <div className="px-5 pb-3">
+                    <button onClick={async () => {
+                      const labNombre = labConfig.nombre || 'Laboratorio';
+                      const confirmar = confirm(`¿Enviar recordatorio de deuda a ${deudores.length} médico(s)?`);
+                      if (!confirmar) return;
+                      try {
+                        const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
+                        if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración → Email.'); return; }
+                        let enviados = 0;
+                        for (const d of deudores) {
+                          if (!d.email) continue;
+                          try {
+                            await sendEmail({
+                              toEmail: d.email,
+                              toName: `Dr/a. ${d.medico}`,
+                              subject: `Recordatorio de pago pendiente — ${labNombre}`,
+                              messageHtml: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
+                                <h2 style="color:#1e3a5f;">Recordatorio de pago</h2>
+                                <p>Estimado/a <strong>Dr/a. ${d.medico}</strong>,</p>
+                                <p>Le recordamos que tiene un saldo pendiente correspondiente al mes de <strong>${mesAnterior}</strong> por un monto de:</p>
+                                <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:8px;padding:16px;text-align:center;margin:16px 0;">
+                                  <span style="font-size:28px;font-weight:bold;color:#dc2626;">$${d.deuda.toLocaleString()}</span>
+                                </div>
+                                <p>Por favor, comuníquese con el laboratorio para coordinar el pago.</p>
+                                <p style="color:#64748b;font-size:12px;margin-top:24px;">Atentamente,<br/><strong>${labNombre}</strong>${labConfig.telefono ? '<br/>' + labConfig.telefono : ''}${labConfig.email ? '<br/>' + labConfig.email : ''}</p>
+                              </div>`,
+                              fromName: labNombre,
+                            });
+                            enviados++;
+                            await new Promise(r => setTimeout(r, 500));
+                          } catch {}
+                        }
+                        alert(`✅ Recordatorio enviado a ${enviados} de ${deudores.length} médico(s).`);
+                      } catch (e: any) { alert('Error: ' + (e.message || 'Verificá la configuración de email')); }
+                    }}
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors">
+                      <Mail size={16} />
+                      Enviar recordatorio de deuda a {deudores.length} médico(s) — mes de {mesAnterior}
+                    </button>
+                  </div>
+                );
+              })()}
+
               {/* Modal de registro de pago */}
               {paymentModal.open && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -3160,7 +3394,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             medico: paymentModal.medico,
                             monto,
                             metodo: paymentForm.metodo,
-                            fecha: paymentForm.fecha || new Date().toISOString(),
+                            fecha: paymentForm.fecha ? paymentForm.fecha + 'T12:00:00' : new Date().toISOString(),
                             registradoPor: 'Admin'
                           });
                           localStorage.setItem('doctorPayments', JSON.stringify(payments));

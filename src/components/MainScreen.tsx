@@ -1427,56 +1427,38 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         padding: '10px 16px',
         flexShrink: 0
       }}>
-        {/* Logo del laboratorio centrado (protagonista) */}
-        <div style={{ textAlign: 'center', marginBottom: '4px' }}>
-          {(() => {
-            let labCfg = { nombre: '', logoUrl: '' };
-            try { labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch {}
-            return labCfg.logoUrl ? (
-              <img
-                src={labCfg.logoUrl}
-                alt={labCfg.nombre || 'Laboratorio'}
-                style={{ height: '48px', margin: '0 auto', maxWidth: '280px', objectFit: 'contain' }}
-                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-              />
-            ) : (
-              <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', letterSpacing: '0.5px' }}>
-                {labCfg.nombre || 'Laboratorio de Anatomía Patológica'}
-              </div>
-            );
-          })()}
-        </div>
-        {/* Info del doctor y controles */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{
-              fontSize: '14px',
-              fontWeight: '600',
-              color: 'rgba(255,255,255,0.95)',
-              margin: 0,
-              lineHeight: '1.2'
-            }}>
-              Dr. {(doctorInfo.name || '').replace(/\s*-?\s*No especificado/gi, '').trim()}
-            </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
-              {doctorInfo.hospital && doctorInfo.hospital !== 'No especificado' && (
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', margin: 0, fontWeight: '500' }}>{doctorInfo.hospital}</p>
-              )}
-              {doctorInfo.email && (
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{doctorInfo.email}</p>
-              )}
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-                {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
-              </p>
-            </div>
+        {/* Fila superior: logo centrado + controles a la derecha */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', position: 'relative', minHeight: '50px' }}>
+          {/* Logo centrado - absolute */}
+          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+            {(() => {
+              let labCfg: any = { nombre: '', logoUrl: '', logoMarginTop: 0 };
+              try { labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch {}
+              return (
+                <div style={{ marginTop: (labCfg.logoMarginTop || 0) + 'px' }}>
+                  {labCfg.logoUrl ? (
+                    <img
+                      src={labCfg.logoUrl}
+                      alt={labCfg.nombre || 'Laboratorio'}
+                      style={{ height: '70px', maxWidth: '400px', objectFit: 'contain' }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                  ) : (
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>
+                      {labCfg.nombre || 'Laboratorio de Anatomía Patológica'}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Controles - derecha */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', zIndex: 1 }}>
             <ConnectionStatus
               isOnline={isOnline}
               backupStatus={backupStatus}
               syncQueueLength={syncQueueLength}
             />
-            {/* Campanilla de notificaciones */}
             <button
               onClick={() => { if (showNotifications) { closeNotifications(); } else { loadNotifications(); setShowNotifications(true); } }}
               style={{
@@ -1518,6 +1500,42 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               <LogOut style={{ height: '16px', width: '16px', color: 'rgba(255,255,255,0.8)' }} />
             </button>
           </div>
+        </div>
+        {/* Datos de contacto del laboratorio */}
+        {(() => {
+          let labCfg: any = {};
+          try { labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch {}
+          const contacto = [labCfg.direccion, labCfg.telefono, labCfg.email].filter(Boolean);
+          return contacto.length > 0 ? (
+            <div style={{ textAlign: 'center', fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: (2 + (labCfg.infoMarginTop || 0)) + 'px', fontWeight: '400' }}>
+              {contacto.join(' | ')}
+            </div>
+          ) : null;
+        })()}
+        {/* Info del doctor - ABAJO */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '6px', borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: '6px' }}>
+          <div>
+            <h1 style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: 'rgba(255,255,255,0.95)',
+              margin: 0,
+              lineHeight: '1.2'
+            }}>
+              Dr. {(doctorInfo.name || '').replace(/\s*-?\s*No especificado/gi, '').trim()}
+            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+              {doctorInfo.hospital && doctorInfo.hospital !== 'No especificado' && (
+                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', margin: 0, fontWeight: '500' }}>{doctorInfo.hospital}</p>
+              )}
+              {doctorInfo.email && (
+                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{doctorInfo.email}</p>
+              )}
+            </div>
+          </div>
+          <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+            {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+          </p>
         </div>
       </div>
 
