@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ArrowLeft, Users, FileText, Settings, DollarSign, Calendar, Download, Edit, Save, X, Plus, Trash2, 
+import {
+  ArrowLeft, Users, FileText, Settings, DollarSign, Calendar, Download, Edit, Save, X, Plus, Trash2,
   Eye, EyeOff, Lock, Search, Filter, TrendingUp, AlertTriangle, BarChart3, Activity,
   Clock, CheckCircle, XCircle, RefreshCw, Bell, Target, Zap, Award, Building2 as Building, Mail
 } from 'lucide-react';
+import { db } from '../lib/database';
 
 interface AdminPanelProps {
   onGoBack: () => void;
@@ -129,6 +130,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const saveLabConfig = (config: typeof labConfig) => {
     setLabConfig(config);
     localStorage.setItem('labConfig', JSON.stringify(config));
+    if (currentLabCode) db.saveLabConfig(currentLabCode, config).catch(console.error);
   };
 
   useEffect(() => {
@@ -274,6 +276,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
         setConfiguracion(prev => ({ ...prev, ...parsedConfig }));
+      }
+
+      // Background sync from Supabase
+      if (currentLabCode) {
+        db.getRemitos(currentLabCode).then(dbRemitos => {
+          if (dbRemitos && dbRemitos.length > 0) {
+            console.log('☁️ Supabase sync: recibidos', dbRemitos.length, 'remitos');
+            setRemitos(prev => {
+              const merged = [...prev];
+              dbRemitos.forEach((dr: any) => {
+                if (!merged.find(r => r.id === dr.id)) merged.push(dr);
+              });
+              return merged;
+            });
+          }
+        }).catch(console.error);
+        db.getAdminConfig(currentLabCode).then(dbConfig => {
+          if (dbConfig && Object.keys(dbConfig).length > 0) {
+            setConfiguracion(prev => ({ ...prev, ...dbConfig }));
+          }
+        }).catch(console.error);
       }
     } catch (error) {
       console.error('❌ Error cargando datos del administrador:', error);
@@ -485,10 +508,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     }
     
     setRemitos(prev => {
-      const updated = prev.map(remito => 
+      const updated = prev.map(remito =>
         remito.id === remitoId ? { ...remito, estado: nuevoEstado } : remito
       );
       localStorage.setItem('adminRemitos', JSON.stringify(updated));
+      db.saveRemitos(updated).catch(console.error);
       return updated;
     });
   };
@@ -1373,6 +1397,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         } as any : r);
                         setRemitos(updated);
                         localStorage.setItem('adminRemitos', JSON.stringify(updated));
+                        db.saveRemitos(updated).catch(console.error);
 
                         // Notificar al médico sobre las biopsias marcadas
                         const biopsia = remito.biopsias[idx];
@@ -1381,12 +1406,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         const tipoB = esPAP ? 'PAP' : esCito ? 'Citología' : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
                         if (valor) {
                           const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                          let newNotif: any;
                           if (todasAhoraListas) {
-                            notifications.push({ id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' });
+                            newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
+                            notifications.push(newNotif);
                           } else {
-                            notifications.push({ id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Paciente #${biopsia.numero} (${tipoB} - ${biopsia.tejido}) está LISTO.\nProgreso del remito: ${nuevasListas.filter(Boolean).length}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' });
+                            newNotif = { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Paciente #${biopsia.numero} (${tipoB} - ${biopsia.tejido}) está LISTO.\nProgreso del remito: ${nuevasListas.filter(Boolean).length}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' };
+                            notifications.push(newNotif);
                           }
                           localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                          db.saveNotification(newNotif).catch(console.error);
                         }
                       };
 
@@ -1395,9 +1424,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         const updated = remitos.map(r => r.id === remito.id ? { ...r, biopsiaListas: nuevasListas, estadoEnvio: 'listo', listoAt: new Date().toISOString() } as any : r);
                         setRemitos(updated);
                         localStorage.setItem('adminRemitos', JSON.stringify(updated));
+                        db.saveRemitos(updated).catch(console.error);
                         const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                        notifications.push({ id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' });
+                        const newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
+                        notifications.push(newNotif);
                         localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                        db.saveNotification(newNotif).catch(console.error);
                       };
 
                       return (
@@ -1988,18 +2020,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 });
                                 setRemitos(finalRemitos);
                                 localStorage.setItem('adminRemitos', JSON.stringify(finalRemitos));
+                                db.saveRemitos(finalRemitos).catch(console.error);
 
                                 const mensajeDetalle = `SERVICIO ADICIONAL (original de ${mesOriginal})\n\n` + cambiosDetalle.join('\n\n');
                                 const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                                notifications.push({
+                                const newNotif = {
                                   id: `NOTIF_${Date.now()}`,
                                   remitoId: nuevoRemito.id,
                                   medicoEmail: (remito as any).doctorEmail || remito.email,
                                   mensaje: mensajeDetalle,
                                   fecha: now.toISOString(),
                                   leida: false
-                                });
+                                };
+                                notifications.push(newNotif);
                                 localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                                db.saveNotification(newNotif).catch(console.error);
 
                                 alert(`✅ Se creó un "Servicio Adicional" en el mes actual.\nEl remito original de ${mesOriginal} no fue modificado.\nLos nuevos servicios se facturarán este mes.`);
                               }
@@ -2011,18 +2046,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               });
                               setRemitos(updatedRemitos);
                               localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+                              db.saveRemitos(updatedRemitos).catch(console.error);
 
                               const mensajeDetalle = cambiosDetalle.join('\n\n');
                               const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                              notifications.push({
+                              const newNotif = {
                                 id: `NOTIF_${Date.now()}`,
                                 remitoId: remito.id,
                                 medicoEmail: (remito as any).doctorEmail || remito.email,
                                 mensaje: mensajeDetalle,
                                 fecha: new Date().toISOString(),
                                 leida: false
-                              });
+                              };
+                              notifications.push(newNotif);
                               localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                              db.saveNotification(newNotif).catch(console.error);
 
                               // SINCRONIZAR con historial del médico
                               try {
@@ -2461,6 +2499,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <button 
                     onClick={() => {
                       localStorage.setItem('adminConfig', JSON.stringify(configuracion));
+                      if (currentLabCode) db.saveAdminConfig(currentLabCode, configuracion).catch(console.error);
                       alert('✅ Configuración guardada exitosamente');
                     }}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
@@ -2990,6 +3029,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               adminPassword: credForm.newPassword
                             } : l);
                             localStorage.setItem('superAdmin_laboratories', JSON.stringify(updatedLabs));
+                            const updatedLab = updatedLabs.find((l: any) => l.labCode === currentLabCode);
+                            if (updatedLab) db.saveLab(updatedLab).catch(console.error);
                             alert('✅ Credenciales actualizadas correctamente');
                             setCredForm({ currentPassword: '', newUser: '', newPassword: '', confirmPassword: '' });
                             setShowChangePass(false);
@@ -3389,15 +3430,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const monto = Number(paymentForm.monto);
                           if (!monto || monto <= 0) { alert('Ingrese un monto válido'); return; }
                           const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]');
-                          payments.push({
+                          const newPayment = {
                             id: `PAY_${Date.now()}`,
                             medico: paymentModal.medico,
                             monto,
                             metodo: paymentForm.metodo,
                             fecha: paymentForm.fecha ? paymentForm.fecha + 'T12:00:00' : new Date().toISOString(),
                             registradoPor: 'Admin'
-                          });
+                          };
+                          payments.push(newPayment);
                           localStorage.setItem('doctorPayments', JSON.stringify(payments));
+                          db.savePayment(newPayment).catch(console.error);
                           setPaymentModal({ open: false, medico: '', deuda: 0 });
                           setRemitos([...remitos]);
                         }}

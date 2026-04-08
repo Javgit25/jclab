@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Building2, Users, DollarSign, Plus, Edit, Trash2, CheckCircle, XCircle, Search, Settings, AlertTriangle, ChevronDown, ChevronUp, Save, Mail, FileText, Eye } from 'lucide-react';
+import { db } from '../lib/database';
 
 interface SuperAdminPanelProps {
   onGoBack: () => void;
@@ -39,39 +40,31 @@ const defaultConfig: AppConfig = {
   soporteEmail: 'support@biopsytracker.com'
 };
 
-const getConfig = (): AppConfig => {
+// Sync reads from localStorage for fast initial render (cache)
+const getConfigSync = (): AppConfig => {
   try { return { ...defaultConfig, ...JSON.parse(localStorage.getItem('superAdmin_config') || '{}') }; }
   catch { return defaultConfig; }
 };
-const saveConfig = (config: AppConfig) => localStorage.setItem('superAdmin_config', JSON.stringify(config));
-
-const getLabs = (): Laboratory[] => {
+const getLabsSync = (): Laboratory[] => {
   try { return JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]'); } catch { return []; }
 };
-const saveLabs = (labs: Laboratory[]) => localStorage.setItem('superAdmin_laboratories', JSON.stringify(labs));
-
-// Obtener médicos de un laboratorio por labCode
-const getDoctorsForLab = (labCode: string): any[] => {
-  try {
-    const allDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
-    if (!labCode) return allDoctors;
-    return allDoctors.filter((d: any) => d.labCode === labCode);
-  } catch { return []; }
+const getDoctorsSync = (): any[] => {
+  try { return JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); } catch { return []; }
 };
-
-// Obtener remitos
-const getRemitosCount = (): number => {
-  try {
-    const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
-    return adminRemitos.length;
-  } catch { return 0; }
+const getRemitosCountSync = (): number => {
+  try { return JSON.parse(localStorage.getItem('adminRemitos') || '[]').length; } catch { return 0; }
 };
 
 export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [labs, setLabs] = useState<Laboratory[]>([]);
-  const [config, setConfig] = useState<AppConfig>(getConfig());
+  const [labs, setLabs] = useState<Laboratory[]>(getLabsSync());
+  const [config, setConfig] = useState<AppConfig>(getConfigSync());
+  const [allDoctorsState, setAllDoctorsState] = useState<any[]>(getDoctorsSync());
+  const [allRemitosState, setAllRemitosState] = useState<any[]>(() => {
+    try { return JSON.parse(localStorage.getItem('adminRemitos') || '[]'); } catch { return []; }
+  });
+  const [remitosCount, setRemitosCount] = useState<number>(getRemitosCountSync());
   const [currentView, setCurrentView] = useState<'dashboard' | 'config'>('dashboard');
   const [expandedLab, setExpandedLab] = useState<string | null>(null);
   const [editingLab, setEditingLab] = useState<Laboratory | null>(null);
@@ -82,7 +75,26 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
   const [searchTerm, setSearchTerm] = useState('');
   const [newLab, setNewLab] = useState({ nombre: '', direccion: '', telefono: '', email: '' });
 
-  useEffect(() => { setLabs(getLabs()); }, []);
+  // Load data from Supabase on mount (async), overriding localStorage cache
+  useEffect(() => {
+    const loadFromDb = async () => {
+      try {
+        const [dbLabs, dbConfig, dbDoctors, dbRemitos] = await Promise.all([
+          db.getLabs(),
+          db.getAppConfig(),
+          db.getDoctors(),
+          db.getRemitos(),
+        ]);
+        if (dbLabs) setLabs(dbLabs);
+        if (dbConfig && Object.keys(dbConfig).length > 0) setConfig({ ...defaultConfig, ...dbConfig });
+        if (dbDoctors) setAllDoctorsState(dbDoctors);
+        if (dbRemitos) { setAllRemitosState(dbRemitos); setRemitosCount(dbRemitos.length); }
+      } catch (e) {
+        console.error('Error loading from database:', e);
+      }
+    };
+    loadFromDb();
+  }, []);
 
   // Auto-vencimiento
   useEffect(() => {
@@ -95,7 +107,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
       }
       return lab;
     });
-    if (changed) { setLabs(updated); saveLabs(updated); }
+    if (changed) { setLabs(updated); db.saveLabs(updated); }
   }, [labs]);
 
   const handleLogin = () => {
@@ -116,14 +128,16 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
       historialPagos: [{ fecha: new Date().toISOString(), monto: 0, meses: 1, metodo: 'Primer mes gratis' }]
     };
     const updated = [...labs, lab];
-    setLabs(updated); saveLabs(updated);
+    setLabs(updated); db.saveLab(lab);
     setNewLab({ nombre: '', direccion: '', telefono: '', email: '' });
     setShowAddModal(false);
   };
 
   const updateLab = (id: string, data: Partial<Laboratory>) => {
     const updated = labs.map(l => l.id === id ? { ...l, ...data } : l);
-    setLabs(updated); saveLabs(updated);
+    setLabs(updated);
+    const updatedLab = updated.find(l => l.id === id);
+    if (updatedLab) db.saveLab(updatedLab);
   };
 
   const renewSubscription = (lab: Laboratory) => {
@@ -134,14 +148,16 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
       ...l, estado: 'activo' as const, fechaVencimiento: base.toISOString(),
       historialPagos: [...(l.historialPagos || []), { fecha: new Date().toISOString(), monto, meses: renewMonths, metodo: renewMetodo }]
     } : l);
-    setLabs(updated); saveLabs(updated);
+    setLabs(updated);
+    const renewedLab = updated.find(l => l.id === lab.id);
+    if (renewedLab) db.saveLab(renewedLab);
     setShowRenewModal(null);
   };
 
   const deleteLab = (id: string) => {
     if (!confirm('¿Eliminar laboratorio? No se puede deshacer.')) return;
     const updated = labs.filter(l => l.id !== id);
-    setLabs(updated); saveLabs(updated);
+    setLabs(updated); db.deleteLab(id);
   };
 
   const getDays = (fecha: string) => Math.ceil((new Date(fecha).getTime() - Date.now()) / 86400000);
@@ -149,9 +165,9 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
   // Métricas
   const activeLabs = labs.filter(l => l.estado === 'activo').length;
   const vencidos = labs.filter(l => l.estado === 'vencido').length;
-  const allDoctors = getDoctorsForLab('');
+  const allDoctors = allDoctorsState;
   const totalRevenue = labs.filter(l => l.estado === 'activo').reduce((s, l) => s + l.medicosActivos * config.precioMedico, 0);
-  const totalRemitos = getRemitosCount();
+  const totalRemitos = remitosCount;
 
   const filtered = labs.filter(l => l.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || l.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -209,7 +225,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
               <div key={f.key}>
                 <label style={{ fontSize: '11px', fontWeight: '600', color: '#64748b', display: 'block', marginBottom: '4px' }}>{f.label}</label>
                 <input type="text" defaultValue={f.value}
-                  onBlur={(e) => { const c = { ...config, [f.key]: e.target.value }; setConfig(c); saveConfig(c); }}
+                  onBlur={(e) => { const c = { ...config, [f.key]: e.target.value }; setConfig(c); db.saveAppConfig(c); }}
                   style={{ width: '100%', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
               </div>
             ))}
@@ -218,7 +234,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontWeight: '700', color: '#64748b' }}>$</span>
                 <input type="number" value={config.precioMedico}
-                  onChange={(e) => { const c = { ...config, precioMedico: Number(e.target.value) }; setConfig(c); saveConfig(c); }}
+                  onChange={(e) => { const c = { ...config, precioMedico: Number(e.target.value) }; setConfig(c); db.saveAppConfig(c); }}
                   style={{ width: '200px', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '16px', fontWeight: '700' }} />
               </div>
             </div>
@@ -274,7 +290,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
               {filtered.map(lab => {
                 const dias = getDays(lab.fechaVencimiento);
                 const isExpanded = expandedLab === lab.id;
-                const doctors = getDoctorsForLab(lab.labCode);
+                const doctors = lab.labCode ? allDoctorsState.filter((d: any) => d.labCode === lab.labCode) : allDoctorsState;
                 const mensual = lab.medicosActivos * config.precioMedico;
 
                 return (
@@ -404,7 +420,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
                                 // Calcular datos del médico
                                 let docRemitos = 0, docPacientes = 0, docTotal = 0;
                                 try {
-                                  const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+                                  const adminRemitos = allRemitosState;
                                   const docRem = adminRemitos.filter((r: any) => (r.email || r.doctorEmail || '').toLowerCase() === (doc.email || '').toLowerCase());
                                   docRemitos = docRem.length;
                                   docPacientes = docRem.reduce((s: number, r: any) => s + (r.biopsias?.length || 0), 0);

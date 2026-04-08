@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Shield, AlertCircle, Lock, Mail, UserPlus, LogIn, Key } from 'lucide-react';
 import { DoctorInfo, RegisteredDoctor } from '../types';
 import { VirtualKeyboard as VirtualKeyboardType } from '../types';
 import { VirtualKeyboard } from './VirtualKeyboard';
+import { db } from '../lib/database';
 
 interface LoginScreenProps {
   onLogin: (doctorInfo: DoctorInfo) => void;
@@ -41,6 +42,31 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
   const [showPassword, setShowPassword] = useState(false);
   const [existingDoctor, setExistingDoctor] = useState<RegisteredDoctor | null>(savedDoctor);
   const [recoverySuccess, setRecoverySuccess] = useState(false);
+
+  // Sincronizar datos desde Supabase después del montaje
+  useEffect(() => {
+    let cancelled = false;
+    const syncFromDb = async () => {
+      try {
+        const freshDoctors = await db.getDoctors();
+        if (!cancelled && freshDoctors.length > 0) {
+          // getDoctors() ya actualiza localStorage internamente
+          // Re-check si el doctor actual sigue existiendo con datos frescos
+          if (savedEmail) {
+            const fresh = freshDoctors.find(
+              (d: any) => d.email.toLowerCase() === savedEmail.toLowerCase()
+            );
+            if (fresh && !existingDoctor) {
+              setExistingDoctor(fresh);
+              setMode('login');
+            }
+          }
+        }
+      } catch {}
+    };
+    syncFromDb();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Teclado virtual
   const [keyboard, setKeyboard] = useState<VirtualKeyboardType>({
@@ -142,6 +168,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
       const doctors = getRegisteredDoctors();
       doctors.push(newDoctor);
       saveRegisteredDoctors(doctors);
+      db.saveDoctor(newDoctor);
 
       // Actualizar medicosActivos del laboratorio
       try {
@@ -154,6 +181,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
           return l;
         });
         localStorage.setItem('superAdmin_laboratories', JSON.stringify(updatedLabs));
+        const updatedLab = updatedLabs.find((l: any) => l.labCode === newDoctor.labCode);
+        if (updatedLab) db.saveLab(updatedLab);
       } catch {}
 
       onLogin({
@@ -185,6 +214,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
         changedAt: new Date().toISOString()
       });
       saveRegisteredDoctors(doctors);
+      db.saveDoctor(doctors[idx]);
       setRecoverySuccess(true);
       setTimeout(() => {
         setMode('login');

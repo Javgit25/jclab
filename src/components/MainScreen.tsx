@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail } from 'lucide-react';
 import { BiopsyForm, DoctorInfo } from '../types';
+import { db } from '../lib/database';
 import { ConnectionStatus } from './ConnectionStatus';
 import { VirtualKeyboard } from './VirtualKeyboard';
 import QRCodeLib from 'qrcode';
@@ -58,6 +59,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       const mine = all.filter((n: any) => n.medicoEmail === doctorInfo.email);
       setNotificationsData(mine);
     } catch { setNotificationsData([]); }
+    // Fire-and-forget: refresh from Supabase
+    db.getNotifications(doctorInfo.email).then((remote: any[]) => {
+      if (remote && remote.length > 0) setNotificationsData(remote);
+    }).catch(() => {});
   };
 
   // Cargar al montar y periódicamente
@@ -102,6 +107,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       });
       localStorage.setItem('doctorNotifications', JSON.stringify(updated));
       loadNotifications();
+      // Sync to Supabase
+      const mine = all.filter((n: any) => n.medicoEmail === doctorInfo.email);
+      mine.forEach((n: any) => { db.markNotificationRead(n.id).catch(() => {}); });
     } catch {}
   };
 
@@ -1713,6 +1721,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   const updated = all.map((n: any) => n.id === listoAlert.id ? { ...n, leida: true } : n);
                   localStorage.setItem('doctorNotifications', JSON.stringify(updated));
                   loadNotifications();
+                  // Sync to Supabase
+                  db.markNotificationRead(listoAlert.id).catch(() => {});
                 } catch {}
                 setListoAlert(null);
               }}

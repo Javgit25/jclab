@@ -1,6 +1,7 @@
 // BiopsyTracker v2.0.4 - Optimizado para Tablet - Export Fix - Deployed 2025-07-29
 import React, { useState, useEffect, useCallback } from 'react';
 import type { DoctorInfo, BiopsyForm, SyncAction, HistoryEntry } from './types';
+import { db } from './lib/database';
 import LoginScreen from './components/LoginScreen';
 import MainScreen from './components/MainScreen';
 import NewBiopsyScreen from './components/NewBiopsyScreen';
@@ -136,6 +137,14 @@ function App() {
         console.log('App - loadHistoryData: No hay historial guardado, inicializando vacío');
         setHistoryData({});
       }
+
+      // Refresh from Supabase in background
+      db.getDoctorHistory(doctorInfo.email).then(remoteHistory => {
+        if (remoteHistory && Object.keys(remoteHistory).length > 0) {
+          console.log('App - loadHistoryData: Datos actualizados desde Supabase:', Object.keys(remoteHistory).length);
+          setHistoryData(remoteHistory);
+        }
+      }).catch(err => console.error('App - loadHistoryData: Error fetching from Supabase:', err));
     } catch (error) {
       console.error('App - loadHistoryData: Error al cargar historial:', error);
       setHistoryData({});
@@ -361,10 +370,13 @@ function App() {
     
     localStorage.setItem(historyKey, JSON.stringify(currentHistory));
     setHistoryData(currentHistory);
-    
+
+    // Sync to Supabase
+    db.saveDoctorHistoryEntry(doctorInfo.email, (doctorInfo as any).labCode || '', newEntry);
+
     // Guardar en el almacén de remitos del administrador
     saveRemitosToAdmin(newEntry);
-    
+
     console.log('App - saveToHistory: Historial guardado exitosamente con ID:', uniqueId);
     console.log('App - saveToHistory: Usando clave de doctor:', doctorKey);
     
@@ -433,6 +445,13 @@ function App() {
       adminRemitos.sort((a: any, b: any) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime());
       
       localStorage.setItem('adminRemitos', JSON.stringify(adminRemitos));
+
+      // Sync to Supabase - resolve labCode from registered doctor
+      const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+      const matchedDoctor = registeredDoctors.find((d: any) => d.email?.toLowerCase() === adminRemito.email?.toLowerCase());
+      const adminRemitoWithLabCode = { ...adminRemito, labCode: matchedDoctor?.labCode || '' };
+      db.saveRemito(adminRemitoWithLabCode);
+
       console.log('App - Remito guardado para administrador:', adminRemito);
     } catch (error) {
       console.error('App - Error guardando remito para administrador:', error);
@@ -508,7 +527,10 @@ function App() {
     // Guardar en localStorage
     localStorage.setItem(historyKey, JSON.stringify(currentHistory));
     setHistoryData(currentHistory);
-    
+
+    // Sync to Supabase
+    db.saveDoctorHistoryEntry(doctorInfo.email, (doctorInfo as any).labCode || '', remito);
+
     // Guardar en el almacén del administrador
     saveRemitosToAdmin(remito);
     
