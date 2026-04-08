@@ -1,27 +1,87 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, Check, TestTube, Plus, Minus, Beaker } from 'lucide-react';
-import { BiopsyServices, GiemsaServices } from '../../types';
+import { BiopsyServices, GiemsaServices, CassetteNumber } from '../../types';
 import { serviciosAdicionales } from '../../constants/services';
 
 interface Step6Props {
   servicios: BiopsyServices;
+  cassettesCount?: number;
+  cassettesNumbers?: CassetteNumber[];
   onServicioChange: (servicioKey: keyof BiopsyServices) => void;
   onGiemsaOptionChange: (giemsaKey: keyof GiemsaServices) => void;
   onGiemsaTotalChange: (total: number) => void;
   onCorteBlancoQuantityChange: (type: 'ihq' | 'comun', quantity: number) => void;
+  onCassetteSelectionChange?: (service: string, cassettes: number[]) => void;
   onNext: () => void;
   onPrev: () => void;
+  tissueType?: string;
 }
 
 export const Step6: React.FC<Step6Props> = ({
   servicios,
+  cassettesCount = 0,
+  cassettesNumbers = [],
   onServicioChange,
   onGiemsaOptionChange,
   onGiemsaTotalChange,
   onCorteBlancoQuantityChange,
+  onCassetteSelectionChange,
   onNext,
   onPrev
 }) => {
+  // Estado para cassettes seleccionados por servicio
+  const [selectedCassettesIHQ, setSelectedCassettesIHQ] = useState<number[]>([]);
+  const [selectedCassettesComun, setSelectedCassettesComun] = useState<number[]>([]);
+  const [selectedCassettesGiemsa, setSelectedCassettesGiemsa] = useState<number[]>([]);
+
+  const showCassetteSelector = cassettesCount >= 2;
+
+  // Componente selector de cassettes
+  const CassetteSelector = ({ selected, onChange, label, serviceKey }: { selected: number[]; onChange: (sel: number[]) => void; label: string; serviceKey?: string }) => {
+    if (!showCassetteSelector) return null;
+    return (
+      <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+        <div style={{ fontSize: '11px', fontWeight: '600', color: '#475569', marginBottom: '8px' }}>
+          Seleccionar cassettes para {label}:
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {Array.from({ length: cassettesCount }, (_, i) => {
+            const isFirst = i === 0;
+            const base = cassettesNumbers[i]?.base || 'C';
+            const suffix = cassettesNumbers[i]?.suffix || `${i + 1}`;
+            const cassetteLabel = isFirst ? `${base}${suffix}` : `${base}-${suffix}`;
+            const isSelected = selected.includes(i);
+            return (
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <span style={{ fontSize: '8px', fontWeight: '700', color: isFirst ? 'transparent' : '#1e40af', letterSpacing: '0.5px' }}>{isFirst ? '\u00A0' : 'SUB'}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newSel = isSelected ? selected.filter(s => s !== i) : [...selected, i];
+                    onChange(newSel); if (onCassetteSelectionChange && serviceKey) onCassetteSelectionChange(serviceKey, newSel);
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                    border: `2px solid ${isSelected ? '#1e40af' : '#d1d5db'}`,
+                    backgroundColor: isSelected ? '#1e40af' : 'white',
+                    color: isSelected ? 'white' : '#374151',
+                    cursor: 'pointer', transition: 'all 0.15s'
+                  }}
+                >
+                  {cassetteLabel}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+        {selected.length > 0 && (
+          <div style={{ fontSize: '10px', color: '#1e40af', marginTop: '6px', fontWeight: '500' }}>
+            {selected.length} cassette{selected.length > 1 ? 's' : ''} seleccionado{selected.length > 1 ? 's' : ''}
+          </div>
+        )}
+      </div>
+    );
+  };
   // Colores del diseño
   const colors = {
     primaryBlue: '#4F76F6',
@@ -221,7 +281,7 @@ export const Step6: React.FC<Step6Props> = ({
     }}>
       {/* Header Compacto y Limpio */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 16px',
         flexShrink: 0,
@@ -309,7 +369,7 @@ export const Step6: React.FC<Step6Props> = ({
           padding: '0 16px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
             padding: '6px',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
@@ -521,13 +581,16 @@ export const Step6: React.FC<Step6Props> = ({
               </button>
 
               {servicios.corteBlancoIHQ && (
-                <QuantityCounter
-                  value={servicios.corteBlancoIHQQuantity || 1}
-                  onChange={(quantity) => onCorteBlancoQuantityChange('ihq', quantity)}
-                  min={1}
-                  max={20}
-                  label="Cantidad de vidrios en blanco para IHQ"
-                />
+                <>
+                  <QuantityCounter
+                    value={servicios.corteBlancoIHQQuantity || 1}
+                    onChange={(quantity) => onCorteBlancoQuantityChange('ihq', quantity)}
+                    min={1}
+                    max={20}
+                    label="Cantidad de vidrios en blanco para IHQ"
+                  />
+                  <CassetteSelector selected={selectedCassettesIHQ} onChange={setSelectedCassettesIHQ} label="Corte IHQ" serviceKey="corteBlancoIHQCassettes" />
+                </>
               )}
             </div>
 
@@ -609,13 +672,16 @@ export const Step6: React.FC<Step6Props> = ({
               </button>
 
               {servicios.corteBlancoComun && (
-                <QuantityCounter
-                  value={servicios.corteBlancoComunQuantity || 1}
-                  onChange={(quantity) => onCorteBlancoQuantityChange('comun', quantity)}
-                  min={1}
-                  max={20}
-                  label="Cantidad de vidrios en blanco comunes"
-                />
+                <>
+                  <QuantityCounter
+                    value={servicios.corteBlancoComunQuantity || 1}
+                    onChange={(quantity) => onCorteBlancoQuantityChange('comun', quantity)}
+                    min={1}
+                    max={20}
+                    label="Cantidad de vidrios en blanco comunes"
+                  />
+                  <CassetteSelector selected={selectedCassettesComun} onChange={setSelectedCassettesComun} label="Corte Blanco" serviceKey="corteBlancoComunCassettes" />
+                </>
               )}
             </div>
 
@@ -791,24 +857,21 @@ export const Step6: React.FC<Step6Props> = ({
                     ))}
                   </div>
                   
-                  {/* ✅ INDICADOR MEJORADO DE CANTIDAD SELECCIONADA */}
+                  {/* Indicador de cantidad */}
                   <div style={{
-                    marginTop: '16px',
+                    marginTop: '12px',
                     backgroundColor: 'rgba(34, 197, 94, 0.1)',
                     borderRadius: '8px',
-                    padding: '14px',
+                    padding: '10px',
                     border: '1px solid rgba(34, 197, 94, 0.3)'
                   }}>
                     <p style={{
-                      color: '#059669',
-                      fontWeight: '600',
-                      textAlign: 'center',
-                      margin: '0',
-                      fontSize: '13px'
+                      color: '#059669', fontWeight: '600', textAlign: 'center', margin: '0', fontSize: '12px'
                     }}>
-                      💰 Total a facturar: {Object.values(servicios.giemsaOptions || {}).filter(Boolean).length} técnica{Object.values(servicios.giemsaOptions || {}).filter(Boolean).length !== 1 ? 's' : ''} × $75 = ${Object.values(servicios.giemsaOptions || {}).filter(Boolean).length * 75}
+                      {Object.values(servicios.giemsaOptions || {}).filter(Boolean).length} técnica{Object.values(servicios.giemsaOptions || {}).filter(Boolean).length !== 1 ? 's' : ''} × $75 = ${Object.values(servicios.giemsaOptions || {}).filter(Boolean).length * 75}
                     </p>
                   </div>
+                  <CassetteSelector selected={selectedCassettesGiemsa} onChange={setSelectedCassettesGiemsa} label="Giemsa/PAS/Masson" serviceKey="giemsaCassettes" />
                 </div>
               )}
             </div>
@@ -852,34 +915,65 @@ export const Step6: React.FC<Step6Props> = ({
             </div>
           </div>
 
-          {/* Botón continuar integrado */}
-          <button
-            onClick={onNext}
-            style={{
-              width: '100%',
-              fontWeight: 'bold',
-              padding: '16px',
-              borderRadius: '12px',
-              fontSize: '16px',
-              border: 'none',
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              color: 'white',
-              boxShadow: '0 4px 16px rgba(102, 126, 234, 0.3)',
-              transition: 'all 0.2s ease',
-              marginTop: '16px'
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px'
-            }}>
-              <span>Continuar a Confirmación</span>
-              <ArrowRight style={{ width: '18px', height: '18px' }} />
-            </div>
-          </button>
+          {/* Validación: si hay servicios con 2+ cassettes, deben seleccionar a cuáles */}
+          {(() => {
+            if (!showCassetteSelector) return null;
+            const missing: string[] = [];
+            if (servicios.corteBlancoIHQ && selectedCassettesIHQ.length === 0) missing.push('Corte IHQ');
+            if (servicios.corteBlancoComun && selectedCassettesComun.length === 0) missing.push('Corte Blanco');
+            if (servicios.giemsaPASMasson && selectedCassettesGiemsa.length === 0) missing.push('Giemsa/PAS/Masson');
+            if (missing.length === 0) return null;
+            return (
+              <div style={{
+                background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px',
+                padding: '10px 12px', marginTop: '12px',
+                fontSize: '12px', color: '#991b1b', fontWeight: '500'
+              }}>
+                Seleccioná a qué cassette/s aplicar: <strong>{missing.join(', ')}</strong>
+              </div>
+            );
+          })()}
+
+          {/* Botón continuar */}
+          {(() => {
+            let canContinue = true;
+            if (showCassetteSelector) {
+              if (servicios.corteBlancoIHQ && selectedCassettesIHQ.length === 0) canContinue = false;
+              if (servicios.corteBlancoComun && selectedCassettesComun.length === 0) canContinue = false;
+              if (servicios.giemsaPASMasson && selectedCassettesGiemsa.length === 0) canContinue = false;
+            }
+            return (
+              <button
+                onClick={canContinue ? onNext : undefined}
+                disabled={!canContinue}
+                style={{
+                  width: '100%',
+                  fontWeight: 'bold',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  border: 'none',
+                  cursor: canContinue ? 'pointer' : 'not-allowed',
+                  background: canContinue ? 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' : '#d1d5db',
+                  color: 'white',
+                  boxShadow: canContinue ? '0 4px 16px rgba(102, 126, 234, 0.3)' : 'none',
+                  transition: 'all 0.2s ease',
+                  marginTop: '12px',
+                  opacity: canContinue ? 1 : 0.7
+                }}
+              >
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px'
+                }}>
+                  <span>Continuar a Confirmación</span>
+                  <ArrowRight style={{ width: '18px', height: '18px' }} />
+                </div>
+              </button>
+            );
+          })()}
         </div>
       </div>
     </div>

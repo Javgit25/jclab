@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Users, FileText, Settings, DollarSign, Calendar, Download, Edit, Save, X, Plus, Trash2, 
   Eye, EyeOff, Lock, Search, Filter, TrendingUp, AlertTriangle, BarChart3, Activity,
-  Clock, CheckCircle, XCircle, RefreshCw, Bell, Target, Zap, Award
+  Clock, CheckCircle, XCircle, RefreshCw, Bell, Target, Zap, Award, Building2 as Building, Mail
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -75,11 +75,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [filtroFecha, setFiltroFecha] = useState('este-mes');
   const [filtroEstado, setFiltroEstado] = useState('todos');
   const [editingRemito, setEditingRemito] = useState<string | null>(null);
+  const [originalBiopsiaSnapshot, setOriginalBiopsiaSnapshot] = useState<any>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRemitos, setSelectedRemitos] = useState<string[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [paymentModal, setPaymentModal] = useState<{ open: boolean; medico: string; deuda: number }>({ open: false, medico: '', deuda: 0 });
+  const [paymentForm, setPaymentForm] = useState({ monto: '', metodo: 'efectivo', fecha: new Date().toISOString().split('T')[0] });
+  const [showPaymentHistory, setShowPaymentHistory] = useState<string | null>(null);
+  const [emailModal, setEmailModal] = useState<{ open: boolean; medico: string; email: string } | null>(null);
+  const [emailMessage, setEmailMessage] = useState('');
+  const [editingBiopsias, setEditingBiopsias] = useState<any[] | null>(null);
+  const [dashFilter, setDashFilter] = useState('todos');
+  const [cobrosFilter, setCobrosFilter] = useState('todos');
+  const [expandedUrgents, setExpandedUrgents] = useState<Set<string>>(new Set());
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
     precioCassette: 300,
@@ -98,6 +108,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'PAP', 'Citología'
     ]
   });
+
+  // Configuración del laboratorio
+  const [labConfig, setLabConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('labConfig');
+      return saved ? JSON.parse(saved) : {
+        nombre: 'Laboratorio de Anatomía Patológica',
+        direccion: '',
+        telefono: '',
+        email: '',
+        logoUrl: ''
+      };
+    } catch { return { nombre: 'Laboratorio de Anatomía Patológica', direccion: '', telefono: '', email: '', logoUrl: '' }; }
+  });
+
+  const saveLabConfig = (config: typeof labConfig) => {
+    setLabConfig(config);
+    localStorage.setItem('labConfig', JSON.stringify(config));
+  };
 
   useEffect(() => {
     loadAdminData();
@@ -135,8 +164,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     numero: biopsy.number || 'N/A',
                     tejido: biopsy.tissueType || 'No especificado',
                     tipo: biopsy.type || 'Biopsia',
-                    cassettes: parseInt(biopsy.cassettes) || 1,
-                    trozos: parseInt(biopsy.pieces) || 1,
+                    cassettes: parseInt(biopsy.cassettes) || 0,
+                    trozos: parseInt(biopsy.pieces) || 0,
                     desclasificar: biopsy.declassify || 'No',
                     servicios: {
                       cassetteNormal: biopsy.servicios?.cassetteUrgente ? 0 : (parseInt(biopsy.cassettes) || 1),
@@ -148,10 +177,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       citologiaUrgente: biopsy.servicios?.citologiaUrgente ? (biopsy.citologiaQuantity || 1) : 0,
                       corteBlanco: biopsy.servicios?.corteBlancoComun ? (biopsy.servicios.corteBlancoComunQuantity || 1) : 0,
                       corteBlancoIHQ: biopsy.servicios?.corteBlancoIHQ ? (biopsy.servicios.corteBlancoIHQQuantity || 1) : 0,
-                      giemsaPASMasson: biopsy.servicios?.giemsaPASMasson ? 1 : 0
+                      giemsaPASMasson: biopsy.servicios?.giemsaPASMasson
+                        ? (typeof biopsy.servicios.giemsaPASMasson === 'number'
+                          ? biopsy.servicios.giemsaPASMasson
+                          : (biopsy.servicios.giemsaPASMassonTotal || Object.values(biopsy.servicios.giemsaOptions || {}).filter(Boolean).length || 1))
+                        : 0,
+                      giemsaOptions: biopsy.servicios?.giemsaOptions || undefined,
+                      corteBlancoIHQCassettes: biopsy.servicios?.corteBlancoIHQCassettes || undefined,
+                      corteBlancoComunCassettes: biopsy.servicios?.corteBlancoComunCassettes || undefined,
+                      giemsaCassettes: biopsy.servicios?.giemsaCassettes || undefined
                     },
                     papQuantity: biopsy.papQuantity || 0,
-                    citologiaQuantity: biopsy.citologiaQuantity || 0
+                    citologiaQuantity: biopsy.citologiaQuantity || 0,
+                    cassettesNumbers: biopsy.cassettesNumbers || biopsy.cassettes_numbers || []
                   }))
                 };
                 allRemitos.push(adminRemito);
@@ -165,14 +203,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       
       console.log('📊 Datos encontrados:', allRemitos.length, 'remitos');
       
-      // Si no hay datos reales, intentar cargar datos del admin panel previos
-      if (allRemitos.length === 0) {
+      // Mergear con adminRemitos (tienen datos completos: cassettesNumbers, servicios editados, etc.)
+      try {
         const savedRemitos = localStorage.getItem('adminRemitos');
         if (savedRemitos) {
           const parsedRemitos = JSON.parse(savedRemitos);
-          allRemitos = [...parsedRemitos];
+          // Para cada adminRemito, buscar si ya existe uno del historial con misma fecha+email+cantidad
+          parsedRemitos.forEach((ar: any) => {
+            const arDate = new Date(ar.fecha).toDateString();
+            const arEmail = (ar.doctorEmail || ar.email || '').toLowerCase().trim();
+            const arCount = ar.biopsias?.length || 0;
+            const arTimestamp = ar.timestamp || '';
+            const duplicateIdx = allRemitos.findIndex((r: any) => {
+              if (r.id === ar.id) return true;
+              const rEmail = (r.doctorEmail || r.email || '').toLowerCase().trim();
+              if (arTimestamp && (r as any).timestamp === arTimestamp) return true;
+              const rDate = new Date(r.fecha).toDateString();
+              return rDate === arDate && rEmail === arEmail && r.biopsias?.length === arCount;
+            });
+            if (duplicateIdx >= 0) {
+              // Reemplazar con adminRemito (más completo)
+              allRemitos[duplicateIdx] = ar;
+            } else {
+              allRemitos.push(ar);
+            }
+          });
         }
-      }
+      } catch {}
       
       // Si aún no hay datos, generar datos de prueba
       if (allRemitos.length === 0) {
@@ -451,10 +508,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     // Cálculo de cassettes
     if (totalCassettes > 0) {
       if (esCassetteUrgente) {
-        // TODOS los cassettes son urgentes
-        total += totalCassettes * configuracion.precioCassetteUrgente;
+        // Primer cassette urgente, los adicionales son profundización
+        total += configuracion.precioCassetteUrgente;
+        if (totalCassettes > 1) {
+          total += (totalCassettes - 1) * configuracion.precioProfundizacion;
+        }
       } else {
-        // Primer cassette normal, el resto profundización
+        // Primer cassette normal, los adicionales son profundización
         total += configuracion.precioCassette;
         if (totalCassettes > 1) {
           total += (totalCassettes - 1) * configuracion.precioProfundizacion;
@@ -853,177 +913,172 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     );
   };
 
-  const exportarFacturacionMedico = (medico: string) => {
+  const generarHTMLFacturacion = (medico: string) => {
     const remitosDelMedico = remitos.filter(r => r.medico === medico);
     const fechaActual = new Date().toLocaleDateString('es-AR');
     
     const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
-    const totalPendiente = remitosDelMedico.filter(r => r.estado === 'pendiente').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
-    const totalFacturado = remitosDelMedico.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
     
+    const totalPacientes = remitosDelMedico.reduce((s, r) => s + r.biopsias.length, 0);
+    const totalBX = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo !== 'PQ' && b.tejido !== 'PAP' && b.tejido !== 'Citología').length, 0);
+    const totalPQ = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo === 'PQ').length, 0);
+    const totalPAP = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.papQuantity || 0), 0), 0);
+    const totalCito = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.citologiaQuantity || 0), 0), 0);
+
     const htmlContent = `
     <!DOCTYPE html>
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Reporte de Facturación - ${medico}</title>
+      <title>Detalle de Facturación - ${medico}</title>
       <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 15px; margin-bottom: 30px; }
-        .logo { font-size: 28px; font-weight: bold; margin-bottom: 10px; }
-        .empresa-info { font-size: 14px; opacity: 0.9; }
-        .medico-info { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); text-align: center; }
-        .stat-value { font-size: 32px; font-weight: bold; margin-bottom: 5px; }
-        .stat-label { color: #64748b; font-size: 14px; }
-        .pendiente { color: #f59e0b; }
-        .facturado { color: #10b981; }
-        .total { color: #3b82f6; }
-        .tabla-container { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background: #f1f5f9; padding: 15px; text-align: left; font-weight: 600; color: #374151; }
-        td { padding: 12px 15px; border-bottom: 1px solid #e2e8f0; }
-        .tipo-bx { background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .tipo-pq { background: #fed7aa; color: #c2410c; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .tipo-pap { background: #fce7f3; color: #be185d; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .tipo-cito { background: #ede9fe; color: #7c3aed; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; }
-        .estudio-detalle { font-size: 11px; line-height: 1.3; }
-        .urgente-tag { color: #dc2626; font-weight: 600; }
-        .servicio-tag { color: #7c3aed; }
-        .estandar-tag { color: #10b981; }
-        .footer { text-align: center; color: #64748b; font-size: 12px; margin-top: 30px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 0; background: white; color: #1e293b; font-size: 13px; }
+        .header { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%); color: white; padding: 28px 32px; text-align: center; }
+        .header .logo img { height: 70px; max-width: 280px; object-fit: contain; margin-bottom: 8px; }
+        .header .lab-name { font-size: 20px; font-weight: 700; letter-spacing: 0.5px; }
+        .header .lab-info { font-size: 12px; opacity: 0.7; margin-top: 12px; line-height: 1.6; }
+        .content { padding: 24px 32px; }
+        .doc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+        .doc-title { font-size: 20px; font-weight: 700; color: #0f172a; }
+        .doc-medico { font-size: 16px; color: #1e40af; font-weight: 600; margin-top: 4px; }
+        .doc-fecha { font-size: 12px; color: #64748b; margin-top: 4px; }
+        .doc-total { text-align: right; }
+        .doc-total .amount { font-size: 28px; font-weight: 800; color: #0f172a; }
+        .doc-total .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }
+        .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+        .kpi { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center; }
+        .kpi .val { font-size: 22px; font-weight: 700; color: #1e40af; }
+        .kpi .lbl { font-size: 10px; color: #64748b; text-transform: uppercase; margin-top: 2px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        thead th { background: #0f172a; color: white; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; }
+        tbody td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; font-size: 12px; vertical-align: top; }
+        tbody tr:nth-child(even) { background: #f8fafc; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-bx { background: #dcfce7; color: #166534; }
+        .badge-pq { background: #fed7aa; color: #c2410c; }
+        .badge-pap { background: #fce7f3; color: #be185d; }
+        .badge-cito { background: #ede9fe; color: #7c3aed; }
+        .badge-urgente { background: #fee2e2; color: #dc2626; }
+        .badge-servicio { background: #eff6ff; color: #1e40af; }
+        .servicios-cell { line-height: 1.6; }
+        .subtotal { font-weight: 700; color: #0f172a; text-align: right; white-space: nowrap; }
+        .total-row td { background: #0f172a !important; color: white; font-weight: 700; font-size: 14px; padding: 14px 12px; }
+        .footer { text-align: center; padding: 16px 32px; color: #94a3b8; font-size: 11px; border-top: 1px solid #e2e8f0; }
+        @media print { body { padding: 0; } .header { break-after: avoid; } }
       </style>
     </head>
     <body>
       <div class="header">
-        <div class="logo">🔬 BiopsyTracker Lab</div>
-        <div class="empresa-info">
-          Av. Principal 123, Buenos Aires<br>
-          Tel: +54 11 1234-5678 | Email: admin@biopsytracker.com
+        ${labConfig.logoUrl ? `<div class="logo"><img src="${labConfig.logoUrl}" alt="Logo" /></div>` : `<div class="lab-name">${labConfig.nombre || 'Laboratorio de Anatomía Patológica'}</div>`}
+        <div class="lab-info">
+          ${labConfig.direccion || ''}<br>
+          ${labConfig.telefono ? `Tel: ${labConfig.telefono}` : ''} ${labConfig.email ? `&nbsp;|&nbsp; ${labConfig.email}` : ''}
         </div>
       </div>
-      
-      <div class="medico-info">
-        <h1 style="margin: 0 0 10px 0; color: #1f2937;">Reporte de Facturación</h1>
-        <h2 style="margin: 0 0 15px 0; color: #3b82f6;">Dr/a. ${medico}</h2>
-        <p style="color: #64748b; margin: 0;">Período completo - ${fechaActual}</p>
-      </div>
-      
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value total">$${totalGeneral.toLocaleString()}</div>
-          <div class="stat-label">Total General</div>
+
+      <div class="content">
+        <div class="doc-header">
+          <div>
+            <div class="doc-title">Detalle de Facturación</div>
+            <div class="doc-medico">Dr/a. ${medico}</div>
+            <div class="doc-fecha">${fechaActual} &nbsp;·&nbsp; ${remitosDelMedico.length} remito${remitosDelMedico.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${totalPacientes} paciente${totalPacientes > 1 ? 's' : ''}</div>
+          </div>
+          <div class="doc-total">
+            <div class="label">Total a facturar</div>
+            <div class="amount">$${totalGeneral.toLocaleString()}</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value facturado">$${totalFacturado.toLocaleString()}</div>
-          <div class="stat-label">Ya Facturado</div>
+
+        <div class="kpis">
+          <div class="kpi"><div class="val">${remitosDelMedico.length}</div><div class="lbl">Remitos</div></div>
+          <div class="kpi"><div class="val">${totalBX}</div><div class="lbl">BX</div></div>
+          <div class="kpi"><div class="val">${totalPQ}</div><div class="lbl">PQ</div></div>
+          <div class="kpi"><div class="val">${totalPAP}</div><div class="lbl">PAP</div></div>
+          <div class="kpi"><div class="val">${totalCito}</div><div class="lbl">Citología</div></div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value pendiente">$${totalPendiente.toLocaleString()}</div>
-          <div class="stat-label">Pendiente</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value">${remitosDelMedico.length}</div>
-          <div class="stat-label">Total Remitos</div>
-        </div>
-      </div>
-      
-      <div class="tabla-container">
+
         <table>
           <thead>
             <tr>
+              <th>Remito</th>
               <th>Fecha</th>
-              <th>N° Biopsia</th>
-              <th>Tejido</th>
+              <th>N° Estudio</th>
+              <th>Material</th>
               <th>Tipo</th>
               <th>Cassettes</th>
-              <th>Estudio Completo</th>
-              <th>Subtotal</th>
-              <th>Estado</th>
+              <th>Servicios / Detalle</th>
+              <th style="text-align:right">Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            ${remitosDelMedico.map(remito => 
-              remito.biopsias.map(biopsia => {
-                // Aplicar la misma lógica de tipos que en el panel
-                const getTipoForHTML = (tipo: string, tejido: string) => {
-                  if (tejido === 'PAP') {
-                    return { nombre: 'PAP', clase: 'tipo-pap' };
-                  }
-                  if (tejido === 'Citología') {
-                    return { nombre: 'CITO', clase: 'tipo-cito' };
-                  }
-                  // Para biopsias, detectar si es PQ o BX basado en el tipo original
-                  if (tipo.toLowerCase().includes('pq') || tipo.toLowerCase().includes('pequena') || tipo.toLowerCase().includes('pequeña')) {
-                    return { nombre: 'PQ', clase: 'tipo-pq' };
-                  }
-                  // Por defecto es BX
-                  return { nombre: 'BX', clase: 'tipo-bx' };
+            ${remitosDelMedico.map(remito =>
+              remito.biopsias.map((biopsia: any) => {
+                const tipo = biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? 'CITO' : 'BX';
+                const bc = tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : tipo === 'CITO' ? 'badge-cito' : 'badge-bx';
+
+                const svcs: string[] = [];
+                if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
+                if ((biopsia.servicios?.papUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">PAP Urgente</span>');
+                if ((biopsia.servicios?.citologiaUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">Cito Urgente</span>');
+                const cn = (biopsia as any).cassettesNumbers || [];
+                const getCassNames = (indices: number[]) => {
+                  if (!indices || indices.length === 0) return '';
+                  return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ') + ']';
                 };
-                
-                // Generar detalle del estudio completo
-                const getEstudioCompleto = (biopsia: AdminBiopsia) => {
-                  const detalles = [];
-                  
-                  // Verificar servicios urgentes
-                  const urgentes = [];
-                  if (biopsia.servicios.cassetteUrgente > 0) urgentes.push(`Cassette Urgente (${biopsia.servicios.cassetteUrgente})`);
-                  if (biopsia.servicios.papUrgente > 0) urgentes.push(`PAP Urgente (${biopsia.servicios.papUrgente})`);
-                  if (biopsia.servicios.citologiaUrgente > 0) urgentes.push(`Citología Urgente (${biopsia.servicios.citologiaUrgente})`);
-                  
-                  if (urgentes.length > 0) {
-                    detalles.push('<span style="color: #dc2626; font-weight: 600;">🚨 ' + urgentes.join(', ') + '</span>');
-                  }
-                  
-                  // Servicios adicionales
-                  const servicios = [];
-                  if (biopsia.servicios.corteBlancoIHQ > 0) servicios.push(`Corte IHQ (${biopsia.servicios.corteBlancoIHQ})`);
-                  if (biopsia.servicios.corteBlanco > 0) servicios.push(`Corte Común (${biopsia.servicios.corteBlanco})`);
-                  if (biopsia.servicios.giemsaPASMasson > 0) servicios.push('Giemsa/PAS/Masson');
-                  if (biopsia.servicios.profundizacion > 0) servicios.push(`Profundización (${biopsia.servicios.profundizacion})`);
-                  
-                  if (servicios.length > 0) {
-                    detalles.push('<span style="color: #7c3aed;">🔧 ' + servicios.join(', ') + '</span>');
-                  }
-                  
-                  // Si no hay servicios especiales
-                  if (detalles.length === 0) {
-                    detalles.push('<span style="color: #10b981;">✅ Estudio Estándar</span>');
-                  }
-                  
-                  return detalles.join('<br>');
-                };
-                
-                const tipoInfo = getTipoForHTML(biopsia.tipo, biopsia.tejido);
-                const estudioCompleto = getEstudioCompleto(biopsia);
-                
-                return `
-                  <tr>
-                    <td>${new Date(remito.fecha).toLocaleDateString('es-AR')}</td>
-                    <td><strong>${biopsia.numero}</strong></td>
-                    <td>${biopsia.tejido}</td>
-                    <td><span class="${tipoInfo.clase}">${tipoInfo.nombre}</span></td>
-                    <td>${tipoInfo.nombre === 'PAP' || tipoInfo.nombre === 'CITO' ? '-' : biopsia.cassettes}</td>
-                    <td style="font-size: 12px; line-height: 1.4;">${estudioCompleto}</td>
-                    <td><strong>$${calcularTotalBiopsia(biopsia).toLocaleString()}</strong></td>
-                    <td><span class="${remito.estado}">${remito.estado === 'facturado' ? 'Facturado' : 'Pendiente'}</span></td>
-                  </tr>
-                `;
+                if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
+                  const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoIHQCassettes || []);
+                  svcs.push('<span class="badge badge-servicio">Corte IHQ &times;' + biopsia.servicios.corteBlancoIHQ + cassNames + '</span>');
+                }
+                if ((biopsia.servicios?.corteBlanco || 0) > 0) {
+                  const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoComunCassettes || []);
+                  svcs.push('<span class="badge badge-servicio">Corte Blanco &times;' + biopsia.servicios.corteBlanco + cassNames + '</span>');
+                }
+                if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
+                  const opts = biopsia.servicios?.giemsaOptions;
+                  const t: string[] = [];
+                  if (opts?.giemsa) t.push('Giemsa');
+                  if (opts?.pas) t.push('PAS');
+                  if (opts?.masson) t.push('Masson');
+                  const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
+                  svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
+                }
+                if ((biopsia.papQuantity || 0) > 0) svcs.push('<span class="badge badge-pap">PAP &times;' + biopsia.papQuantity + '</span>');
+                if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
+
+                return '<tr>' +
+                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remito.id.slice(-5).toUpperCase() + '</td>' +
+                  '<td>' + new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) + '</td>' +
+                  '<td><strong>' + biopsia.numero + '</strong></td>' +
+                  '<td>' + biopsia.tejido + '</td>' +
+                  '<td><span class="badge ' + bc + '">' + tipo + '</span></td>' +
+                  '<td>' + (tipo === 'PAP' || tipo === 'CITO' ? '-' : biopsia.cassettes) + '</td>' +
+                  '<td class="servicios-cell">' + (svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
+                  '<td class="subtotal">$' + calcularTotalBiopsia(biopsia).toLocaleString() + '</td>' +
+                  '</tr>';
               }).join('')
             ).join('')}
+            <tr class="total-row">
+              <td colspan="7" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td>
+              <td style="text-align:right; font-size:18px;">$${totalGeneral.toLocaleString()}</td>
+            </tr>
           </tbody>
         </table>
       </div>
-      
+
       <div class="footer">
-        <p>Reporte generado automáticamente por BiopsyTracker el ${fechaActual}</p>
-        <p>Este documento es confidencial y está destinado únicamente para el uso del destinatario.</p>
+        Reporte generado el ${fechaActual} &nbsp;·&nbsp; Powered by BiopsyTracker<br>
+        Este documento es confidencial y está destinado únicamente para el uso del destinatario.
       </div>
     </body>
     </html>
     `;
 
+    return htmlContent;
+  };
+
+  const exportarFacturacionMedico = (medico: string) => {
+    const htmlContent = generarHTMLFacturacion(medico);
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -1154,11 +1209,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           
           <nav className="space-y-2">
             {[
-              { id: 'dashboard', icon: BarChart3, label: 'Dashboard', desc: 'Vista general' },
-              { id: 'remitos', icon: FileText, label: 'Gestión de Remitos', desc: 'Administrar remitos' },
-              { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Reportes financieros' },
-              { id: 'analytics', icon: TrendingUp, label: 'Analytics', desc: 'Análisis avanzado' },
-              { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Configurar sistema' }
+              { id: 'dashboard', icon: BarChart3, label: 'Dashboard', desc: 'Urgentes, en proceso y listos para retirar' },
+              { id: 'remitos', icon: FileText, label: 'Gestión de Remitos', desc: 'Editar biopsias y agregar servicios adicionales' },
+              { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico' },
+              { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos' },
+              { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos' }
             ].map(({ id, icon: Icon, label, desc }) => (
               <button
                 key={id}
@@ -1215,73 +1270,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                     Panel de Administrador
                   </h1>
-                  <p className="text-gray-600">Gestión Central - BiopsyTracker Professional</p>
+                  <p className="text-gray-600">Gestión Central - {(() => { try { return JSON.parse(localStorage.getItem('superAdmin_config') || '{}').appNombre || 'BiopsyTracker'; } catch { return 'BiopsyTracker'; } })()} Professional</p>
                 </div>
               </div>
               
               <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <button
-                    onClick={toggleNotifications}
-                    className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <Bell size={20} />
-                    {notifications.filter(n => !n.leida).length > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {notifications.filter(n => !n.leida).length}
-                      </span>
-                    )}
-                  </button>
-                  
-                  {/* Panel de Notificaciones */}
-                  {showNotifications && (
-                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                      <div className="p-4 border-b border-gray-200">
-                        <h3 className="text-lg font-semibold text-gray-900">Notificaciones</h3>
-                      </div>
-                      <div className="max-h-64 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="p-4 text-center text-gray-500">
-                            No hay notificaciones
-                          </div>
-                        ) : (
-                          notifications.map(notification => (
-                            <div
-                              key={notification.id}
-                              className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                                !notification.leida ? 'bg-blue-50' : ''
-                              }`}
-                              onClick={() => handleNotificationClick(notification)}
-                            >
-                              <div className="flex items-start space-x-3">
-                                <div className={`w-2 h-2 rounded-full mt-2 ${
-                                  notification.tipo === 'warning' ? 'bg-yellow-500' :
-                                  notification.tipo === 'success' ? 'bg-green-500' :
-                                  notification.tipo === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                                }`} />
-                                <div className="flex-1">
-                                  <h4 className="text-sm font-medium text-gray-900">
-                                    {notification.titulo}
-                                  </h4>
-                                  <p className="text-sm text-gray-600 mt-1">
-                                    {notification.mensaje}
-                                  </p>
-                                  <p className="text-xs text-gray-400 mt-2">
-                                    {notification.fecha.toLocaleDateString()} {notification.fecha.toLocaleTimeString()}
-                                  </p>
-                                </div>
-                                <div className="text-xs text-blue-600 font-medium">
-                                  Click para ver →
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 <button onClick={onGoBack} className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors">
                   <ArrowLeft size={16} />
                   <span>Volver a la App</span>
@@ -1308,702 +1301,1085 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
         {/* Content Area */}
         <div className="flex-1 overflow-auto">
-          {currentView === 'dashboard' && (
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">Dashboard Ejecutivo</h2>
-                  <p className="text-gray-600">Visión general del rendimiento del laboratorio</p>
+          {currentView === 'dashboard' && (() => {
+            const sortedRemitos = [...remitos].sort((a, b) => new Date((b as any).timestamp || b.fecha).getTime() - new Date((a as any).timestamp || a.fecha).getTime());
+            const enProceso = remitos.filter(r => (r as any).estadoEnvio !== 'listo');
+            const listos = remitos.filter(r => (r as any).estadoEnvio === 'listo');
+            const urgentes = remitos.filter(r => r.biopsias.some(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0) && (r as any).estadoEnvio !== 'listo');
+
+            const filteredRemitos = sortedRemitos.filter(r => {
+              if (dashFilter === 'proceso') return (r as any).estadoEnvio !== 'listo';
+              if (dashFilter === 'listos') return (r as any).estadoEnvio === 'listo';
+              if (dashFilter === 'urgentes') return r.biopsias.some(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0) && (r as any).estadoEnvio !== 'listo';
+              return true;
+            });
+
+            // Tiempo promedio de procesamiento
+            const tiemposProc = listos.map(r => {
+              const inicio = new Date((r as any).timestamp || r.fecha).getTime();
+              const fin = new Date((r as any).listoAt || Date.now()).getTime();
+              return (fin - inicio) / (1000 * 60 * 60);
+            });
+            const tiempoPromedio = tiemposProc.length > 0 ? Math.round(tiemposProc.reduce((a, b) => a + b, 0) / tiemposProc.length) : 0;
+
+            return (
+            <div className="p-4 space-y-3 h-full overflow-auto">
+
+              {/* ALERTA DE URGENCIAS */}
+              {urgentes.length > 0 && (
+                <div className="bg-red-600 rounded-xl p-4 text-white flex items-center gap-4" style={{ animation: 'pulse 3s infinite' }}>
+                  <div className="bg-white/20 rounded-lg p-3 flex-shrink-0">
+                    <Activity size={28} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-lg font-bold">⚠ {urgentes.length} remito{urgentes.length > 1 ? 's' : ''} con estudios URGENTES</div>
+                    <div className="text-sm opacity-90 mt-1">
+                      {urgentes.slice(0, 3).map(r => `Dr/a. ${r.medico}`).join(' · ')}
+                      {urgentes.length > 3 ? ` y ${urgentes.length - 3} más` : ''}
+                    </div>
+                  </div>
+                  <button onClick={() => setDashFilter('urgentes')} className="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg text-sm font-bold flex-shrink-0">
+                    Ver urgentes
+                  </button>
                 </div>
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={refreshData}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                  >
-                    <RefreshCw size={16} />
-                    <span>Actualizar</span>
+              )}
+
+              {/* KPIs compactos */}
+              <div className="grid grid-cols-5 gap-3">
+                {[
+                  { label: 'Total Remitos', value: remitos.length, icon: <FileText size={18} />, bg: '#1e40af' },
+                  { label: 'En proceso', value: enProceso.length, icon: <Clock size={18} />, bg: '#d97706' },
+                  { label: 'Listos', value: listos.length, icon: <CheckCircle size={18} />, bg: '#059669' },
+                  { label: 'Urgentes', value: urgentes.length, icon: <Activity size={18} />, bg: '#dc2626' },
+                  { label: 'Tiempo prom.', value: tiempoPromedio > 24 ? Math.round(tiempoPromedio / 24) + 'd' : tiempoPromedio + 'h', icon: <Clock size={18} />, bg: '#7c3aed' }
+                ].map((kpi, i) => (
+                  <div key={i} style={{ backgroundColor: kpi.bg }} className="rounded-xl p-3 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xl font-bold">{kpi.value}</div>
+                        <div className="text-xs opacity-80">{kpi.label}</div>
+                      </div>
+                      <div style={{ opacity: 0.3 }}>{kpi.icon}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Filtros rápidos + Accesos directos */}
+              <div className="flex items-center justify-between">
+                <div className="flex gap-2">
+                  {[
+                    { key: 'todos', label: 'Todos', count: remitos.length },
+                    { key: 'proceso', label: 'En proceso', count: enProceso.length },
+                    { key: 'listos', label: 'Listos', count: listos.length },
+                    { key: 'urgentes', label: 'Urgentes', count: urgentes.length }
+                  ].map(f => (
+                    <button key={f.key} onClick={() => setDashFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                        dashFilter === f.key ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-200 hover:border-blue-300'
+                      }`}>
+                      {f.label} ({f.count})
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setCurrentView('remitos')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
+                    Gestión Remitos
                   </button>
-                  <button 
-                    onClick={resetToDemo}
-                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                  >
-                    <Target size={16} />
-                    <span>Reset Demo</span>
+                  <button onClick={() => setCurrentView('facturacion')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
+                    Facturación
                   </button>
-                  <button onClick={() => exportarExcel()} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                    <Download size={16} />
-                    <span>Exportar Dashboard</span>
+                  <button onClick={() => setCurrentView('analytics')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
+                    Cobros
                   </button>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-100 text-sm font-medium">Total Remitos</p>
-                      <p className="text-3xl font-bold">{remitos.length}</p>
-                      <p className="text-blue-100 text-xs mt-1">Sistema activo</p>
-                    </div>
-                    <div className="bg-blue-400/30 p-3 rounded-lg">
-                      <FileText size={24} />
-                    </div>
+
+              {/* Tabla de remitos filtrados */}
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">Médico</th>
+                      <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">Fecha</th>
+                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Pac.</th>
+                      <th className="text-right py-2 px-3 text-xs text-gray-500 font-semibold">Total</th>
+                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Prioridad</th>
+                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Estado</th>
+                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRemitos.slice(0, 15).map(remito => {
+                      const isListo = (remito as any).estadoEnvio === 'listo';
+                      const hasUrgent = remito.biopsias.some(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0);
+                      let whatsappNum = '';
+                      try { const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); const doc = docs.find((d: any) => d.email?.toLowerCase() === (remito.email || (remito as any).doctorEmail || '').toLowerCase()); whatsappNum = doc?.whatsapp || ''; } catch {}
+
+                      return (
+                        <tr key={remito.id} className={`border-b border-gray-50 ${isListo ? 'bg-green-50/40' : hasUrgent ? 'bg-red-50/40' : ''}`}>
+                          <td className="py-2 px-3">
+                            <div className="font-semibold text-gray-900 text-xs">Dr/a. {remito.medico}</div>
+                            {hasUrgent && (dashFilter === 'urgentes' || expandedUrgents.has(remito.id)) && (
+                              <div className="mt-1.5 space-y-1">
+                                {remito.biopsias.filter(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0).map((b, bi) => {
+                                  const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
+                                  const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
+                                  const tipo = esPAP ? 'PAP' : esCito ? 'Citología' : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  const cass = parseInt(String(b.cassettes)) || 0;
+                                  return (
+                                    <div key={bi} className="flex items-center gap-2 bg-red-100 rounded px-2 py-1">
+                                      <span className="bg-red-600 text-white text-xs font-bold px-1.5 py-0.5 rounded">{tipo}</span>
+                                      <span className="text-xs font-semibold text-red-800">#{b.numero}</span>
+                                      <span className="text-xs text-red-700">{b.tejido}</span>
+                                      {cass > 0 && !esPAP && !esCito && <span className="text-xs text-red-600">{cass} cass.</span>}
+                                      <span className="text-xs font-bold text-red-800 ml-auto">
+                                        {(b.servicios?.cassetteUrgente || 0) > 0 && 'Urgente 24hs'}
+                                        {(b.servicios?.papUrgente || 0) > 0 && 'PAP Urgente'}
+                                        {(b.servicios?.citologiaUrgente || 0) > 0 && 'Cito Urgente'}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-xs text-gray-500">{new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</td>
+                          <td className="py-2 px-3 text-center">
+                            <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{remito.biopsias.length}</span>
+                          </td>
+                          <td className="py-2 px-3 text-right text-xs font-bold text-gray-900">${calcularTotalRemito(remito.biopsias).toLocaleString()}</td>
+                          <td className="py-2 px-3 text-center">
+                            {hasUrgent ? (
+                              <button onClick={() => {
+                                const next = new Set(expandedUrgents);
+                                if (next.has(remito.id)) next.delete(remito.id); else next.add(remito.id);
+                                setExpandedUrgents(next);
+                              }} className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-200 cursor-pointer hover:bg-red-200 transition-colors">
+                                URGENTE {expandedUrgents.has(remito.id) ? '▲' : '▼'}
+                              </button>
+                            ) : (
+                              <span className="text-xs text-gray-400">Normal</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            {isListo ? (
+                              <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded">Listo</span>
+                            ) : (
+                              <span className="text-xs font-semibold text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded">En proceso</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 text-center">
+                            <div className="flex gap-1 justify-center">
+                              {!isListo ? (
+                                <button onClick={() => {
+                                  const updated = remitos.map(r => r.id === remito.id ? { ...r, estadoEnvio: 'listo', listoAt: new Date().toISOString() } as any : r);
+                                  setRemitos(updated); localStorage.setItem('adminRemitos', JSON.stringify(updated));
+                                  const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                                  notifications.push({ id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\n${remito.biopsias.length} estudio(s) procesado(s).`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' });
+                                  localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                                }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Listo ✓</button>
+                              ) : (
+                                <span className="text-xs text-green-600">✓</span>
+                              )}
+                              {whatsappNum && (
+                                <a href={`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(`Dr/a. ${remito.medico}, le informamos que su material del remito #${remito.id.slice(-5).toUpperCase()} ya está listo para ser retirado.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`)}`}
+                                  target="_blank" rel="noopener noreferrer"
+                                  className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">WA</a>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Top médicos */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Top Médicos (por remitos)</h4>
+                  <div className="space-y-2">
+                    {[...medicos].sort((a, b) => remitos.filter(r => r.medico === b).length - remitos.filter(r => r.medico === a).length).slice(0, 5).map((m, i) => {
+                      const count = remitos.filter(r => r.medico === m).length;
+                      const total = remitos.filter(r => r.medico === m).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                      return (
+                        <div key={m} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-400' : 'bg-blue-400'}`}>{i + 1}</span>
+                            <span className="text-xs font-medium text-gray-900">{m}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-bold text-gray-700">{count} rem.</span>
+                            <span className="text-xs text-gray-400 ml-2">${total.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                
-                <div className="bg-gradient-to-br from-yellow-500 to-orange-500 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-yellow-100 text-sm font-medium">Pendientes</p>
-                      <p className="text-3xl font-bold">{remitos.filter(r => r.estado === 'pendiente').length}</p>
-                      <p className="text-yellow-100 text-xs mt-1">Por procesar</p>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Eficiencia del laboratorio</h4>
+                  <div className="space-y-3">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-blue-700">{tiempoPromedio > 24 ? Math.round(tiempoPromedio / 24) + ' días' : tiempoPromedio + ' hs'}</div>
+                      <div className="text-xs text-gray-500">Tiempo promedio de procesamiento</div>
                     </div>
-                    <div className="bg-yellow-400/30 p-3 rounded-lg">
-                      <Clock size={24} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-green-50 rounded-lg p-2 text-center">
+                        <div className="text-lg font-bold text-green-700">{listos.length}</div>
+                        <div className="text-xs text-green-600">Completados</div>
+                      </div>
+                      <div className="bg-yellow-50 rounded-lg p-2 text-center">
+                        <div className="text-lg font-bold text-yellow-700">{enProceso.length}</div>
+                        <div className="text-xs text-yellow-600">Pendientes</div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-green-100 text-sm font-medium">Facturado</p>
-                      <p className="text-3xl font-bold">
-                        ${remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
-                      </p>
-                      <p className="text-green-100 text-xs mt-1">Completado</p>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: `${remitos.length > 0 ? (listos.length / remitos.length) * 100 : 0}%` }}></div>
                     </div>
-                    <div className="bg-green-400/30 p-3 rounded-lg">
-                      <DollarSign size={24} />
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-purple-500 to-violet-500 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-purple-100 text-sm font-medium">Por Facturar</p>
-                      <p className="text-3xl font-bold">
-                        ${remitos.filter(r => r.estado === 'pendiente').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
-                      </p>
-                      <p className="text-purple-100 text-xs mt-1">En proceso</p>
-                    </div>
-                    <div className="bg-purple-400/30 p-3 rounded-lg">
-                      <Target size={24} />
-                    </div>
+                    <div className="text-xs text-center text-gray-500">{remitos.length > 0 ? Math.round((listos.length / remitos.length) * 100) : 0}% procesados</div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Últimos Remitos Recibidos</h3>
-                {remitos.length === 0 ? (
-                  <div className="text-center py-12 text-gray-500">
-                    <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">No hay remitos disponibles</p>
-                    <p className="text-sm">Los remitos de los médicos aparecerán aquí automáticamente</p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Médico</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Hospital</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Fecha</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Biopsias</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Total</th>
-                          <th className="text-left py-3 px-4 font-semibold text-gray-700">Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {remitos.slice(-8).reverse().map(remito => (
-                          <tr key={remito.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                            <td className="py-3 px-4">
-                              <p className="font-medium text-gray-900">{remito.medico}</p>
-                            </td>
-                            <td className="py-3 px-4 text-gray-600">{remito.hospital}</td>
-                            <td className="py-3 px-4 text-gray-600">{new Date(remito.fecha).toLocaleDateString('es-AR')}</td>
-                            <td className="py-3 px-4 text-gray-600">{remito.biopsias.length}</td>
-                            <td className="py-3 px-4">
-                              <span className="font-bold text-green-600">${calcularTotalRemito(remito.biopsias).toLocaleString()}</span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                remito.estado === 'facturado'
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {remito.estado === 'facturado' ? 'Facturado' : 'Pendiente'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
             </div>
-          )}
+            );
+          })()}
 
           {currentView === 'remitos' && (
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">Gestión de Remitos</h2>
-                  <p className="text-gray-600">Administración completa de remitos del sistema</p>
-                </div>
-                <div className="flex space-x-2">
-                  <button onClick={() => exportarExcel()} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                    <Download size={16} />
-                    <span>Exportar CSV</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <div className="h-full flex flex-col overflow-hidden">
+              {/* Header profesional */}
+              <div className="flex-shrink-0 px-5 pt-4 pb-3">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                    <Filter className="mr-2" size={20} />
-                    Filtros
-                  </h3>
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Gestión de Remitos</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">{remitos.length} remitos en el sistema</p>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Médico</label>
-                    <select value={filtroMedico} onChange={(e) => setFiltroMedico(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                      <option value="todos">Todos los médicos</option>
-                      {medicos.map(medico => (
-                        <option key={medico} value={medico}>{medico}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                      <option value="todos">Todos los estados</option>
-                      <option value="pendiente">Pendientes</option>
-                      <option value="facturado">Facturados</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Búsqueda</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                      <input
-                        type="text"
-                        placeholder="Buscar por médico, hospital, número de biopsia..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
+
+                {/* Filtros */}
+                <div className="flex gap-2 items-center bg-gray-50 rounded-lg p-2">
+                  <select value={filtroMedico} onChange={(e) => setFiltroMedico(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white font-medium">
+                    <option value="todos">Todos los médicos</option>
+                    {medicos.map(m => <option key={m} value={m}>{m}</option>)}
+                  </select>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-300" size={14} />
+                    <input type="text" placeholder="Buscar..."
+                      value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 bg-white"
+                    />
                   </div>
                 </div>
               </div>
 
               {(() => {
-                // Aplicar filtros
                 let remitosFiltrados = remitos;
-                
-                console.log('🔍 Aplicando filtros:', {
-                  totalRemitos: remitos.length,
-                  filtroMedico,
-                  filtroEstado,
-                  searchTerm: searchTerm.trim()
-                });
-                
-                // Filtro por médico
-                if (filtroMedico !== 'todos') {
-                  remitosFiltrados = remitosFiltrados.filter(r => r.medico === filtroMedico);
-                  console.log('👨‍⚕️ Después de filtro médico:', remitosFiltrados.length);
-                }
-                
-                // Filtro por estado
-                if (filtroEstado !== 'todos') {
-                  remitosFiltrados = remitosFiltrados.filter(r => r.estado === filtroEstado);
-                  console.log('📋 Después de filtro estado:', remitosFiltrados.length);
-                }
-                
-                // Filtro por búsqueda (mejorado)
+                if (filtroMedico !== 'todos') remitosFiltrados = remitosFiltrados.filter(r => r.medico === filtroMedico);
+                if (filtroEstado !== 'todos') remitosFiltrados = remitosFiltrados.filter(r => r.estado === filtroEstado);
                 if (searchTerm.trim()) {
                   const searchLower = searchTerm.toLowerCase().trim();
-                  const beforeFilter = remitosFiltrados.length;
                   remitosFiltrados = remitosFiltrados.filter(r => {
-                    // Buscar en médico
                     const medicoMatch = r.medico.toLowerCase().includes(searchLower);
-                    
-                    // Buscar en hospital
                     const hospitalMatch = r.hospital.toLowerCase().includes(searchLower);
-                    
-                    // Buscar en email
                     const emailMatch = r.email?.toLowerCase().includes(searchLower);
-                    
-                    // Buscar en biopsias
-                    const biopsiaMatch = r.biopsias.some(b => 
+                    const biopsiaMatch = r.biopsias.some(b =>
                       b.numero.toLowerCase().includes(searchLower) ||
                       b.tejido.toLowerCase().includes(searchLower) ||
-                      b.tipo.toLowerCase().includes(searchLower) ||
-                      b.desclasificar?.toLowerCase().includes(searchLower)
+                      b.tipo.toLowerCase().includes(searchLower)
                     );
                     
-                    const match = medicoMatch || hospitalMatch || emailMatch || biopsiaMatch;
-                    if (match) {
-                      console.log('✅ Match encontrado en:', r.medico, {medicoMatch, hospitalMatch, emailMatch, biopsiaMatch});
-                    }
-                    return match;
+                    return medicoMatch || hospitalMatch || emailMatch || biopsiaMatch;
                   });
-                  console.log('🔍 Después de filtro búsqueda:', beforeFilter, '→', remitosFiltrados.length);
                 }
                 
-                console.log('📊 Remitos finales filtrados:', remitosFiltrados.length);
-                
                 return remitosFiltrados.length === 0 ? (
-                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-                    <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                      {remitos.length === 0 ? 'No hay remitos' : 'No se encontraron remitos'}
-                    </h3>
-                    <p className="text-gray-500">
-                      {remitos.length === 0 
-                        ? 'Los remitos aparecerán aquí cuando los médicos los envíen' 
-                        : 'Intenta ajustar los filtros para encontrar los remitos que buscas'
-                      }
-                    </p>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center py-8">
+                      <FileText className="h-10 w-10 mx-auto mb-2 text-gray-200" />
+                      <p className="text-gray-400 text-sm">{remitos.length === 0 ? 'Los remitos aparecerán aquí' : 'Sin resultados para esos filtros'}</p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {remitosFiltrados.map(remito => (
-                    <div key={remito.id} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold text-gray-900">{remito.medico}</h3>
-                          <p className="text-gray-600">{remito.hospital} - {new Date(remito.fecha).toLocaleDateString('es-AR')}</p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-green-600">${calcularTotalRemito(remito.biopsias).toLocaleString()}</p>
-                            <p className="text-sm text-gray-500">{remito.biopsias.length} biopsias</p>
+                  <div className="flex-1 overflow-hidden mx-5 mb-4 bg-white rounded-xl border border-gray-200">
+                    <div className="overflow-auto h-full">
+                    <table className="w-full">
+                      <thead className="sticky top-0">
+                        <tr style={{ background: '#0f172a' }}>
+                          <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase w-16">N°</th>
+                          <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase">Médico</th>
+                          <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase w-28">Fecha</th>
+                          <th className="text-center py-2.5 px-4 text-xs font-semibold text-white/70 uppercase w-20">Estudios</th>
+                          <th className="text-right py-2.5 px-4 text-xs font-semibold text-white/70 uppercase w-24">Total</th>
+                          <th className="text-center py-2.5 px-4 text-xs font-semibold text-white/70 uppercase w-20">Acción</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                    {[...remitosFiltrados].sort((a, b) => { const tA = new Date((a as any).timestamp || a.fecha).getTime(); const tB = new Date((b as any).timestamp || b.fecha).getTime(); return tB - tA; }).map(remito => (
+                      <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${(remito as any).modificadoPorAdmin ? 'bg-amber-50/40' : ''}`}>
+                        <td className="py-3 px-4">
+                          <div className="text-xs font-mono text-gray-400">#{remito.id.slice(-5).toUpperCase()}</div>
+                          {(remito as any).modificadoPorAdmin && (
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Editado</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="text-sm font-semibold text-gray-900">Dr/a. {remito.medico}</div>
+                          <div className="text-xs text-gray-400">{remito.email}</div>
+                        </td>
+                        <td className="py-3 px-4 text-xs text-gray-600">
+                          {new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: '2-digit' })}
+                          <div className="text-gray-400">{(remito as any).timestamp ? new Date((remito as any).timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">{remito.biopsias.length}</span>
+                        </td>
+                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-center">
+                          <div className="flex flex-col gap-1 items-center">
+                            <button onClick={() => { const snap = JSON.parse(JSON.stringify(remito.biopsias)); setOriginalBiopsiaSnapshot(snap); localStorage.setItem('_editSnapshot', JSON.stringify(snap)); setEditingBiopsias(JSON.parse(JSON.stringify(remito.biopsias))); setEditingRemito(remito.id); }}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1">
+                              <Edit size={12} /> Editar
+                            </button>
+                            {(remito as any).modificadoPorAdmin && (() => {
+                              try {
+                                const notifs = JSON.parse(localStorage.getItem('doctorNotifications') || '[]')
+                                  .filter((n: any) => n.remitoId === remito.id)
+                                  .sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+                                if (notifs.length > 0) {
+                                  const last = notifs[0];
+                                  return (
+                                    <div className="text-left mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg" style={{ whiteSpace: 'pre-line', minWidth: '280px' }}>
+                                      <div className="text-xs font-bold text-amber-700 mb-2">Último cambio registrado:</div>
+                                      <div className="text-sm text-amber-900 leading-relaxed">{last.mensaje}</div>
+                                      <div className="text-xs text-amber-500 mt-2 pt-2 border-t border-amber-200">{new Date(last.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                                    </div>
+                                  );
+                                }
+                              } catch {}
+                              return null;
+                            })()}
                           </div>
-                          <button
-                            onClick={() => cambiarEstadoRemito(remito.id, remito.estado === 'pendiente' ? 'facturado' : 'pendiente')}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                              remito.estado === 'facturado'
-                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                            }`}
-                          >
-                            {remito.estado === 'facturado' ? 'Facturado' : 'Pendiente'}
-                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                      </tbody>
+                    </table>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Modal de edición de remito */}
+              {editingRemito && editingBiopsias && (() => {
+                const remito = remitos.find(r => r.id === editingRemito);
+                if (!remito) return null;
+                return (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">Editar Remito #{remito.id.slice(-5).toUpperCase()}</h3>
+                          <p className="text-sm text-gray-500">Dr/a. {remito.medico} — {new Date(remito.fecha).toLocaleDateString('es-AR')}</p>
                         </div>
+                        <button onClick={() => { setEditingBiopsias(null); setEditingRemito(null); }} className="text-gray-400 hover:text-gray-600 text-xl font-bold px-2">×</button>
                       </div>
-                      
-                      <div className="overflow-x-auto">
+
+                      {/* Tabla de biopsias editable - usa copia temporal */}
+                      <div className="flex-1 overflow-auto p-4">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-2">Número</th>
-                              <th className="text-left py-2">Tejido</th>
-                              <th className="text-left py-2">Tipo</th>
-                              <th className="text-left py-2">Cassettes</th>
-                              <th className="text-left py-2">PAP</th>
-                              <th className="text-left py-2">Citología</th>
-                              <th className="text-left py-2">Otros Estudios</th>
-                              <th className="text-right py-2">Subtotal</th>
-                              <th className="text-center py-2">Acciones</th>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                              <th className="text-left py-2 px-3 text-xs text-gray-500">N°</th>
+                              <th className="text-left py-2 px-3 text-xs text-gray-500">Tejido</th>
+                              <th className="text-left py-2 px-3 text-xs text-gray-500">Tipo</th>
+                              <th className="text-center py-2 px-3 text-xs text-gray-500">Cassettes</th>
+                              <th className="text-left py-2 px-3 text-xs text-gray-500">Servicios del médico</th>
+                              <th className="text-left py-2 px-3 text-xs text-gray-500">Serv. adicionales (lab)</th>
+                              <th className="text-right py-2 px-3 text-xs text-gray-500">Subtotal</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {remito.biopsias.map((biopsia, index) => {
-                              const isEditing = editingRemito === `${remito.id}_${index}`;
-                              
-                              if (isEditing) {
-                                // Modo edición: mostrar solo campos con datos
-                                return (
-                                  <tr key={index} className="border-b border-gray-200 bg-blue-50">
-                                    <td colSpan={8} className="py-4">
-                                      <EdicionInteligente 
-                                        biopsia={biopsia} 
-                                        index={index} 
-                                        remito={remito} 
-                                      />
-                                      <div className="flex justify-end gap-2 mt-3">
-                                        <button
-                                          onClick={() => {
-                                            localStorage.setItem('adminRemitos', JSON.stringify(remitos));
-                                            setEditingRemito(null);
-                                          }}
-                                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
-                                        >
-                                          <Save size={14} />
-                                          Guardar
-                                        </button>
-                                        <button
-                                          onClick={() => {
-                                            loadAdminData();
-                                            setEditingRemito(null);
-                                          }}
-                                          className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded text-sm flex items-center gap-1"
-                                        >
-                                          <X size={14} />
-                                          Cancelar
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                );
+                            {editingBiopsias.map((biopsia: any, index: number) => {
+                              const servicios: string[] = [];
+                              if ((biopsia.servicios?.cassetteUrgente || 0) > 0) servicios.push('URGENTE 24hs');
+                              if ((biopsia.servicios?.papUrgente || 0) > 0) servicios.push('PAP Urgente');
+                              if ((biopsia.servicios?.citologiaUrgente || 0) > 0) servicios.push('Cito Urgente');
+                              if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
+                                const cass = (biopsia.servicios as any)?.corteBlancoIHQCassettes;
+                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '-' + (cn[c]?.suffix || 'S' + c); }).join(', ')}]` : '';
+                                servicios.push(`Corte IHQ (${biopsia.servicios.corteBlancoIHQ})${cassLabel}`);
                               }
-                              
-                              // Modo vista normal
+                              if ((biopsia.servicios?.corteBlanco || 0) > 0) {
+                                const cass = (biopsia.servicios as any)?.corteBlancoComunCassettes;
+                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '-' + (cn[c]?.suffix || 'S' + c); }).join(', ')}]` : '';
+                                servicios.push(`Corte Blanco (${biopsia.servicios.corteBlanco})${cassLabel}`);
+                              }
+                              if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
+                                const opts = (biopsia.servicios as any)?.giemsaOptions;
+                                const cass = (biopsia.servicios as any)?.giemsaCassettes;
+                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '-' + (cn[c]?.suffix || 'S' + c); }).join(', ')}]` : '';
+                                if (opts) {
+                                  const t: string[] = [];
+                                  if (opts.giemsa) t.push('Giemsa');
+                                  if (opts.pas) t.push('PAS');
+                                  if (opts.masson) t.push('Masson');
+                                  servicios.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + cassLabel);
+                                } else {
+                                  servicios.push('Giemsa/PAS/Masson' + cassLabel);
+                                }
+                              }
+
+                              const minCass = Number((originalBiopsiaSnapshot || [])[index]?.cassettes) || 0;
+
                               return (
-                                <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                                  <td className="py-2 font-bold text-blue-600">#{biopsia.numero}</td>
-                                  <td className="py-2">{biopsia.tejido}</td>
-                                  <td className="py-2">
-                                    {(() => {
-                                      const getTipoDisplay = (tipo: string, tejido: string) => {
-                                        if (tejido === 'PAP') {
-                                          return { nombre: 'PAP', color: 'bg-pink-100 text-pink-800' };
-                                        }
-                                        if (tejido === 'Citología') {
-                                          return { nombre: 'CITO', color: 'bg-purple-100 text-purple-800' };
-                                        }
-                                        // Para biopsias, detectar si es PQ o BX basado en el tipo original
-                                        if (tipo.toLowerCase().includes('pq') || tipo.toLowerCase().includes('pequena') || tipo.toLowerCase().includes('pequeña')) {
-                                          return { nombre: 'PQ', color: 'bg-orange-100 text-orange-800' };
-                                        }
-                                        // Por defecto es BX
-                                        return { nombre: 'BX', color: 'bg-green-100 text-green-800' };
-                                      };
-                                      
-                                      const tipoInfo = getTipoDisplay(biopsia.tipo, biopsia.tejido);
-                                      
-                                      return (
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${tipoInfo.color} border`}>
-                                          {tipoInfo.nombre}
-                                        </span>
-                                      );
-                                    })()}
-                                  </td>
-                                  <td className="py-2">
-                                    <div className="space-y-1">
-                                      {(() => {
-                                        // Solo mostrar cassettes para BX y PQ
-                                        if (biopsia.tejido === 'PAP' || biopsia.tejido === 'Citología') {
-                                          return <span className="text-gray-400">-</span>;
-                                        }
-                                        
-                                        return (
-                                          <>
-                                            <span className="font-medium">{biopsia.cassettes}</span>
-                                            {(biopsia.servicios?.cassetteUrgente || 0) > 0 && (
-                                              <div className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded">
-                                                URGENTE (24hs)
-                                              </div>
-                                            )}
-                                          </>
-                                        );
-                                      })()}
-                                    </div>
-                                  </td>
-                                  <td className="py-2">
-                                    <div className="space-y-1">
-                                      {(biopsia.papQuantity || 0) > 0 && (
-                                        <div className={`text-xs px-2 py-1 rounded ${
-                                          (biopsia.servicios?.papUrgente || 0) > 0 
-                                            ? 'bg-red-100 text-red-800' 
-                                            : 'bg-pink-100 text-pink-800'
-                                        }`}>
-                                          PAP: {biopsia.papQuantity} {(biopsia.servicios?.papUrgente || 0) > 0 ? '(URGENTES)' : ''}
-                                        </div>
-                                      )}
-                                      {!(biopsia.papQuantity || 0) && (
-                                        <span className="text-gray-400">-</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-2">
-                                    <div className="space-y-1">
-                                      {(biopsia.citologiaQuantity || 0) > 0 && (
-                                        <div className={`text-xs px-2 py-1 rounded ${
-                                          (biopsia.servicios?.citologiaUrgente || 0) > 0 
-                                            ? 'bg-red-100 text-red-800' 
-                                            : 'bg-purple-100 text-purple-800'
-                                        }`}>
-                                          CITO: {biopsia.citologiaQuantity} {(biopsia.servicios?.citologiaUrgente || 0) > 0 ? '(URGENTES)' : ''}
-                                        </div>
-                                      )}
-                                      {!(biopsia.citologiaQuantity || 0) && (
-                                        <span className="text-gray-400">-</span>
-                                      )}
-                                    </div>
-                                  </td>
-                                  <td className="py-2">
-                                    <div className="space-y-1">
-                                      {(biopsia.servicios?.corteBlanco || 0) > 0 && (
-                                        <div className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">
-                                          Corte Blanco: {biopsia.servicios.corteBlanco}
-                                        </div>
-                                      )}
+                              <tr key={index} className="border-b border-gray-100">
+                                <td className="py-2 px-3 font-bold text-blue-600 text-xs">#{biopsia.numero}</td>
+                                <td className="py-2 px-3 text-xs">{biopsia.tejido}</td>
+                                <td className="py-2 px-3">
+                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                                    biopsia.tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : biopsia.tejido === 'PAP' ? 'bg-pink-100 text-pink-700' : biopsia.tejido === 'Citología' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
+                                  }`}>{biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? 'CITO' : 'BX'}</span>
+                                </td>
+                                <td className="py-2 px-3 text-center">
+                                  <input type="number" value={biopsia.cassettes} min={minCass}
+                                    className="w-16 text-center border border-gray-200 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500"
+                                    onChange={(e) => {
+                                      const val = Math.max(Number(e.target.value), minCass);
+                                      const updated = [...editingBiopsias];
+                                      updated[index] = { ...updated[index], cassettes: val };
+                                      setEditingBiopsias(updated);
+                                    }}
+                                  />
+                                </td>
+                                {/* Servicios del médico (solo lectura) */}
+                                <td className="py-2 px-3">
+                                  <div className="flex flex-wrap gap-1">
+                                    {servicios.length > 0 ? servicios.map((s, si) => (
+                                      <span key={si} className={`px-1.5 py-0.5 rounded text-xs font-semibold ${
+                                        s.includes('URGENTE') || s.includes('Urgente') ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-700'
+                                      }`}>{s}</span>
+                                    )) : <span className="text-xs text-gray-300">—</span>}
+                                    {(biopsia.papQuantity || 0) > 0 && <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-pink-50 text-pink-700">PAP: {biopsia.papQuantity}</span>}
+                                    {(biopsia.citologiaQuantity || 0) > 0 && <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700">Cito: {biopsia.citologiaQuantity}</span>}
+                                  </div>
+                                </td>
+                                {/* Servicios adicionales editables por el lab */}
+                                <td className="py-2 px-3">
+                                  <div className="flex flex-col gap-2">
+                                    {/* Corte IHQ */}
+                                    <div className="border border-gray-100 rounded p-1.5">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={(biopsia.servicios?.corteBlancoIHQ || 0) > 0} className="w-3 h-3"
+                                          onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQ: e.target.checked ? 1 : 0 }}; setEditingBiopsias(u); }} />
+                                        <span className="text-xs font-semibold text-gray-700">Corte IHQ</span>
+                                      </label>
                                       {(biopsia.servicios?.corteBlancoIHQ || 0) > 0 && (
-                                        <div className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded font-medium">
-                                          IHQ: {biopsia.servicios.corteBlancoIHQ}
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <span className="text-xs text-gray-500">Cant:</span>
+                                          <input type="number" value={biopsia.servicios?.corteBlancoIHQ || 1} min={1} max={20}
+                                            className="w-12 text-center border border-gray-200 rounded px-1 py-0.5 text-xs"
+                                            onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQ: Math.max(1, Number(e.target.value)) }}; setEditingBiopsias(u); }} />
+                                          {Number(biopsia.cassettes) >= 2 && (
+                                            <div className="flex gap-1 flex-wrap">
+                                              {Array.from({ length: Number(biopsia.cassettes) }, (_, ci) => {
+                                                const sel = (biopsia.servicios as any)?.corteBlancoIHQCassettes || [];
+                                                const isSel = sel.includes(ci);
+                                                return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQCassettes: newSel }}; setEditingBiopsias(u); }}
+                                                  className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[ci]?.suffix || ci); })()}</button>;
+                                              })}
+                                            </div>
+                                          )}
                                         </div>
-                                      )}
-                                      {(biopsia.servicios?.giemsaPASMasson || 0) > 0 && (
-                                        <div className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded font-medium">
-                                          Giemsa/PAS: {biopsia.servicios.giemsaPASMasson}
-                                        </div>
-                                      )}
-                                      {!(biopsia.servicios?.corteBlanco || 0) && 
-                                       !(biopsia.servicios?.corteBlancoIHQ || 0) && 
-                                       !(biopsia.servicios?.giemsaPASMasson || 0) && (
-                                        <span className="text-gray-400">-</span>
                                       )}
                                     </div>
-                                  </td>
-                                  <td className="py-2 text-right font-bold text-green-600">
-                                    ${calcularTotalBiopsia(biopsia).toLocaleString()}
-                                  </td>
-                                  <td className="py-2 text-center">
-                                    <button
-                                      onClick={() => setEditingRemito(`${remito.id}_${index}`)}
-                                      className="bg-blue-500 hover:bg-blue-600 text-white p-2 rounded-lg text-xs flex items-center gap-1 mx-auto"
-                                      title="Editar biopsia"
-                                    >
-                                      <Edit size={12} />
-                                      Editar
-                                    </button>
-                                  </td>
-                                </tr>
+                                    {/* Corte Blanco */}
+                                    <div className="border border-gray-100 rounded p-1.5">
+                                      <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" checked={(biopsia.servicios?.corteBlanco || 0) > 0} className="w-3 h-3"
+                                          onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlanco: e.target.checked ? 1 : 0 }}; setEditingBiopsias(u); }} />
+                                        <span className="text-xs font-semibold text-gray-700">Corte Blanco</span>
+                                      </label>
+                                      {(biopsia.servicios?.corteBlanco || 0) > 0 && (
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <span className="text-xs text-gray-500">Cant:</span>
+                                          <input type="number" value={biopsia.servicios?.corteBlanco || 1} min={1} max={20}
+                                            className="w-12 text-center border border-gray-200 rounded px-1 py-0.5 text-xs"
+                                            onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlanco: Math.max(1, Number(e.target.value)) }}; setEditingBiopsias(u); }} />
+                                          {Number(biopsia.cassettes) >= 2 && (
+                                            <div className="flex gap-1 flex-wrap">
+                                              {Array.from({ length: Number(biopsia.cassettes) }, (_, ci) => {
+                                                const sel = (biopsia.servicios as any)?.corteBlancoComunCassettes || [];
+                                                const isSel = sel.includes(ci);
+                                                return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoComunCassettes: newSel }}; setEditingBiopsias(u); }}
+                                                  className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[ci]?.suffix || ci); })()}</button>;
+                                              })}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                    {/* Giemsa/PAS/Masson */}
+                                    <div className="border border-gray-100 rounded p-1.5">
+                                      <div className="flex flex-wrap items-center gap-1 mb-1">
+                                        {['giemsa', 'pas', 'masson'].map(tecnica => {
+                                          const opts = (biopsia.servicios as any)?.giemsaOptions || {};
+                                          return (
+                                            <label key={tecnica} className="flex items-center gap-1 cursor-pointer">
+                                              <input type="checkbox" checked={opts[tecnica] || false} className="w-3 h-3"
+                                                onChange={(e) => { const u = [...editingBiopsias]; const newOpts = { ...(u[index].servicios?.giemsaOptions || {}), [tecnica]: e.target.checked }; const total = Object.values(newOpts).filter(Boolean).length; u[index] = { ...u[index], servicios: { ...u[index].servicios, giemsaOptions: newOpts, giemsaPASMasson: total }}; setEditingBiopsias(u); }} />
+                                              <span className="text-xs font-semibold text-gray-600">{tecnica === 'pas' ? 'PAS' : tecnica.charAt(0).toUpperCase() + tecnica.slice(1)}</span>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                      {(biopsia.servicios?.giemsaPASMasson || 0) > 0 && Number(biopsia.cassettes) >= 2 && (
+                                        <div className="flex gap-1 flex-wrap mt-1">
+                                          {Array.from({ length: Number(biopsia.cassettes) }, (_, ci) => {
+                                            const sel = (biopsia.servicios as any)?.giemsaCassettes || [];
+                                            const isSel = sel.includes(ci);
+                                            return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, giemsaCassettes: newSel }}; setEditingBiopsias(u); }}
+                                              className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
+                                            >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[ci]?.suffix || ci); })()}</button>;
+                                          })}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">${calcularTotalBiopsia(biopsia).toLocaleString()}</td>
+                              </tr>
                               );
                             })}
                           </tbody>
                         </table>
                       </div>
-                      
-                      {/* Resumen de Estudios del Remito */}
-                      <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                        <h4 className="font-semibold text-gray-800 mb-3">Resumen de Estudios</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {(() => {
-                            const totales = remito.biopsias.reduce((acc, biopsia) => {
-                              // Solo contar cassettes para BX y PQ (no PAP ni Citología)
-                              if (biopsia.tejido !== 'PAP' && biopsia.tejido !== 'Citología') {
-                                acc.cassettes += biopsia.cassettes || 0;
+
+                      {/* Leyenda - solo si algún paciente tiene 2+ cassettes */}
+                      {editingBiopsias.some((b: any) => Number(b.cassettes) >= 2) && (
+                        <div className="px-4 py-2 border-t border-gray-100 bg-blue-50 flex items-center gap-3">
+                          <span className="text-xs font-semibold text-blue-700">Referencia:</span>
+                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">C</span>
+                          <span className="text-xs text-blue-600">= Cassette original</span>
+                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">S1</span>
+                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">S2</span>
+                          <span className="text-xs text-blue-600">= Sub-cassettes adicionales</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
+                        <div className="text-sm font-bold text-gray-900">
+                          Total: ${calcularTotalRemito(editingBiopsias as any).toLocaleString()}
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => {
+                            setEditingBiopsias(null);
+                            setOriginalBiopsiaSnapshot(null);
+                            setEditingRemito(null);
+                          }}
+                            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">
+                            Cancelar
+                          </button>
+                          <button onClick={() => {
+                            // Primero detectar si hay cambios reales
+                            const cambiosDetalle: string[] = [];
+                            let origBiopsias: any[] = [];
+                            try { origBiopsias = JSON.parse(localStorage.getItem('_editSnapshot') || '[]'); } catch {}
+                            if (origBiopsias.length === 0) origBiopsias = originalBiopsiaSnapshot || [];
+                            editingBiopsias.forEach((curr: any, idx: number) => {
+                              const orig = origBiopsias[idx];
+                              if (!orig) return;
+                              const cambiosPaciente: string[] = [];
+                              const origCass = Number(orig.cassettes) || 0;
+                              const currCass = Number(curr.cassettes) || 0;
+                              const origPap = Number(orig.papQuantity) || 0;
+                              const currPap = Number(curr.papQuantity) || 0;
+                              const origCito = Number(orig.citologiaQuantity) || 0;
+                              const currCito = Number(curr.citologiaQuantity) || 0;
+                              if (origCass !== currCass) {
+                                const diff = currCass - origCass;
+                                cambiosPaciente.push(`Cassettes: ${origCass} → ${currCass} (${diff > 0 ? '+' : ''}${diff})`);
                               }
-                              
-                              // PAP: si están marcados como urgentes, todas son urgentes, sino normales
-                              const esPapUrgente = (biopsia.servicios?.papUrgente || 0) > 0;
-                              if (esPapUrgente) {
-                                acc.papUrgente += biopsia.papQuantity || 0;
-                              } else {
-                                acc.papNormal += biopsia.papQuantity || 0;
+                              if (origPap !== currPap) {
+                                const diff = currPap - origPap;
+                                cambiosPaciente.push(`PAP: ${origPap} → ${currPap} (${diff > 0 ? '+' : ''}${diff})`);
                               }
-                              
-                              // Citología: si están marcadas como urgentes, todas son urgentes, sino normales
-                              const esCitologiaUrgente = (biopsia.servicios?.citologiaUrgente || 0) > 0;
-                              if (esCitologiaUrgente) {
-                                acc.citologiaUrgente += biopsia.citologiaQuantity || 0;
-                              } else {
-                                acc.citologiaNormal += biopsia.citologiaQuantity || 0;
+                              if (origCito !== currCito) {
+                                const diff = currCito - origCito;
+                                cambiosPaciente.push(`Citología: ${origCito} → ${currCito} (${diff > 0 ? '+' : ''}${diff})`);
                               }
-                              
-                              acc.corteBlanco += biopsia.servicios?.corteBlanco || 0;
-                              acc.corteBlancoIHQ += biopsia.servicios?.corteBlancoIHQ || 0;
-                              acc.giemsaPASMasson += biopsia.servicios?.giemsaPASMasson || 0;
-                              return acc;
-                            }, {
-                              cassettes: 0,
-                              papNormal: 0,
-                              papUrgente: 0,
-                              citologiaNormal: 0,
-                              citologiaUrgente: 0,
-                              corteBlanco: 0,
-                              corteBlancoIHQ: 0,
-                              giemsaPASMasson: 0
+                              if (cambiosPaciente.length > 0) {
+                                const tipo = curr.tipo === 'PQ' ? 'PQ' : curr.tejido === 'PAP' ? 'PAP' : curr.tejido === 'Citología' ? 'Citología' : 'BX';
+                                cambiosDetalle.push(`Paciente ${idx + 1} – N° ${curr.numero || 'S/N'}\nMaterial: ${curr.tejido || '-'} (${tipo})\n${cambiosPaciente.join('\n')}`);
+                              }
                             });
 
-                            return (
-                              <>
-                                <div className="text-center">
-                                  <div className="text-2xl font-bold text-blue-600">{totales.cassettes}</div>
-                                  <div className="text-xs text-gray-600">Cassettes</div>
-                                </div>
-                                {(totales.papNormal + totales.papUrgente) > 0 && (
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-green-600">{totales.papNormal + totales.papUrgente}</div>
-                                    <div className="text-xs text-gray-600">PAP Total</div>
-                                    <div className="text-xs text-gray-500">
-                                      {totales.papNormal > 0 && `${totales.papNormal} normal`}
-                                      {totales.papNormal > 0 && totales.papUrgente > 0 && ', '}
-                                      {totales.papUrgente > 0 && `${totales.papUrgente} urgente`}
-                                    </div>
-                                  </div>
-                                )}
-                                {(totales.citologiaNormal + totales.citologiaUrgente) > 0 && (
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-purple-600">{totales.citologiaNormal + totales.citologiaUrgente}</div>
-                                    <div className="text-xs text-gray-600">Citología Total</div>
-                                    <div className="text-xs text-gray-500">
-                                      {totales.citologiaNormal > 0 && `${totales.citologiaNormal} normal`}
-                                      {totales.citologiaNormal > 0 && totales.citologiaUrgente > 0 && ', '}
-                                      {totales.citologiaUrgente > 0 && `${totales.citologiaUrgente} urgente`}
-                                    </div>
-                                  </div>
-                                )}
-                                {(totales.corteBlanco + totales.corteBlancoIHQ + totales.giemsaPASMasson) > 0 && (
-                                  <div className="text-center">
-                                    <div className="text-2xl font-bold text-orange-600">
-                                      {totales.corteBlanco + totales.corteBlancoIHQ + totales.giemsaPASMasson}
-                                    </div>
-                                    <div className="text-xs text-gray-600">Estudios Especiales</div>
-                                    <div className="text-xs text-gray-500">
-                                      {totales.corteBlanco > 0 && `${totales.corteBlanco} corte blanco`}
-                                      {totales.corteBlanco > 0 && (totales.corteBlancoIHQ > 0 || totales.giemsaPASMasson > 0) && ', '}
-                                      {totales.corteBlancoIHQ > 0 && `${totales.corteBlancoIHQ} IHQ`}
-                                      {totales.corteBlancoIHQ > 0 && totales.giemsaPASMasson > 0 && ', '}
-                                      {totales.giemsaPASMasson > 0 && `${totales.giemsaPASMasson} giemsa/PAS`}
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                            // Solo guardar, notificar y sincronizar si hubo cambios reales
+                            if (cambiosDetalle.length === 0) {
+                              // Sin cambios: solo cerrar
+                              setEditingBiopsias(null);
+                              setOriginalBiopsiaSnapshot(null);
+                              setEditingRemito(null);
+                              return;
+                            }
+
+                            // Aplicar cambios al remito real
+                            const updatedRemitos = remitos.map(r => {
+                              if (r.id === remito.id) return { ...r, biopsias: editingBiopsias, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() } as any;
+                              return r;
+                            });
+                            setRemitos(updatedRemitos);
+                            localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+
+                            if (cambiosDetalle.length > 0) {
+                              const mensajeDetalle = cambiosDetalle.join('\n\n');
+                              const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                              notifications.push({
+                                id: `NOTIF_${Date.now()}`,
+                                remitoId: remito.id,
+                                medicoEmail: (remito as any).doctorEmail || remito.email,
+                                mensaje: mensajeDetalle,
+                                fecha: new Date().toISOString(),
+                                leida: false
+                              });
+                              localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+                            }
+
+                            // SINCRONIZAR con historial del médico - match por timestamp + cantidad de biopsias
+                            try {
+                              const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
+                              if (doctorEmail) {
+                                const doctorKey = `doctor_${doctorEmail}`;
+                                const historyKey = `${doctorKey}_history`;
+                                const history = JSON.parse(localStorage.getItem(historyKey) || '{}');
+                                const remitoTimestamp = (remito as any).timestamp || remito.fecha;
+                                const remitoDate = new Date(remito.fecha).toDateString();
+                                const remitoBiopsyCount = editingBiopsias.length;
+
+                                // Match exacto: timestamp + misma cantidad de biopsias
+                                let matched = false;
+                                Object.keys(history).forEach(key => {
+                                  if (matched) return;
+                                  const entry = history[key];
+                                  if (!entry?.biopsies) return;
+
+                                  // Match por timestamp exacto
+                                  const entryTimestamp = entry.timestamp || entry.date;
+                                  const sameTimestamp = entryTimestamp === remitoTimestamp;
+                                  // Fallback: misma fecha + misma cantidad de biopsias
+                                  const sameDate = entry.date && new Date(entry.date).toDateString() === remitoDate;
+                                  const sameBiopsyCount = entry.biopsies.length === remitoBiopsyCount;
+
+                                  if (sameTimestamp || (sameDate && sameBiopsyCount)) {
+                                    // Solo actualizar cassettes (lo que el admin puede modificar)
+                                    entry.biopsies.forEach((biopsy: any, i: number) => {
+                                      const edited = editingBiopsias[i];
+                                      if (edited) {
+                                        biopsy.cassettes = String(edited.cassettes ?? biopsy.cassettes);
+                                        // Sincronizar también servicios editados por el lab
+                                        if (edited.servicios) {
+                                          biopsy.servicios = { ...biopsy.servicios, ...edited.servicios };
+                                        }
+                                      }
+                                    });
+                                    matched = true;
+                                  }
+                                });
+                                localStorage.setItem(historyKey, JSON.stringify(history));
+                              }
+                            } catch (e) {
+                              console.error('Error sincronizando historial del médico:', e);
+                            }
+
+                            setEditingBiopsias(null);
+                            setOriginalBiopsiaSnapshot(null);
+                            setEditingRemito(null);
+                          }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold flex items-center gap-2">
+                            <Save size={14} /> Guardar Cambios
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
                 );
               })()}
             </div>
           )}
 
-          {currentView === 'facturacion' && (
-            <div className="h-full flex flex-col p-3 overflow-hidden">
-              {/* Header super compacto */}
-              <div className="flex-shrink-0 mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-bold text-gray-900 flex items-center">
-                    💰 Facturación
-                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      {medicos.length} médicos
-                    </span>
-                  </h2>
-                  <div className="text-sm font-bold text-green-600">
-                    Total: ${remitos.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
+          {currentView === 'facturacion' && (() => {
+            const totalGeneral = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+            const allBiopsias = remitos.flatMap(r => r.biopsias);
+            const totalPacientes = allBiopsias.length;
+            const countBX = allBiopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length;
+            const countPQ = allBiopsias.filter(b => b.tipo === 'PQ').length;
+            const countPAP = allBiopsias.reduce((s, b) => s + (b.papQuantity || 0), 0);
+            const countCito = allBiopsias.reduce((s, b) => s + (b.citologiaQuantity || 0), 0);
+            const countUrgencias = allBiopsias.filter(b => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0).length;
+            const countCorteIHQ = allBiopsias.reduce((s, b) => s + (b.servicios?.corteBlancoIHQ || 0), 0);
+            const countCorteBlanco = allBiopsias.reduce((s, b) => s + (b.servicios?.corteBlanco || 0), 0);
+            const countGiemsa = allBiopsias.filter(b => (b.servicios?.giemsaPASMasson || 0) > 0).length;
+
+            return (
+            <div className="h-full flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex-shrink-0 px-5 pt-4 pb-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Facturación</h2>
+                    <p className="text-xs text-gray-400">{medicos.length} médicos · {remitos.length} remitos</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => {
+                      const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                      if (confirm(`¿Enviar facturación de ${mes} a todos los médicos?`)) alert('Facturación preparada. Requiere servicio de email.');
+                    }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
+                      <Mail size={12} /> Enviar a todos
+                    </button>
                   </div>
                 </div>
-                
-                {/* Resumen general ultra compacto */}
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="bg-blue-50 p-1.5 rounded text-center border">
-                    <div className="text-sm font-bold text-blue-700">{remitos.length}</div>
-                    <div className="text-xs text-blue-600">Remitos</div>
+
+                {/* KPIs principales */}
+                <div className="grid grid-cols-6 gap-2 mb-3">
+                  <div style={{ background: '#0f172a' }} className="rounded-xl p-3 text-white col-span-2">
+                    <div className="text-xs opacity-60">TOTAL FACTURADO</div>
+                    <div className="text-2xl font-bold">${totalGeneral.toLocaleString()}</div>
+                    <div className="text-xs opacity-50 mt-1">{totalPacientes} pacientes</div>
                   </div>
-                  <div className="bg-purple-50 p-1.5 rounded text-center border">
-                    <div className="text-sm font-bold text-purple-700">{remitos.reduce((acc, r) => acc + r.biopsias.length, 0)}</div>
-                    <div className="text-xs text-purple-600">Biopsias</div>
-                  </div>
-                  <div className="bg-yellow-50 p-1.5 rounded text-center border">
-                    <div className="text-sm font-bold text-yellow-700">
-                      ${remitos.filter(r => r.estado === 'pendiente').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
+                  {[
+                    { label: 'BX', value: countBX, color: '#1e40af' },
+                    { label: 'PQ', value: countPQ, color: '#0369a1' },
+                    { label: 'PAP', value: countPAP, color: '#7c3aed' },
+                    { label: 'Cito', value: countCito, color: '#6d28d9' },
+                  ].map((k, i) => (
+                    <div key={i} className="bg-white rounded-xl p-3 border border-gray-200 text-center">
+                      <div style={{ color: k.color }} className="text-xl font-bold">{k.value}</div>
+                      <div className="text-xs text-gray-400">{k.label}</div>
                     </div>
-                    <div className="text-xs text-yellow-600">Pendiente</div>
-                  </div>
-                  <div className="bg-green-50 p-1.5 rounded text-center border">
-                    <div className="text-sm font-bold text-green-700">
-                      ${remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0).toLocaleString()}
+                  ))}
+                </div>
+
+                {/* Servicios adicionales resumen */}
+                <div className="flex gap-3 text-xs">
+                  {[
+                    { label: 'Urgencias', value: countUrgencias, color: '#dc2626' },
+                    { label: 'Corte IHQ', value: countCorteIHQ, color: '#1e40af' },
+                    { label: 'Corte Blanco', value: countCorteBlanco, color: '#475569' },
+                    { label: 'Tinciones', value: countGiemsa, color: '#7c3aed' },
+                  ].map((s, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <div style={{ backgroundColor: s.color }} className="w-2 h-2 rounded-full"></div>
+                      <span className="text-gray-500">{s.label}: <strong style={{ color: s.color }}>{s.value}</strong></span>
                     </div>
-                    <div className="text-xs text-green-600">Facturado</div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tabla de médicos */}
+              <div className="flex-1 overflow-auto px-5 pb-4">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <table className="w-full">
+                    <thead className="sticky top-0">
+                      <tr style={{ background: '#0f172a' }}>
+                        <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase">Médico</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Remitos</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Pac.</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">BX</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">PQ</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">PAP</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Cito</th>
+                        <th className="text-right py-2.5 px-4 text-xs font-semibold text-white/70 uppercase">Total</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...medicos].sort((a, b) => {
+                        const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        return tB - tA;
+                      }).map((medico) => {
+                        const rm = remitos.filter(r => r.medico === medico);
+                        const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
+                        const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
+                        const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
+                        const pap = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.papQuantity || 0), 0), 0);
+                        const cito = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.citologiaQuantity || 0), 0), 0);
+                        return (
+                          <tr key={medico} className="border-b border-gray-50 hover:bg-blue-50/30">
+                            <td className="py-2.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                  {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                </div>
+                                <div>
+                                  <div className="text-xs font-semibold text-gray-900">Dr/a. {medico}</div>
+                                  <div className="text-xs text-gray-400">{rm[0]?.email || ''}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-700">{rm.length}</td>
+                            <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-700">{pac}</td>
+                            <td className="py-2.5 px-3 text-center"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{bx}</span></td>
+                            <td className="py-2.5 px-3 text-center"><span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">{pq}</span></td>
+                            <td className="py-2.5 px-3 text-center"><span className="text-xs font-bold text-gray-600">{pap || '-'}</span></td>
+                            <td className="py-2.5 px-3 text-center"><span className="text-xs font-bold text-gray-600">{cito || '-'}</span></td>
+                            <td className="py-2.5 px-4 text-right text-sm font-bold text-gray-900">${total.toLocaleString()}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              <div className="flex gap-1 justify-center">
+                                <button onClick={() => exportarFacturacionMedico(medico)}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                  <Download size={12} />
+                                </button>
+                                <button onClick={async () => {
+                                  const doctorEmail = rm[0]?.email || '';
+                                  if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
+                                  try {
+                                    const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
+                                    if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
+                                    const fromName = labConfig.nombre || 'Laboratorio';
+                                    const fechaActual = new Date().toLocaleDateString('es-AR');
+                                    const totalMedico = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+
+                                    // Generar HTML compacto para email (< 50KB)
+                                    const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
+                                      const tipo = b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
+                                      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
+                                    })).join('');
+
+                                    const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                                      '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
+                                      '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
+                                      '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
+                                      '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación</h3>' +
+                                      '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + ' — ' + fechaActual + ' — ' + rm.length + ' remito(s)</p>' +
+                                      '<table style="width:100%;border-collapse:collapse;margin:12px 0;">' +
+                                      '<tr style="background:#0f172a;color:white;"><th style="padding:8px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:8px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
+                                      rows +
+                                      '<tr style="background:#0f172a;color:white;"><td colspan="4" style="padding:10px;text-align:right;font-weight:700;font-size:13px;">TOTAL</td><td style="padding:10px;text-align:right;font-weight:700;font-size:15px;">$' + totalMedico.toLocaleString() + '</td></tr>' +
+                                      '</table>' +
+                                      '<p style="color:#94a3b8;font-size:10px;text-align:center;">Powered by BiopsyTracker</p></div>';
+
+                                    await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
+                                    alert('Email enviado a ' + doctorEmail);
+                                  } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
+                                }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                  <Mail size={12} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {/* Fila total */}
+                      <tr style={{ background: '#0f172a' }}>
+                        <td className="py-3 px-4 text-white font-bold text-xs" colSpan={2}>TOTAL</td>
+                        <td className="py-3 px-3 text-center text-white font-bold text-xs">{totalPacientes}</td>
+                        <td className="py-3 px-3 text-center text-white font-bold text-xs">{countBX}</td>
+                        <td className="py-3 px-3 text-center text-white font-bold text-xs">{countPQ}</td>
+                        <td className="py-3 px-3 text-center text-white font-bold text-xs">{countPAP || '-'}</td>
+                        <td className="py-3 px-3 text-center text-white font-bold text-xs">{countCito || '-'}</td>
+                        <td className="py-3 px-4 text-right text-white font-bold text-sm">${totalGeneral.toLocaleString()}</td>
+                        <td className="py-3 px-3"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Sección de actualización de precios */}
+              <div className="px-5 pb-4">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                  <div style={{ background: '#0f172a' }} className="px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-white">Comunicar actualización de precios</h3>
+                      <p className="text-xs text-white/50">Enviar tabla de precios vigentes a todos los médicos</p>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* Tabla de precios */}
+                      <div>
+                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Precios vigentes</div>
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                          <table className="w-full text-xs">
+                            <thead>
+                              <tr className="bg-gray-50">
+                                <th className="text-left py-1.5 px-3 text-gray-500 font-semibold">Servicio</th>
+                                <th className="text-right py-1.5 px-3 text-gray-500 font-semibold">Precio</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {[
+                                { name: 'Cassette Normal', price: configuracion.precioCassette },
+                                { name: 'Cassette Urgente (24hs)', price: configuracion.precioCassetteUrgente },
+                                { name: 'Profundización (cassette adicional)', price: configuracion.precioProfundizacion },
+                                { name: 'PAP', price: configuracion.precioPAP },
+                                { name: 'PAP Urgente', price: configuracion.precioPAPUrgente },
+                                { name: 'Citología', price: configuracion.precioCitologia },
+                                { name: 'Citología Urgente', price: configuracion.precioCitologiaUrgente },
+                                { name: 'Corte en Blanco', price: configuracion.precioCorteBlanco },
+                                { name: 'Corte en Blanco IHQ', price: configuracion.precioCorteBlancoIHQ },
+                                { name: 'Giemsa/PAS/Masson (por técnica)', price: configuracion.precioGiemsaPASMasson },
+                              ].map((item, i) => (
+                                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                                  <td className="py-1.5 px-3 text-gray-700">{item.name}</td>
+                                  <td className="py-1.5 px-3 text-right font-bold text-gray-900">${item.price.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Mensaje personalizado */}
+                      <div className="flex flex-col">
+                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Mensaje para los médicos</div>
+                        <textarea
+                          id="preciosEmailMsg"
+                          defaultValue={`Estimado/a Doctor/a:\n\nLe comunicamos la actualización de aranceles vigentes a partir de ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}.\n\nA continuación encontrará el detalle de los nuevos valores.\n\nQuedamos a disposición ante cualquier consulta.\n\nSaludos cordiales,\n${labConfig.nombre || 'Laboratorio'}`}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 resize-none"
+                          rows={8}
+                        />
+                        <button
+                          onClick={() => {
+                            const msg = (document.getElementById('preciosEmailMsg') as HTMLTextAreaElement)?.value || '';
+
+                            // Generar HTML profesional con logo y colores
+                            const preciosRows = [
+                              ['Cassette Normal', configuracion.precioCassette],
+                              ['Cassette Urgente (24hs)', configuracion.precioCassetteUrgente],
+                              ['Profundización (cassette adicional)', configuracion.precioProfundizacion],
+                              ['PAP', configuracion.precioPAP],
+                              ['PAP Urgente', configuracion.precioPAPUrgente],
+                              ['Citología', configuracion.precioCitologia],
+                              ['Citología Urgente', configuracion.precioCitologiaUrgente],
+                              ['Corte en Blanco', configuracion.precioCorteBlanco],
+                              ['Corte en Blanco IHQ', configuracion.precioCorteBlancoIHQ],
+                              ['Giemsa/PAS/Masson (por técnica)', configuracion.precioGiemsaPASMasson],
+                            ];
+
+                            const fullHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;margin:0;padding:20px;background:#f8fafc;">' +
+                              '<div style="max-width:600px;margin:0 auto;">' +
+                              '<div style="background:linear-gradient(135deg,#0f172a 0%,#1e40af 100%);color:white;padding:28px;border-radius:12px;text-align:center;margin-bottom:24px;">' +
+                              (labConfig.logoUrl ? '<img src="' + labConfig.logoUrl + '" style="height:60px;margin-bottom:10px;" /><br>' : '') +
+                              '<h2 style="margin:0;font-size:20px;font-weight:700;">' + (labConfig.nombre || 'Laboratorio') + '</h2>' +
+                              '<p style="margin:6px 0 0;font-size:12px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + ' | ' + (labConfig.email || '') + '</p>' +
+                              '</div>' +
+                              '<div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;">' +
+                              '<h3 style="margin:0 0 16px;color:#0f172a;font-size:16px;">Actualización de Aranceles</h3>' +
+                              '<div style="white-space:pre-line;font-size:14px;line-height:1.6;color:#374151;margin-bottom:20px;">' + msg + '</div>' +
+                              '</div>' +
+                              '<div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
+                              '<table style="width:100%;border-collapse:collapse;">' +
+                              '<tr style="background:#0f172a;"><th style="padding:12px 16px;text-align:left;color:white;font-size:13px;">Servicio</th><th style="padding:12px 16px;text-align:right;color:white;font-size:13px;">Precio</th></tr>' +
+                              preciosRows.map(function(row, i) { return '<tr style="border-bottom:1px solid #f1f5f9;' + (i % 2 !== 0 ? 'background:#f8fafc;' : '') + '"><td style="padding:10px 16px;font-size:13px;color:#374151;">' + row[0] + '</td><td style="padding:10px 16px;text-align:right;font-weight:700;color:#0f172a;font-size:13px;">$' + Number(row[1]).toLocaleString() + '</td></tr>'; }).join('') +
+                              '</table></div>' +
+                              '<p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:20px;">Powered by BiopsyTracker</p>' +
+                              '</div></body></html>';
+
+                            // Descargar HTML
+                            const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8;' });
+                            const link = document.createElement('a');
+                            link.href = URL.createObjectURL(blob);
+                            link.download = 'Actualizacion_Precios_' + new Date().toISOString().split('T')[0] + '.html';
+                            link.click();
+
+                            // Abrir modal de email
+                            setEmailModal({ open: true, medico: 'Todos los médicos', email: 'todos' });
+                            setEmailMessage(msg);
+                          }}
+                          className="mt-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
+                        >
+                          <Mail size={14} /> Enviar actualización de precios por email
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Grid de médicos que ocupa el espacio restante */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2">
-                {medicos.map((medico, index) => {
-                  const remitosDelMedico = remitos.filter(r => r.medico === medico);
-                  const pendientes = remitosDelMedico.filter(r => r.estado === 'pendiente');
-                  const facturados = remitosDelMedico.filter(r => r.estado === 'facturado');
-                  const totalPendiente = pendientes.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
-                  const totalFacturado = facturados.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
-                  const totalGeneral = totalPendiente + totalFacturado;
-                  const porcentajeFacturado = Math.round(totalFacturado / (totalGeneral || 1) * 100);
-                  
-                  return (
-                    <div key={medico} className="bg-white rounded-lg shadow-sm border border-gray-200 p-2">
-                      {/* Header del médico - ultra compacto */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                            {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                          </div>
-                          <div>
-                            <h3 className="text-xs font-bold text-gray-900">Dr/a. {medico}</h3>
-                            <p className="text-xs text-gray-500">{remitosDelMedico.length} remitos</p>
-                          </div>
-                        </div>
-                        <div className="flex space-x-1">
-                          <button 
-                            onClick={() => exportarFacturacionMedico(medico)} 
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-1.5 py-0.5 rounded text-xs flex items-center space-x-1"
-                            title="Exportar HTML"
-                          >
-                            <Download size={8} />
-                            <span>HTML</span>
-                          </button>
-                          <button 
-                            onClick={() => exportarExcel(medico)} 
-                            className="bg-green-500 hover:bg-green-600 text-white px-1.5 py-0.5 rounded text-xs flex items-center space-x-1"
-                            title="Exportar CSV"
-                          >
-                            <Download size={8} />
-                            <span>CSV</span>
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Estadísticas ultra compactas */}
-                      <div className="grid grid-cols-3 gap-1 mb-2">
-                        <div className="bg-yellow-50 border border-yellow-200 rounded p-1 text-center">
-                          <div className="text-xs font-bold text-yellow-700">${totalPendiente.toLocaleString()}</div>
-                          <div className="text-xs text-yellow-600">Pendiente</div>
-                        </div>
-                        <div className="bg-green-50 border border-green-200 rounded p-1 text-center">
-                          <div className="text-xs font-bold text-green-700">${totalFacturado.toLocaleString()}</div>
-                          <div className="text-xs text-green-600">Facturado</div>
-                        </div>
-                        <div className="bg-blue-50 border border-blue-200 rounded p-1 text-center">
-                          <div className="text-xs font-bold text-blue-700">${totalGeneral.toLocaleString()}</div>
-                          <div className="text-xs text-blue-600">Total</div>
-                        </div>
+                {/* Modal de envío de email */}
+                {emailModal?.open && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">Enviar Facturación</h3>
+                      <p className="text-sm text-gray-500 mb-3">
+                        Para: <span className="font-medium text-gray-700">{emailModal.medico}</span>
+                        {emailModal.email && <span className="ml-1 text-blue-600">({emailModal.email})</span>}
+                      </p>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Mensaje</label>
+                        <textarea
+                          value={emailMessage}
+                          onChange={(e) => setEmailMessage(e.target.value)}
+                          rows={8}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 resize-none"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">El reporte de facturación se adjuntará automáticamente.</p>
                       </div>
 
-                      {/* Barra de progreso mini */}
-                      <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                        <span>Progreso</span>
-                        <span className="font-medium">{porcentajeFacturado}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-1">
-                        <div 
-                          className="bg-gradient-to-r from-green-400 to-green-500 h-1 rounded-full transition-all duration-300"
-                          style={{ width: `${porcentajeFacturado}%` }}
-                        ></div>
+                      <div className="flex gap-3 mt-5">
+                        <button onClick={() => setEmailModal(null)}
+                          className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50"
+                        >Cancelar</button>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const { sendEmail, sendBulkEmail, isEmailConfigured } = await import('../utils/emailService');
+                              if (!isEmailConfigured()) {
+                                alert('EmailJS no está configurado. Andá a Configuración → Configuración de Email.');
+                                return;
+                              }
+
+                              const fromName = labConfig.nombre || 'Laboratorio';
+                              const subject = emailModal.medico === 'Todos los médicos' ? 'Actualización de Aranceles - ' + fromName : 'Facturación - ' + fromName;
+                              const messageHtml = '<div style="font-family:Arial,sans-serif;white-space:pre-line;font-size:14px;line-height:1.6;">' + emailMessage.replace(/\n/g, '<br>') + '</div>';
+
+                              if (emailModal.email === 'todos') {
+                                // Envío masivo a todos los médicos
+                                const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                                const recipients = docs.filter((d: any) => d.email).map((d: any) => ({ email: d.email, name: d.firstName + ' ' + d.lastName }));
+                                if (recipients.length === 0) { alert('No hay médicos con email registrado.'); return; }
+                                if (!confirm('¿Enviar email a ' + recipients.length + ' médicos?')) return;
+
+                                const results = await sendBulkEmail(recipients, { subject, messageHtml, fromName });
+                                const ok = results.filter(r => r.success).length;
+                                const fail = results.filter(r => !r.success).length;
+                                alert('Envío completado.\n✓ Enviados: ' + ok + '\n✗ Fallidos: ' + fail);
+                              } else {
+                                // Envío individual
+                                await sendEmail({
+                                  toEmail: emailModal.email,
+                                  toName: emailModal.medico,
+                                  subject,
+                                  messageHtml,
+                                  fromName
+                                });
+                                alert('Email enviado correctamente a ' + emailModal.email);
+                              }
+                              setEmailModal(null);
+                            } catch (e: any) {
+                              alert('Error al enviar: ' + (e.message || e.text || 'Error desconocido'));
+                            }
+                          }}
+                          className="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold flex items-center justify-center gap-2"
+                        >
+                          <Mail size={16} /> Enviar Email
+                        </button>
                       </div>
                     </div>
-                  );
-                })}
-                </div>
-              </div>
+                  </div>
+                )}
             </div>
-          )}
+            );
+          })()}
 
           {currentView === 'configuracion' && (
             <div className="p-6 space-y-6">
@@ -2022,33 +2398,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   >
                     <Save size={16} />
                     <span>Guardar Cambios</span>
-                  </button>
-                  <button 
-                    onClick={() => {
-                      const defaultConfig = {
-                        precioCassette: 300,
-                        precioCassetteUrgente: 400,
-                        precioProfundizacion: 120,
-                        precioPAP: 90,
-                        precioPAPUrgente: 110,
-                        precioCitologia: 90,
-                        precioCitologiaUrgente: 120,
-                        precioCorteBlanco: 60,
-                        precioCorteBlancoIHQ: 85,
-                        precioGiemsaPASMasson: 75,
-                        tiposTejido: [
-                          'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia', 
-                          'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',
-                          'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'PAP', 'Citología'
-                        ]
-                      };
-                      setConfiguracion(defaultConfig);
-                      alert('⚠️ Configuración restaurada a valores por defecto');
-                    }}
-                    className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
-                  >
-                    <RefreshCw size={16} />
-                    <span>Restaurar Defaults</span>
                   </button>
                 </div>
               </div>
@@ -2299,435 +2648,535 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 )}
               </div>
 
-              {/* Configuraciones del Sistema */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                    <Settings className="mr-2 text-blue-600" size={20} />
-                    Configuraciones Generales
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Notificaciones automáticas</label>
-                        <p className="text-xs text-gray-500">Alertas por remitos pendientes</p>
-                      </div>
-                      <button className="bg-green-500 rounded-full w-12 h-6 flex items-center transition-colors">
-                        <div className="bg-white w-4 h-4 rounded-full shadow-md transform translate-x-7 transition-transform"></div>
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Backup automático</label>
-                        <p className="text-xs text-gray-500">Respaldo diario de datos</p>
-                      </div>
-                      <button className="bg-green-500 rounded-full w-12 h-6 flex items-center transition-colors">
-                        <div className="bg-white w-4 h-4 rounded-full shadow-md transform translate-x-7 transition-transform"></div>
-                      </button>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Modo de prueba</label>
-                        <p className="text-xs text-gray-500">Para testing y demos</p>
-                      </div>
-                      <button className="bg-gray-300 rounded-full w-12 h-6 flex items-center transition-colors">
-                        <div className="bg-white w-4 h-4 rounded-full shadow-md transform translate-x-1 transition-transform"></div>
-                      </button>
-                    </div>
-                  </div>
+              {/* Configuración del Laboratorio */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                  <Building className="mr-2 text-blue-600" size={20} />
+                  Configuración del Laboratorio
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">Estos datos se mostrarán en reportes, PDFs y la interfaz.</p>
 
-                  <div className="mt-6 space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Días para alertas de pendientes</label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="3">3 días</option>
-                        <option value="5">5 días</option>
-                        <option value="7" selected>7 días</option>
-                        <option value="10">10 días</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Formato de fecha preferido</label>
-                      <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="es-AR" selected>DD/MM/YYYY (Argentina)</option>
-                        <option value="en-US">MM/DD/YYYY (Estados Unidos)</option>
-                        <option value="iso">YYYY-MM-DD (ISO)</option>
-                      </select>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre del Laboratorio</label>
+                    <input
+                      type="text"
+                      value={labConfig.nombre}
+                      onChange={(e) => setLabConfig((prev: any) => ({ ...prev, nombre: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Ej: Lab. Patología Central"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Email del Laboratorio</label>
+                    <input
+                      type="email"
+                      value={labConfig.email}
+                      onChange={(e) => setLabConfig((prev: any) => ({ ...prev, email: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="contacto@laboratorio.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                    <input
+                      type="tel"
+                      value={labConfig.telefono}
+                      onChange={(e) => setLabConfig((prev: any) => ({ ...prev, telefono: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="+54 11 1234-5678"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
+                    <input
+                      type="text"
+                      value={labConfig.direccion}
+                      onChange={(e) => setLabConfig((prev: any) => ({ ...prev, direccion: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      placeholder="Av. Principal 123, CABA"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo del Laboratorio</label>
+                    <p className="text-xs text-gray-400 mb-2">Subir logo horizontal. Tamaño recomendado: 300x100 px. Máximo: 1MB. Formato: PNG o JPG.</p>
+                    <div className="flex gap-3 items-start">
+                      <label className="flex-1 cursor-pointer">
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+                          <div className="text-sm text-gray-600 font-medium">
+                            {labConfig.logoUrl ? 'Cambiar logo' : 'Seleccionar archivo'}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">PNG, JPG o SVG</div>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/svg+xml"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 1024 * 1024) {
+                              alert('El archivo excede 1MB. Por favor, use una imagen más pequeña.');
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              const dataUrl = ev.target?.result as string;
+                              setLabConfig((prev: any) => ({ ...prev, logoUrl: dataUrl }));
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                      {labConfig.logoUrl && (
+                        <div className="flex-shrink-0 p-3 bg-gray-50 rounded-lg border text-center" style={{ minWidth: '120px' }}>
+                          <img src={labConfig.logoUrl} alt="Logo" style={{ maxHeight: '50px', maxWidth: '150px', margin: '0 auto', objectFit: 'contain' }}
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                          <button
+                            onClick={() => setLabConfig((prev: any) => ({ ...prev, logoUrl: '' }))}
+                            className="text-xs text-red-500 hover:text-red-700 mt-1"
+                          >Eliminar</button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
-                    <Activity className="mr-2 text-green-600" size={20} />
-                    Estado del Sistema
-                  </h3>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium text-green-800">Base de Datos</p>
-                          <p className="text-xs text-green-600">Conexión estable</p>
-                        </div>
-                      </div>
-                      <CheckCircle className="text-green-600" size={20} />
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium text-green-800">Almacenamiento</p>
-                          <p className="text-xs text-green-600">85% disponible</p>
-                        </div>
-                      </div>
-                      <CheckCircle className="text-green-600" size={20} />
-                    </div>
-                    
-                    <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                        <div>
-                          <p className="font-medium text-yellow-800">Backup</p>
-                          <p className="text-xs text-yellow-600">Último: hace 2 horas</p>
-                        </div>
-                      </div>
-                      <AlertTriangle className="text-yellow-600" size={20} />
-                    </div>
-                  </div>
+                <button
+                  onClick={() => saveLabConfig(labConfig)}
+                  className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                >
+                  <Save size={16} />
+                  <span>Guardar Configuración del Laboratorio</span>
+                </button>
 
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">Acciones del Sistema</h4>
-                    <div className="space-y-2">
-                      <button className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                        Respaldar Base de Datos
-                      </button>
-                      <button className="w-full bg-orange-50 hover:bg-orange-100 text-orange-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                        Limpiar Logs del Sistema
-                      </button>
-                      <button className="w-full bg-red-50 hover:bg-red-100 text-red-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors">
-                        Reiniciar Configuración
-                      </button>
+                {/* Preview en tiempo real */}
+                <div className="mt-4 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                  <div className="text-xs font-semibold text-gray-400 uppercase mb-3">Vista previa — Encabezado de reportes</div>
+                  <div style={{
+                    background: 'linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%)',
+                    borderRadius: '10px', padding: '16px', color: 'white', textAlign: 'center'
+                  }}>
+                    {labConfig.logoUrl ? (
+                      <img src={labConfig.logoUrl} alt="Logo" style={{ height: '50px', maxWidth: '200px', objectFit: 'contain', margin: '0 auto 8px' }}
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    ) : (
+                      <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '4px' }}>{labConfig.nombre || 'Nombre del laboratorio'}</div>
+                    )}
+                    <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                      {labConfig.direccion || 'Dirección'} | {labConfig.telefono || 'Teléfono'} | {labConfig.email || 'Email'}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Información de la Aplicación */}
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 p-6">
+              {/* Configuración de Email (EmailJS) */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
+                  <Mail className="mr-2 text-blue-600" size={20} />
+                  Configuración de Email
+                </h3>
+                <p className="text-xs text-gray-400 mb-4">Configurá EmailJS para enviar emails desde el email del laboratorio. Los emails de facturación y notificaciones saldrán desde esta cuenta.</p>
+                {(() => {
+                  let emailCfg = { serviceId: '', templateId: '', publicKey: '' };
+                  try { emailCfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); } catch {}
+                  const isConfigured = !!(emailCfg.serviceId && emailCfg.templateId && emailCfg.publicKey);
+                  return (
+                    <div>
+                      <div className="grid grid-cols-3 gap-3 mb-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Service ID</label>
+                          <input type="text" defaultValue={emailCfg.serviceId} id="emailjs_serviceId"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="service_xxxxxxx" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Template ID</label>
+                          <input type="text" defaultValue={emailCfg.templateId} id="emailjs_templateId"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="template_xxxxxxx" />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Public Key</label>
+                          <input type="text" defaultValue={emailCfg.publicKey} id="emailjs_publicKey"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="pk_xxxxxxxxxxxx" />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => {
+                          const sId = (document.getElementById('emailjs_serviceId') as HTMLInputElement)?.value || '';
+                          const tId = (document.getElementById('emailjs_templateId') as HTMLInputElement)?.value || '';
+                          const pKey = (document.getElementById('emailjs_publicKey') as HTMLInputElement)?.value || '';
+                          localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId: sId, templateId: tId, publicKey: pKey }));
+                          alert('Configuración de EmailJS guardada correctamente.');
+                          setRemitos([...remitos]); // forzar re-render
+                        }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                          <Save size={14} /> Guardar
+                        </button>
+                        <button onClick={async () => {
+                          try {
+                            const { sendTestEmail } = await import('../utils/emailService');
+                            const testEmail = labConfig.email || prompt('Email para prueba:');
+                            if (!testEmail) return;
+                            await sendTestEmail(testEmail);
+                            alert('Email de prueba enviado correctamente a ' + testEmail);
+                          } catch (e: any) {
+                            alert('Error al enviar: ' + (e.message || e.text || 'Verificá la configuración'));
+                          }
+                        }} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                          <Mail size={14} /> Enviar prueba
+                        </button>
+                        <span className={`text-xs font-semibold ${isConfigured ? 'text-green-600' : 'text-gray-400'}`}>
+                          {isConfigured ? '✓ Configurado' : 'No configurado'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Control de Médicos */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                  <Award className="mr-2 text-blue-600" size={20} />
+                  <Users className="mr-2 text-purple-600" size={20} />
+                  Control de Médicos Registrados
+                </h3>
+                {(() => {
+                  const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                  return (
+                    <div>
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center flex-1">
+                          <div className="text-2xl font-bold text-blue-700">{registeredDoctors.length}</div>
+                          <div className="text-xs text-blue-600">Médicos Registrados</div>
+                        </div>
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center flex-1">
+                          <div className="text-2xl font-bold text-green-700">{registeredDoctors.filter((d: any) => d.active !== false).length}</div>
+                          <div className="text-xs text-green-600">Activos</div>
+                        </div>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-center flex-1">
+                          <div className="text-2xl font-bold text-gray-700">{registeredDoctors.filter((d: any) => d.active === false).length}</div>
+                          <div className="text-xs text-gray-600">Inactivos</div>
+                        </div>
+                      </div>
+                      {registeredDoctors.length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-4">No hay médicos registrados aún.</p>
+                      ) : (
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {registeredDoctors.map((doc: any, idx: number) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="font-medium text-gray-900 text-sm">{doc.firstName} {doc.lastName}</div>
+                                <div className="text-xs text-gray-500">{doc.email}</div>
+                                <div className="text-xs text-gray-400">Alta: {new Date(doc.registeredAt).toLocaleDateString('es-AR')}</div>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="tel"
+                                    placeholder="WhatsApp"
+                                    defaultValue={doc.whatsapp || ''}
+                                    className="w-28 px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                                    onBlur={(e) => {
+                                      const val = e.target.value.replace(/\D/g, '');
+                                      const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                                      docs[idx] = { ...docs[idx], whatsapp: val };
+                                      localStorage.setItem('registeredDoctors', JSON.stringify(docs));
+                                    }}
+                                  />
+                                  {doc.whatsapp && (
+                                    <span className="text-xs text-green-600 font-semibold">WA ✓</span>
+                                  )}
+                                </div>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  doc.active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                  {doc.active !== false ? 'Activo' : 'Inactivo'}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Resumen de Suscripción Mensual */}
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200 p-5">
+                <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                  <DollarSign className="mr-2 text-blue-600" size={16} />
+                  Resumen de Suscripción Mensual
+                </h3>
+                {(() => {
+                  const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                  const activeDoctors = registeredDoctors.filter((d: any) => d.active !== false).length;
+                  let pricePerDoctor = 35000;
+                  try { pricePerDoctor = JSON.parse(localStorage.getItem('superAdmin_config') || '{}').precioMedico || 35000; } catch {}
+                  const totalMonthly = activeDoctors * pricePerDoctor;
+                  return (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="bg-white rounded-xl p-4 border text-center">
+                        <div className="text-2xl font-bold text-blue-700">{activeDoctors}</div>
+                        <div className="text-xs text-gray-600">Médicos Activos</div>
+                      </div>
+                      <div className="bg-white rounded-xl p-4 border text-center">
+                        <div className="text-lg font-bold text-gray-700">${pricePerDoctor.toLocaleString()}</div>
+                        <div className="text-xs text-gray-600">Precio / Médico</div>
+                      </div>
+                      <div className="bg-white rounded-xl p-4 border text-center">
+                        <div className="text-2xl font-bold text-green-600">${totalMonthly.toLocaleString()}</div>
+                        <div className="text-xs text-gray-600">Total Mensual</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Información de la Aplicación - Al final */}
+              <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl border border-gray-200 p-5 mt-2">
+                <h3 className="text-sm font-semibold text-gray-600 mb-3 flex items-center">
+                  <Award className="mr-2 text-gray-400" size={16} />
                   Información de la Aplicación
                 </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-3 gap-4 text-xs">
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-2">BiopsyTracker Professional</h4>
-                    <p className="text-sm text-gray-600">Versión 2.1.0</p>
-                    <p className="text-xs text-gray-500">Última actualización: 15/06/2025</p>
+                    <p className="font-medium text-gray-700">{(() => { try { return JSON.parse(localStorage.getItem('superAdmin_config') || '{}').appNombre || 'BiopsyTracker'; } catch { return 'BiopsyTracker'; } })()} Professional</p>
+                    <p className="text-gray-500">Versión {(() => { try { return JSON.parse(localStorage.getItem('superAdmin_config') || '{}').appVersion || '2.5.0'; } catch { return '2.5.0'; } })()}</p>
                   </div>
-                  
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-2">Licencia</h4>
-                    <p className="text-sm text-gray-600">Profesional Ilimitada</p>
-                    <p className="text-xs text-gray-500">Válida hasta: 31/12/2025</p>
+                    <p className="font-medium text-gray-700">Licencia</p>
+                    <p className="text-gray-500">Profesional</p>
                   </div>
-                  
                   <div>
-                    <h4 className="font-medium text-gray-800 mb-2">Soporte</h4>
-                    <p className="text-sm text-gray-600">support@biopsytracker.com</p>
-                    <p className="text-xs text-gray-500">+54 11 1234-5678</p>
+                    <p className="font-medium text-gray-700">Soporte</p>
+                    <p className="text-gray-500">{(() => { try { return JSON.parse(localStorage.getItem('superAdmin_config') || '{}').soporteEmail || 'support@biopsytracker.com'; } catch { return 'support@biopsytracker.com'; } })()}</p>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {currentView === 'analytics' && (
-            <div className="p-6 space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-3xl font-bold text-gray-900">Analytics Avanzado</h2>
-                  <p className="text-gray-600">Análisis profundo del rendimiento del laboratorio</p>
+          {currentView === 'analytics' && (() => {
+            const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+            let totalCobrado = 0;
+            try { totalCobrado = JSON.parse(localStorage.getItem('doctorPayments') || '[]').reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
+            const totalDeuda = Math.max(0, totalFacturado - totalCobrado);
+
+            return (
+            <div className="h-full flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex-shrink-0 px-5 pt-4 pb-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-gray-900">Cobros</h2>
+                    <p className="text-xs text-gray-400">Control de pagos por médico</p>
+                  </div>
                 </div>
-                <div className="flex space-x-2">
-                  <button 
-                    onClick={generateInsights}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                  >
-                    <TrendingUp size={16} />
-                    <span>Generar Insights</span>
-                  </button>
-                  <button 
-                    onClick={exportAnalytics}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors"
-                  >
-                    <Download size={16} />
-                    <span>Exportar Analytics</span>
-                  </button>
+
+                {/* KPIs */}
+                <div className="grid grid-cols-3 gap-3 mb-3">
+                  {[
+                    { label: 'FACTURADO', value: '$' + totalFacturado.toLocaleString(), bg: '#0f172a' },
+                    { label: 'COBRADO', value: '$' + totalCobrado.toLocaleString(), bg: '#059669' },
+                    { label: 'DEUDA', value: '$' + totalDeuda.toLocaleString(), bg: totalDeuda > 0 ? '#dc2626' : '#059669' },
+                  ].map((k, i) => (
+                    <div key={i} style={{ backgroundColor: k.bg }} className="rounded-xl p-3 text-white text-center">
+                      <div className="text-xl font-bold">{k.value}</div>
+                      <div className="text-xs opacity-70">{k.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Filtros */}
+                <div className="flex gap-2">
+                  {[
+                    { key: 'todos', label: 'Todos' },
+                    { key: 'deudores', label: 'Con deuda' },
+                    { key: 'al_dia', label: 'Al día' }
+                  ].map(f => (
+                    <button key={f.key} onClick={() => setCobrosFilter(f.key)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                        cobrosFilter === f.key
+                          ? (f.key === 'deudores' ? 'bg-red-600 text-white border-red-600' : f.key === 'al_dia' ? 'bg-green-600 text-white border-green-600' : 'bg-blue-600 text-white border-blue-600')
+                          : (f.key === 'deudores' ? 'bg-white text-red-600 border-red-200 hover:border-red-400' : f.key === 'al_dia' ? 'bg-white text-green-600 border-green-200 hover:border-green-400' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300')
+                      }`}>{f.label}</button>
+                  ))}
                 </div>
               </div>
 
-              {/* Métricas Clave */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-indigo-100 text-sm font-medium">Crecimiento Mensual</p>
-                      <p className="text-3xl font-bold">+23.5%</p>
-                      <p className="text-indigo-100 text-xs mt-1">vs mes anterior</p>
-                    </div>
-                    <TrendingUp size={32} className="text-indigo-200" />
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-emerald-100 text-sm font-medium">Satisfacción</p>
-                      <p className="text-3xl font-bold">94.2%</p>
-                      <p className="text-emerald-100 text-xs mt-1">índice de calidad</p>
-                    </div>
-                    <Award size={32} className="text-emerald-200" />
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm font-medium">Tiempo Promedio</p>
-                      <p className="text-3xl font-bold">2.3</p>
-                      <p className="text-orange-100 text-xs mt-1">días por remito</p>
-                    </div>
-                    <Clock size={32} className="text-orange-200" />
-                  </div>
-                </div>
-                
-                <div className="bg-gradient-to-br from-cyan-500 to-blue-600 rounded-2xl p-6 text-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-cyan-100 text-sm font-medium">Eficiencia</p>
-                      <p className="text-3xl font-bold">87%</p>
-                      <p className="text-cyan-100 text-xs mt-1">objetivo: 85%</p>
-                    </div>
-                    <Zap size={32} className="text-cyan-200" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Análisis por Médico */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6">Análisis de Rendimiento por Médico</h3>
-                <div className="overflow-x-auto">
+              {/* Tabla */}
+              <div className="flex-1 overflow-auto px-5 pb-4">
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-semibold text-gray-700">Médico</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Remitos</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Biopsias</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Facturación</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Eficiencia</th>
-                        <th className="text-center py-3 px-4 font-semibold text-gray-700">Tendencia</th>
+                    <thead className="sticky top-0">
+                      <tr style={{ background: '#0f172a' }}>
+                        <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase">Médico</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Rem.</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Pac.</th>
+                        <th className="text-right py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Total</th>
+                        <th className="text-right py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Pagado</th>
+                        <th className="text-right py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Debe</th>
+                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {medicos.map((medico, index) => {
-                        const remitosDelMedico = remitos.filter(r => r.medico === medico);
-                        const total = remitosDelMedico.reduce((sum, r) => sum + calcularTotalRemito(r.biopsias), 0);
-                        const biopsias = remitosDelMedico.reduce((sum, r) => sum + r.biopsias.length, 0);
-                        const eficiencia = Math.random() * 30 + 70; // Simulado
-                        const tendencia = Math.random() > 0.5 ? 'up' : 'down';
-                        return (
-                          <tr key={medico} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-4 px-4">
-                              <div className="flex items-center space-x-3">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm ${
-                                  index < 3 ? 'bg-gradient-to-r from-yellow-400 to-orange-500' : 'bg-gradient-to-r from-blue-400 to-purple-500'
-                                }`}>
-                                  {index + 1}
+                      {medicos.filter((medico) => {
+                        if (cobrosFilter === 'todos') return true;
+                        const rm = remitos.filter(r => r.medico === medico);
+                        const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        let pag = 0;
+                        try { pag = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
+                        const debe = Math.max(0, tot - pag);
+                        if (cobrosFilter === 'deudores') return debe > 0;
+                        if (cobrosFilter === 'al_dia') return debe === 0;
+                        return true;
+                      }).map((medico) => {
+                        const remitosM = remitos.filter(r => r.medico === medico);
+                        const totalM = remitosM.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        const pacientes = remitosM.reduce((s, r) => s + r.biopsias.length, 0);
+                        let pagadoM = 0;
+                        try { const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]'); pagadoM = payments.filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
+                        const debeM = Math.max(0, totalM - pagadoM);
+
+                        return (<React.Fragment key={medico}>
+                          <tr className={`border-b border-gray-50 hover:bg-blue-50/20 ${debeM > 0 ? 'bg-red-50/30' : ''}`}>
+                            <td className="py-2.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                  {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </div>
-                                <span className="font-medium text-gray-900">{medico}</span>
+                                <div className="text-xs font-semibold text-gray-900">Dr/a. {medico}</div>
                               </div>
                             </td>
-                            <td className="py-4 px-4 text-center">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
-                                {remitosDelMedico.length}
+                            <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-600">{remitosM.length}</td>
+                            <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-600">{pacientes}</td>
+                            <td className="py-2.5 px-3 text-right text-xs font-bold text-gray-900">${totalM.toLocaleString()}</td>
+                            <td className="py-2.5 px-3 text-right text-xs font-bold text-green-700">${pagadoM.toLocaleString()}</td>
+                            <td className="py-2.5 px-3 text-right">
+                              <span className={`text-xs font-bold ${debeM > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                {debeM > 0 ? '$' + debeM.toLocaleString() : 'Al día'}
                               </span>
                             </td>
-                            <td className="py-4 px-4 text-center text-gray-700">{biopsias}</td>
-                            <td className="py-4 px-4 text-center">
-                              <span className="font-bold text-green-600">${total.toLocaleString()}</span>
-                            </td>
-                            <td className="py-4 px-4 text-center">
-                              <div className={`inline-flex items-center px-2 py-1 rounded-full text-sm font-medium ${
-                                eficiencia > 85 ? 'bg-green-100 text-green-800' : 
-                                eficiencia > 75 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
-                              }`}>
-                                {eficiencia.toFixed(1)}%
+                            <td className="py-2.5 px-3 text-center">
+                              <div className="flex gap-1 justify-center">
+                                <button onClick={() => { setPaymentModal({ open: true, medico, deuda: debeM }); setPaymentForm({ monto: '', metodo: 'efectivo', fecha: new Date().toISOString().split('T')[0] }); }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-semibold">+ Pago</button>
+                                <button onClick={() => setShowPaymentHistory(showPaymentHistory === medico ? null : medico)}
+                                  className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-2 py-1 rounded text-xs font-semibold">
+                                  {showPaymentHistory === medico ? '▲' : '▼'}
+                                </button>
                               </div>
                             </td>
-                            <td className="py-4 px-4 text-center">
-                              {tendencia === 'up' ? (
-                                <TrendingUp className="text-green-500 mx-auto" size={20} />
-                              ) : (
-                                <TrendingUp className="text-red-500 mx-auto transform rotate-180" size={20} />
-                              )}
-                            </td>
                           </tr>
-                        );
+                          {showPaymentHistory === medico && (
+                            <tr>
+                              <td colSpan={7} className="py-2 px-4" style={{ background: '#f8fafc' }}>
+                                <div className="text-xs font-bold text-gray-500 uppercase mb-2">Historial de pagos</div>
+                                {(() => {
+                                  let payments: any[] = [];
+                                  try { payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico); } catch {}
+                                  return payments.length === 0 ? (
+                                    <p className="text-xs text-gray-400 italic">Sin pagos registrados</p>
+                                  ) : (
+                                    <div className="space-y-1 max-h-40 overflow-y-auto">
+                                      {payments.sort((a: any, b: any) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).map((p: any, i: number) => (
+                                        <div key={i} className="flex items-center justify-between bg-white rounded-lg p-2 border border-gray-100 text-xs">
+                                          <div className="flex items-center gap-3">
+                                            <span className="font-bold text-gray-900">${p.monto?.toLocaleString()}</span>
+                                            <span className="text-gray-400">{p.metodo === 'transferencia' ? 'Transferencia' : 'Efectivo'}</span>
+                                          </div>
+                                          <span className="text-gray-400">{new Date(p.fecha).toLocaleDateString('es-AR')}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()}
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>);
                       })}
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Insights y Recomendaciones */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-                  <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                    <Target className="mr-2" size={20} />
-                    Insights Clave
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <p className="text-sm text-blue-800">
-                        <strong>Peak de actividad:</strong> Los martes registran 40% más remitos que el promedio semanal
-                      </p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                      <p className="text-sm text-blue-800">
-                        <strong>Servicios estrella:</strong> Las técnicas especiales han crecido 65% este trimestre
-                      </p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                      <p className="text-sm text-blue-800">
-                        <strong>Oportunidad:</strong> 15% de remitos podrían optimizarse con servicios adicionales
-                      </p>
-                    </div>
-                  </div>
-                </div>
+              {/* Modal de registro de pago */}
+              {paymentModal.open && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                  <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">Registrar Pago</h3>
+                    <p className="text-sm text-gray-500 mb-4">{paymentModal.medico} — Deuda: <span className="font-bold text-red-600">${paymentModal.deuda.toLocaleString()}</span></p>
 
-                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-200">
-                  <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center">
-                    <Zap className="mr-2" size={20} />
-                    Recomendaciones
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
-                      <p className="text-sm text-green-800">
-                        <strong>Automatización:</strong> Implementar recordatorios automáticos para remitos pendientes
-                      </p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Monto ($)</label>
+                        <input type="number" value={paymentForm.monto}
+                          onChange={(e) => setPaymentForm(prev => ({ ...prev, monto: e.target.value }))}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg text-lg font-bold focus:ring-2 focus:ring-green-500"
+                          placeholder="0" min="0" autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Método de pago</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {['efectivo', 'transferencia'].map(m => (
+                            <button key={m} onClick={() => setPaymentForm(prev => ({ ...prev, metodo: m }))}
+                              className={`py-3 rounded-lg text-sm font-semibold border-2 transition-all ${
+                                paymentForm.metodo === m
+                                  ? 'border-green-500 bg-green-50 text-green-700'
+                                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                              }`}
+                            >
+                              {m === 'efectivo' ? '💵 Efectivo' : '🏦 Transferencia'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha del pago</label>
+                        <input type="date" value={paymentForm.fecha}
+                          onChange={(e) => setPaymentForm(prev => ({ ...prev, fecha: e.target.value }))}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <p className="text-sm text-green-800">
-                        <strong>Capacitación:</strong> Ofrecer training sobre técnicas especiales a médicos con bajo uso
-                      </p>
-                    </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2"></div>
-                      <p className="text-sm text-green-800">
-                        <strong>Incentivos:</strong> Crear programa de bonificaciones por volumen y calidad
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Estadísticas Adicionales */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Tipo</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Biopsias (BX)</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ width: '75%' }}></div>
-                        </div>
-                        <span className="text-sm font-medium">75%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Citologías</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-purple-500 h-2 rounded-full" style={{ width: '25%' }}></div>
-                        </div>
-                        <span className="text-sm font-medium">25%</span>
-                      </div>
+                    <div className="flex gap-3 mt-6">
+                      <button onClick={() => setPaymentModal({ open: false, medico: '', deuda: 0 })}
+                        className="flex-1 py-3 border border-gray-300 rounded-lg text-gray-600 font-medium hover:bg-gray-50"
+                      >Cancelar</button>
+                      <button
+                        onClick={() => {
+                          const monto = Number(paymentForm.monto);
+                          if (!monto || monto <= 0) { alert('Ingrese un monto válido'); return; }
+                          const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]');
+                          payments.push({
+                            id: `PAY_${Date.now()}`,
+                            medico: paymentModal.medico,
+                            monto,
+                            metodo: paymentForm.metodo,
+                            fecha: paymentForm.fecha || new Date().toISOString(),
+                            registradoPor: 'Admin'
+                          });
+                          localStorage.setItem('doctorPayments', JSON.stringify(payments));
+                          setPaymentModal({ open: false, medico: '', deuda: 0 });
+                          setRemitos([...remitos]);
+                        }}
+                        className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold"
+                      >Registrar Pago</button>
                     </div>
                   </div>
                 </div>
+              )}
 
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Urgencias vs Normal</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Servicio Normal</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-                        </div>
-                        <span className="text-sm font-medium">85%</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Urgente 24hs</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-red-500 h-2 rounded-full" style={{ width: '15%' }}></div>
-                        </div>
-                        <span className="text-sm font-medium">15%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Estados de Facturación</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Facturado</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-green-500 h-2 rounded-full" style={{ 
-                            width: `${(remitos.filter(r => r.estado === 'facturado').length / remitos.length) * 100}%` 
-                          }}></div>
-                        </div>
-                        <span className="text-sm font-medium">
-                          {remitos.length > 0 ? Math.round((remitos.filter(r => r.estado === 'facturado').length / remitos.length) * 100) : 0}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Pendiente</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-20 bg-gray-200 rounded-full h-2">
-                          <div className="bg-yellow-500 h-2 rounded-full" style={{ 
-                            width: `${(remitos.filter(r => r.estado === 'pendiente').length / remitos.length) * 100}%` 
-                          }}></div>
-                        </div>
-                        <span className="text-sm font-medium">
-                          {remitos.length > 0 ? Math.round((remitos.filter(r => r.estado === 'pendiente').length / remitos.length) * 100) : 0}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -26,7 +26,7 @@ export const Step5: React.FC<Step5Props> = ({
     }}>
       {/* Header Compacto y Limpio */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 16px',
         flexShrink: 0,
@@ -52,7 +52,7 @@ export const Step5: React.FC<Step5Props> = ({
                 right: '-4px',
                 width: '18px',
                 height: '18px',
-                background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -60,7 +60,7 @@ export const Step5: React.FC<Step5Props> = ({
                 color: 'white',
                 fontSize: '10px',
                 fontWeight: 'bold',
-                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.4)'
+                boxShadow: '0 2px 6px rgba(59, 130, 246, 0.4)'
               }}>
                 5
               </div>
@@ -124,7 +124,7 @@ export const Step5: React.FC<Step5Props> = ({
           padding: '0 16px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
             padding: '6px',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
@@ -154,9 +154,9 @@ export const Step5: React.FC<Step5Props> = ({
           margin: '0 auto'
         }}>
           
-          {/* Contenido con scroll */}
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-            
+          {/* Contenido */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+
             {/* Pregunta principal */}
             <div style={{
               textAlign: 'center',
@@ -172,33 +172,36 @@ export const Step5: React.FC<Step5Props> = ({
               </p>
             </div>
 
-            {/* Opciones principales - Layout horizontal */}
+            {/* Opciones principales - Layout horizontal (igual que Step3) */}
             <div style={{
               display: 'flex',
               gap: '20px',
-              marginBottom: '24px'
+              marginBottom: '24px',
+              flex: 1
             }}>
               
               {/* Opción SÍ */}
               <button
-                onClick={() => onDeclassifyChange('Sí')}
+                onClick={() => { onDeclassifyChange('Sí'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
                   padding: '28px',
                   borderRadius: '16px',
-                  border: `3px solid ${declassify === 'Sí' ? '#166534' : '#22c55e'}`,
-                  backgroundColor: declassify === 'Sí' ? '#dcfce7' : '#f0fdf4',
+                  border: `3px solid ${declassify === 'Sí' ? '#1d4ed8' : '#3b82f6'}`,
+                  backgroundColor: declassify === 'Sí' ? '#dbeafe' : '#eff6ff',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   textAlign: 'center',
                   transform: declassify === 'Sí' ? 'scale(1.02)' : 'scale(1)',
-                  boxShadow: declassify === 'Sí' ? '0 8px 24px rgba(34, 197, 94, 0.3)' : '0 4px 12px rgba(34, 197, 94, 0.15)'
+                  boxShadow: declassify === 'Sí' ? '0 8px 24px rgba(59, 130, 246, 0.3)' : '0 4px 12px rgba(59, 130, 246, 0.15)'
                 }}
+                onMouseOver={(e) => { if (declassify !== 'Sí') { e.currentTarget.style.transform = 'scale(1.01)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.25)'; } }}
+                onMouseOut={(e) => { if (declassify !== 'Sí') { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.15)'; } }}
               >
                 <div style={{
                   width: '80px',
                   height: '80px',
-                  backgroundColor: declassify === 'Sí' ? '#166534' : '#22c55e',
+                  backgroundColor: declassify === 'Sí' ? '#1d4ed8' : '#3b82f6',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -217,14 +220,14 @@ export const Step5: React.FC<Step5Props> = ({
                 <div style={{
                   fontSize: '28px',
                   fontWeight: 'bold',
-                  color: declassify === 'Sí' ? '#166534' : '#22c55e',
+                  color: declassify === 'Sí' ? '#1d4ed8' : '#3b82f6',
                   marginBottom: '12px'
                 }}>
                   SÍ
                 </div>
                 <div style={{
                   fontSize: '18px',
-                  color: declassify === 'Sí' ? '#166534' : '#16a34a',
+                  color: declassify === 'Sí' ? '#1d4ed8' : '#2563eb',
                   fontWeight: '500',
                   marginBottom: '12px'
                 }}>
@@ -232,7 +235,7 @@ export const Step5: React.FC<Step5Props> = ({
                 </div>
                 <div style={{
                   fontSize: '14px',
-                  color: declassify === 'Sí' ? '#166534' : '#16a34a',
+                  color: declassify === 'Sí' ? '#1d4ed8' : '#2563eb',
                   fontStyle: 'italic',
                   lineHeight: '1.3'
                 }}>
@@ -242,24 +245,26 @@ export const Step5: React.FC<Step5Props> = ({
 
               {/* Opción NO */}
               <button
-                onClick={() => onDeclassifyChange('No')}
+                onClick={() => { onDeclassifyChange('No'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
                   padding: '28px',
                   borderRadius: '16px',
-                  border: `3px solid ${declassify === 'No' ? '#991b1b' : '#ef4444'}`,
-                  backgroundColor: declassify === 'No' ? '#fee2e2' : '#fef2f2',
+                  border: `3px solid ${declassify === 'No' ? '#1e293b' : '#475569'}`,
+                  backgroundColor: declassify === 'No' ? '#e2e8f0' : '#f8fafc',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   textAlign: 'center',
                   transform: declassify === 'No' ? 'scale(1.02)' : 'scale(1)',
-                  boxShadow: declassify === 'No' ? '0 8px 24px rgba(239, 68, 68, 0.3)' : '0 4px 12px rgba(239, 68, 68, 0.15)'
+                  boxShadow: declassify === 'No' ? '0 8px 24px rgba(30, 41, 59, 0.3)' : '0 4px 12px rgba(71, 85, 105, 0.15)'
                 }}
+                onMouseOver={(e) => { if (declassify !== 'No') { e.currentTarget.style.transform = 'scale(1.01)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(71, 85, 105, 0.25)'; } }}
+                onMouseOut={(e) => { if (declassify !== 'No') { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(71, 85, 105, 0.15)'; } }}
               >
                 <div style={{
                   width: '80px',
                   height: '80px',
-                  backgroundColor: declassify === 'No' ? '#991b1b' : '#ef4444',
+                  backgroundColor: declassify === 'No' ? '#1e293b' : '#475569',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -278,14 +283,14 @@ export const Step5: React.FC<Step5Props> = ({
                 <div style={{
                   fontSize: '28px',
                   fontWeight: 'bold',
-                  color: declassify === 'No' ? '#991b1b' : '#ef4444',
+                  color: declassify === 'No' ? '#1e293b' : '#475569',
                   marginBottom: '12px'
                 }}>
                   NO
                 </div>
                 <div style={{
                   fontSize: '18px',
-                  color: declassify === 'No' ? '#991b1b' : '#dc2626',
+                  color: declassify === 'No' ? '#1e293b' : '#64748b',
                   fontWeight: '500',
                   marginBottom: '12px'
                 }}>
@@ -293,7 +298,7 @@ export const Step5: React.FC<Step5Props> = ({
                 </div>
                 <div style={{
                   fontSize: '14px',
-                  color: declassify === 'No' ? '#991b1b' : '#dc2626',
+                  color: declassify === 'No' ? '#1e293b' : '#64748b',
                   fontStyle: 'italic',
                   lineHeight: '1.3'
                 }}>
@@ -302,32 +307,6 @@ export const Step5: React.FC<Step5Props> = ({
               </button>
             </div>
 
-            {/* Confirmación de selección */}
-            {isValid && (
-              <div style={{
-                background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                border: '2px solid #22c55e',
-                borderRadius: '8px',
-                padding: '10px 12px',
-                marginBottom: '12px',
-                boxShadow: '0 2px 6px rgba(34, 197, 94, 0.1)'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}>
-                  <span style={{
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    color: '#065f46'
-                  }}>
-                    ✓ Seleccionado: {declassify === 'Sí' ? 'Requiere desclasificación' : 'Proceso estándar'}
-                  </span>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Botón fijo en la parte inferior */}
@@ -349,7 +328,7 @@ export const Step5: React.FC<Step5Props> = ({
                 fontWeight: 'bold',
                 fontSize: '20px',
                 background: isValid 
-                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  ? 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' 
                   : '#d1d5db',
                 color: 'white',
                 border: 'none',

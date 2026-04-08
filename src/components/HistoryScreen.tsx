@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Printer, Calendar, FileText, Trash2 } from 'lucide-react';
+import { ArrowLeft, Printer, Calendar, FileText, Trash2, Send, CheckCircle, Edit2, X, Plus, Save, Activity, Clock } from 'lucide-react';
 import { BiopsyForm, DoctorInfo, HistoryEntry } from '../types';
 import { serviciosAdicionales, giemsaOptions } from '../constants/services';
 import { getPrinterConfig, isPrinterConfigured, sendToPrinter, showPrintDialog } from '../utils/printer';
@@ -12,6 +12,7 @@ interface HistoryScreenProps {
   syncQueueLength: number;
   onGoBack: () => void;
   onDeleteEntry: (entryId: string) => void;
+  onUpdateEntry?: (entry: HistoryEntry) => void;
 }
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({
@@ -21,8 +22,20 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   backupStatus,
   syncQueueLength,
   onGoBack,
-  onDeleteEntry
+  onDeleteEntry,
+  onUpdateEntry
 }) => {
+  // Limpiar notificaciones de "revisado sin cambios" (legacy)
+  useState(() => {
+    try {
+      const notifs = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+      const cleaned = notifs.filter((n: any) => !n.mensaje?.includes('revisado sin cambios') && !n.mensaje?.includes('Remito revisado'));
+      if (cleaned.length !== notifs.length) {
+        localStorage.setItem('doctorNotifications', JSON.stringify(cleaned));
+      }
+    } catch {}
+  });
+
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; entryId: string | null }>({
     isOpen: false,
     entryId: null
@@ -347,11 +360,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 <body>
     <!-- Header con logo y título -->
     <div class="header">
+        <div style="flex: 0 0 auto; margin-right: 12px;">
+            <img src="/assets/biopsytracker_logo_final.svg" alt="Logo" style="height: 40px; filter: brightness(0) invert(1);" />
+        </div>
         <div class="header-content">
             <h1 class="app-name">BIOPSY TRACKER</h1>
             <p class="app-subtitle">Sistema de Gestión de Muestras Médicas</p>
         </div>
-        
+
         <div class="doc-info">
             <div class="doc-title">REMITO DE LABORATORIO</div>
             <div class="doc-number">N° ${entry.id}</div>
@@ -459,6 +475,121 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 </body>
 </html>`;
   };
+
+  // Estado de edición de remitos
+  const [editingEntry, setEditingEntry] = useState<HistoryEntry | null>(null);
+
+  const handleEditEntry = (entry: HistoryEntry) => {
+    setEditingEntry(JSON.parse(JSON.stringify(entry)));
+  };
+
+  const handleRemoveBiopsy = (biopsyIndex: number) => {
+    if (!editingEntry) return;
+    if (editingEntry.biopsies.length <= 1) {
+      alert('El remito debe tener al menos una biopsia.');
+      return;
+    }
+    const updated = {
+      ...editingEntry,
+      biopsies: editingEntry.biopsies.filter((_, i) => i !== biopsyIndex)
+    };
+    setEditingEntry(updated);
+  };
+
+  const handleEditBiopsyField = (biopsyIndex: number, field: string, value: any) => {
+    if (!editingEntry) return;
+    const updatedBiopsies = [...editingEntry.biopsies];
+    (updatedBiopsies[biopsyIndex] as any)[field] = value;
+    setEditingEntry({ ...editingEntry, biopsies: updatedBiopsies });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingEntry || !onUpdateEntry) return;
+
+    // Log de cambios
+    const changeLog = {
+      editedAt: new Date().toISOString(),
+      editedBy: doctorInfo.name
+    };
+    console.log('Remito editado:', changeLog, editingEntry);
+
+    onUpdateEntry(editingEntry);
+
+    // Si fue enviado, sincronizar con adminRemitos
+    if (sentRemitos[editingEntry.id]) {
+      try {
+        const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+        const idx = adminRemitos.findIndex((r: any) =>
+          r.doctorEmail === editingEntry.doctorInfo.email &&
+          r.fecha === editingEntry.date
+        );
+        if (idx >= 0) {
+          adminRemitos[idx].biopsias = editingEntry.biopsies.map((b: BiopsyForm) => ({
+            numero: b.number,
+            tejido: b.tissueType,
+            tipo: b.type,
+            cassettes: parseInt(b.cassettes) || 0,
+            trozos: parseInt(b.pieces) || 0,
+            desclasificar: b.declassify === 'Sí' ? 'Sí' : 'No',
+            servicios: {
+              cassetteNormal: parseInt(b.cassettes) || 0,
+              cassetteUrgente: b.servicios?.cassetteUrgente ? 1 : 0,
+              profundizacion: 0,
+              pap: b.servicios?.pap ? 1 : 0,
+              papUrgente: b.servicios?.papUrgente ? 1 : 0,
+              citologia: b.servicios?.citologia ? 1 : 0,
+              citologiaUrgente: b.servicios?.citologiaUrgente ? 1 : 0,
+              corteBlanco: b.servicios?.corteBlancoComun ? (b.servicios.corteBlancoComunQuantity || 1) : 0,
+              corteBlancoIHQ: b.servicios?.corteBlancoIHQ ? (b.servicios.corteBlancoIHQQuantity || 1) : 0,
+              giemsaPASMasson: b.servicios?.giemsaPASMasson ? 1 : 0
+            },
+            papQuantity: b.papQuantity || 0,
+            citologiaQuantity: b.citologiaQuantity || 0
+          }));
+          localStorage.setItem('adminRemitos', JSON.stringify(adminRemitos));
+        }
+      } catch (e) {
+        console.error('Error sincronizando edición con admin:', e);
+      }
+    }
+
+    setEditingEntry(null);
+    alert('Remito actualizado correctamente.');
+  };
+
+  // Estado de envío de remitos
+  const [sentRemitos, setSentRemitos] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sentRemitos') || '{}');
+    } catch { return {}; }
+  });
+
+  const handleSendToLab = (entry: HistoryEntry) => {
+    // Actualizar estado local
+    const updated = { ...sentRemitos, [entry.id]: new Date().toISOString() };
+    setSentRemitos(updated);
+    localStorage.setItem('sentRemitos', JSON.stringify(updated));
+
+    // Actualizar en adminRemitos para que el técnico/admin lo vea
+    try {
+      const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+      const idx = adminRemitos.findIndex((r: any) =>
+        r.doctorEmail === entry.doctorInfo.email &&
+        r.fecha === entry.date
+      );
+      if (idx >= 0) {
+        adminRemitos[idx].estadoEnvio = 'enviado';
+        adminRemitos[idx].enviadoAt = new Date().toISOString();
+      }
+      localStorage.setItem('adminRemitos', JSON.stringify(adminRemitos));
+    } catch (e) {
+      console.error('Error actualizando adminRemitos:', e);
+    }
+
+    alert('Remito enviado al laboratorio correctamente.');
+  };
+
+  const isRemitoSent = (entryId: string) => !!sentRemitos[entryId];
 
   const handleDelete = (entryId: string) => {
     setDeleteConfirm({ isOpen: true, entryId });
@@ -583,15 +714,25 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           </div>
         </div>
 
-        {/* Contenido del remito */}
+        {/* Contenido del remito - renderizado directo sin iframe */}
         <div style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          padding: '20px',
-          fontFamily: 'Arial, sans-serif',
-          lineHeight: '1.6'
+          flex: 1, overflow: 'auto', backgroundColor: 'white', padding: '16px'
         }}>
-          <div dangerouslySetInnerHTML={{ __html: generateRemitoHTML(showRemito.entry).replace(/<!DOCTYPE html>[\s\S]*?<body>/, '').replace(/<\/body>[\s\S]*?<\/html>/, '') }} />
+          <div
+            dangerouslySetInnerHTML={{
+              __html: (() => {
+                if (!showRemito.entry) return '';
+                const fullHtml = generateRemitoHTML(showRemito.entry);
+                // Extraer CSS y body del HTML completo
+                const cssMatch = fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/);
+                const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/);
+                const css = cssMatch ? cssMatch[1] : '';
+                const body = bodyMatch ? bodyMatch[1] : fullHtml;
+                // Envolver en un scope para que los estilos no afecten al resto
+                return `<div class="remito-scope"><style>.remito-scope { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.3; color: #1a202c; font-size: 10pt; } .remito-scope * { box-sizing: border-box; } ${css.replace(/body/g, '.remito-scope').replace(/@page[^}]+}/g, '').replace(/@media print[^}]+{[^}]+}/g, '')}</style>${body}</div>`;
+              })()
+            }}
+          />
         </div>
 
         <style>{`
@@ -605,8 +746,19 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   }
 
   const entries = historyEntries || [];
-  const sortedEntries = [...entries].sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  const sortedEntries = [...entries].sort((a, b) => {
+    const tA = new Date(a.timestamp || a.date).getTime() || 0;
+    const tB = new Date(b.timestamp || b.date).getTime() || 0;
+    return tB - tA;
+  });
+
+  // Paginación
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(sortedEntries.length / ITEMS_PER_PAGE);
+  const paginatedEntries = sortedEntries.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
   return (
@@ -619,7 +771,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     }}>
       {/* Header */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 16px',
         flexShrink: 0,
@@ -704,241 +856,224 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             </p>
           </div>
         ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-            gap: '16px'
-          }}>
-            {sortedEntries.map((entry) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Lista de remitos - estilo profesional */}
+            {paginatedEntries.map((entry) => {
               const urgentCount = entry.biopsies.filter(b => isUrgentBiopsy(b)).length;
-              const totalServices = entry.biopsies.reduce((acc, b) => acc + getServiciosActivos(b).length, 0);
-              const biopsyTypes = [...new Set(entry.biopsies.map(b => b.tissueType))].filter(Boolean);
-              
+              const isModified = (() => {
+                try {
+                  const n = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                  const entryTimestamp = entry.timestamp || entry.date;
+                  const entryBiopsyCount = entry.biopsies.length;
+                  return n.some((x: any) => {
+                    if (x.remitoId === entry.id) return true;
+                    if (x.medicoEmail === doctorInfo.email && x.remitoId) {
+                      try {
+                        const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+                        const adminRemito = adminRemitos.find((r: any) => r.id === x.remitoId);
+                        if (adminRemito) {
+                          // Match por timestamp exacto O por fecha+hora+cantidad de biopsias
+                          const adminTimestamp = adminRemito.timestamp || adminRemito.fecha;
+                          if (adminTimestamp === entryTimestamp) return true;
+                          // Fallback: misma fecha + misma cantidad de biopsias
+                          const sameDate = new Date(adminRemito.fecha).toDateString() === new Date(entry.date).toDateString();
+                          const sameBiopsyCount = adminRemito.biopsias?.length === entryBiopsyCount;
+                          if (sameDate && sameBiopsyCount) return true;
+                        }
+                      } catch {}
+                    }
+                    return false;
+                  });
+                } catch { return false; }
+              })();
+              const totalBX = entry.biopsies.filter(b => b.type !== 'PQ' && b.tissueType !== 'PAP' && b.tissueType !== 'Citología').length;
+              const totalPQ = entry.biopsies.filter(b => b.type === 'PQ').length;
+              const totalPAP = entry.biopsies.reduce((s, b) => s + (b.papQuantity || 0), 0);
+              const totalCito = entry.biopsies.reduce((s, b) => s + (b.citologiaQuantity || 0), 0);
+
               return (
                 <div key={entry.id} style={{
                   background: 'white',
-                  borderRadius: '16px',
-                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  borderRadius: '12px',
                   border: '1px solid #e2e8f0',
                   overflow: 'hidden',
-                  transition: 'all 0.3s ease'
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
                 }}>
                   {/* Header del remito */}
                   <div style={{
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    padding: '16px 20px',
-                    color: 'white'
+                    background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
+                    padding: '10px 14px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          background: 'rgba(255, 255, 255, 0.2)',
-                          borderRadius: '12px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}>
-                          <FileText style={{ height: '20px', width: '20px', color: 'white' }} />
-                        </div>
-                        <div>
-                          <h3 style={{
-                            fontSize: '18px',
-                            fontWeight: '700',
-                            margin: '0 0 4px 0',
-                            color: 'white'
-                          }}>
-                            Remito #{entry.id.slice(-8).toUpperCase()}
-                          </h3>
-                          <p style={{
-                            fontSize: '14px',
-                            margin: 0,
-                            opacity: 0.9,
-                            color: 'white'
-                          }}>
-                            {new Date(entry.date).toLocaleDateString('es-AR')}
-                          </p>
-                        </div>
-                      </div>
-                      <div style={{
-                        background: 'rgba(255, 255, 255, 0.2)',
-                        padding: '6px 12px',
-                        borderRadius: '20px',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        color: 'white'
-                      }}>
-                        {new Date(entry.timestamp).toLocaleTimeString('es-AR', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'white' }}>
+                        Remito #{entry.id.slice(-6).toUpperCase()}
+                      </span>
+                      {isModified && (
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#fbbf24', background: 'rgba(251,191,36,0.2)', padding: '2px 6px', borderRadius: '4px' }}>MODIFICADO</span>
+                      )}
+                      {urgentCount > 0 && (
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: '#fca5a5', background: 'rgba(252,165,165,0.2)', padding: '2px 6px', borderRadius: '4px' }}>URGENTE</span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
+                        {new Date(entry.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        {' · '}{new Date(entry.timestamp).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   </div>
 
                   {/* Contenido */}
-                  <div style={{ padding: '20px' }}>
-                    {/* Estadísticas principales */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '12px',
-                      marginBottom: '16px'
-                    }}>
-                      <div style={{
-                        background: 'linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%)',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        textAlign: 'center',
-                        border: '1px solid #81d4fa'
-                      }}>
-                        <div style={{
-                          fontSize: '20px',
-                          fontWeight: '700',
-                          color: '#0277bd'
+                  <div style={{ padding: '10px 14px' }}>
+                    {/* Mini KPIs del remito */}
+                    <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
+                      {[
+                        { label: 'Muestras', val: entry.biopsies.length, color: '#1e40af' },
+                        ...(totalBX > 0 ? [{ label: 'BX', val: totalBX, color: '#0369a1' }] : []),
+                        ...(totalPQ > 0 ? [{ label: 'PQ', val: totalPQ, color: '#0c4a6e' }] : []),
+                        ...(totalPAP > 0 ? [{ label: 'PAP', val: totalPAP, color: '#4338ca' }] : []),
+                        ...(totalCito > 0 ? [{ label: 'Cito', val: totalCito, color: '#475569' }] : []),
+                      ].map((k, i) => (
+                        <div key={i} style={{
+                          background: k.color, color: 'white', borderRadius: '6px',
+                          padding: '4px 10px', fontSize: '11px', fontWeight: '600',
+                          display: 'flex', alignItems: 'center', gap: '4px'
                         }}>
-                          {entry.biopsies.length}
+                          <span style={{ opacity: 0.7 }}>{k.label}</span>
+                          <span style={{ fontWeight: '700' }}>{k.val}</span>
                         </div>
-                        <div style={{
-                          fontSize: '11px',
-                          color: '#0277bd',
-                          fontWeight: '600',
-                          textTransform: 'uppercase'
-                        }}>
-                          Muestras
-                        </div>
-                      </div>
-                      
-                      <div style={{
-                        background: urgentCount > 0 
-                          ? 'linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%)' 
-                          : 'linear-gradient(135deg, #e8f5e8 0%, #c8e6c9 100%)',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        textAlign: 'center',
-                        border: urgentCount > 0 ? '1px solid #ef5350' : '1px solid #66bb6a'
-                      }}>
-                        <div style={{
-                          fontSize: '20px',
-                          fontWeight: '700',
-                          color: urgentCount > 0 ? '#c62828' : '#2e7d32'
-                        }}>
-                          {urgentCount}
-                        </div>
-                        <div style={{
-                          fontSize: '11px',
-                          color: urgentCount > 0 ? '#c62828' : '#2e7d32',
-                          fontWeight: '600',
-                          textTransform: 'uppercase'
-                        }}>
-                          Urgentes
-                        </div>
-                      </div>
-                      
-                      <div style={{
-                        background: 'linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%)',
-                        padding: '12px',
-                        borderRadius: '12px',
-                        textAlign: 'center',
-                        border: '1px solid #ce93d8'
-                      }}>
-                        <div style={{
-                          fontSize: '20px',
-                          fontWeight: '700',
-                          color: '#7b1fa2'
-                        }}>
-                          {totalServices}
-                        </div>
-                        <div style={{
-                          fontSize: '11px',
-                          color: '#7b1fa2',
-                          fontWeight: '600',
-                          textTransform: 'uppercase'
-                        }}>
-                          Servicios
-                        </div>
-                      </div>
+                      ))}
                     </div>
 
-                    {/* Tipos de muestras */}
-                    <div style={{ marginBottom: '16px' }}>
-                      <h5 style={{
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        color: '#374151',
-                        marginBottom: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}>
-                        🔬 Tipos de muestras
-                      </h5>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                        {biopsyTypes.map((type, index) => (
-                          <span key={index} style={{
-                            background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
-                            color: '#0369a1',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            fontSize: '12px',
-                            fontWeight: '500',
-                            border: '1px solid #7dd3fc'
+                    {/* Detalle de modificaciones del laboratorio */}
+                    {isModified && (() => {
+                      try {
+                        const allNotifs = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                        const entryTimestamp2 = entry.timestamp || entry.date;
+                        const entryBiopsyCount2 = entry.biopsies.length;
+                        const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+                        const remitoNotifs = allNotifs
+                          .filter((n: any) => {
+                            if (n.remitoId === entry.id) return true;
+                            if (n.medicoEmail === doctorInfo.email && n.remitoId) {
+                              const ar = adminRemitos.find((r: any) => r.id === n.remitoId);
+                              if (ar) {
+                                const arTs = ar.timestamp || ar.fecha;
+                                if (arTs === entryTimestamp2) return true;
+                                const sameD = new Date(ar.fecha).toDateString() === new Date(entry.date).toDateString();
+                                const sameC = ar.biopsias?.length === entryBiopsyCount2;
+                                if (sameD && sameC) return true;
+                              }
+                            }
+                            return false;
+                          })
+                          .sort((a: any, b: any) => new Date(b.fecha || b.date).getTime() - new Date(a.fecha || a.date).getTime());
+                        if (remitoNotifs.length === 0) return null;
+                        return (
+                          <div style={{
+                            borderRadius: '8px', marginBottom: '10px', overflow: 'hidden',
+                            border: '1px solid #fde68a'
                           }}>
-                            {type}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                            {/* Header */}
+                            <div style={{
+                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                              padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '6px'
+                            }}>
+                              <Edit2 size={12} color="white" />
+                              <span style={{ fontSize: '10px', fontWeight: '700', color: 'white', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                Modificado por el laboratorio ({remitoNotifs.length} {remitoNotifs.length === 1 ? 'vez' : 'veces'})
+                              </span>
+                            </div>
+                            {/* Lista de cambios */}
+                            <div style={{ background: '#fffbeb' }}>
+                              {remitoNotifs.map((notif: any, ni: number) => (
+                                <div key={ni} style={{
+                                  padding: '8px 10px',
+                                  borderBottom: ni < remitoNotifs.length - 1 ? '1px solid #fef3c7' : 'none'
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                    <span style={{ fontSize: '10px', fontWeight: '700', color: '#92400e' }}>
+                                      Modificación {remitoNotifs.length > 1 ? `#${remitoNotifs.length - ni}` : ''}
+                                    </span>
+                                    <span style={{ fontSize: '9px', color: '#b45309' }}>
+                                      {new Date(notif.fecha || notif.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#78350f', whiteSpace: 'pre-line', lineHeight: '1.5' }}>
+                                    {notif.mensaje || 'Remito revisado por el laboratorio'}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      } catch {}
+                      return null;
+                    })()}
 
-                    {/* Botones de acción */}
-                    <div style={{
-                      display: 'flex',
-                      gap: '10px',
-                      marginTop: '16px'
-                    }}>
-                      <button
-                        onClick={() => handlePrintInPage(entry)}
-                        style={{
-                          flex: 1,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '8px',
-                          background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                          border: 'none',
-                          padding: '12px 16px',
-                          borderRadius: '10px',
-                          color: 'white',
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <Printer size={16} />
-                        Ver e Imprimir
+                    {/* Acciones */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => handlePrintInPage(entry)} style={{
+                        background: '#1e40af', color: 'white', border: 'none', padding: '6px 14px',
+                        borderRadius: '6px', fontSize: '11px', fontWeight: '600',
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
+                      }}>
+                        <FileText size={12} /> Ver
                       </button>
-                      
-                      <button
-                        onClick={() => handleDelete(entry.id)}
-                        style={{
-                          background: '#fee2e2',
-                          border: '1px solid #fecaca',
-                          padding: '12px',
-                          borderRadius: '10px',
-                          color: '#dc2626',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        <Trash2 size={16} />
+                      <button onClick={() => handleDelete(entry.id)} style={{
+                        background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0',
+                        padding: '6px 8px', borderRadius: '6px', cursor: 'pointer'
+                      }}>
+                        <Trash2 size={12} />
                       </button>
                     </div>
                   </div>
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Controles de paginación */}
+        {totalPages > 1 && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            padding: '12px 0',
+            marginTop: '8px'
+          }}>
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              style={{
+                padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db',
+                background: currentPage === 1 ? '#f3f4f6' : 'white',
+                color: currentPage === 1 ? '#9ca3af' : '#374151',
+                cursor: currentPage === 1 ? 'default' : 'pointer',
+                fontWeight: '600', fontSize: '14px'
+              }}
+            >
+              ← Anterior
+            </button>
+            <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '500' }}>
+              Página {currentPage} de {totalPages} ({sortedEntries.length} remitos)
+            </span>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: '8px 16px', borderRadius: '8px', border: '1px solid #d1d5db',
+                background: currentPage === totalPages ? '#f3f4f6' : 'white',
+                color: currentPage === totalPages ? '#9ca3af' : '#374151',
+                cursor: currentPage === totalPages ? 'default' : 'pointer',
+                fontWeight: '600', fontSize: '14px'
+              }}
+            >
+              Siguiente →
+            </button>
           </div>
         )}
       </div>
@@ -1010,6 +1145,185 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 }}
               >
                 Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edición de Remito */}
+      {editingEntry && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 2000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '600px',
+            maxHeight: '90vh', overflow: 'auto', boxShadow: '0 25px 50px rgba(0,0,0,0.25)'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid #e5e7eb',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              position: 'sticky', top: 0, background: 'white', zIndex: 1, borderRadius: '16px 16px 0 0'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937' }}>
+                Editar Remito
+              </h3>
+              <button onClick={() => setEditingEntry(null)} style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: '4px'
+              }}>
+                <X size={20} color="#6b7280" />
+              </button>
+            </div>
+
+            {/* Contenido */}
+            <div style={{ padding: '16px 20px' }}>
+              {isRemitoSent(editingEntry.id) && (
+                <div style={{
+                  background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '8px',
+                  padding: '10px 12px', marginBottom: '16px', fontSize: '13px', color: '#92400e'
+                }}>
+                  Este remito ya fue enviado. Los cambios se sincronizarán con el laboratorio.
+                </div>
+              )}
+
+              {editingEntry.biopsies.map((biopsy, index) => (
+                <div key={index} style={{
+                  border: '1px solid #e5e7eb', borderRadius: '10px', padding: '14px',
+                  marginBottom: '12px', background: '#fafafa'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: '#374151' }}>
+                      Biopsia #{index + 1}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveBiopsy(index)}
+                      style={{
+                        background: '#fee2e2', border: '1px solid #fecaca', borderRadius: '6px',
+                        padding: '4px 8px', cursor: 'pointer', color: '#dc2626', fontSize: '12px'
+                      }}
+                    >
+                      <Trash2 size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                      Eliminar
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div>
+                      <label style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Tejido</label>
+                      <input
+                        type="text"
+                        value={biopsy.tissueType}
+                        onChange={(e) => handleEditBiopsyField(index, 'tissueType', e.target.value)}
+                        style={{
+                          width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
+                          borderRadius: '6px', fontSize: '13px'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Tipo (BX/PQ)</label>
+                      <select
+                        value={biopsy.type}
+                        onChange={(e) => handleEditBiopsyField(index, 'type', e.target.value)}
+                        style={{
+                          width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
+                          borderRadius: '6px', fontSize: '13px'
+                        }}
+                      >
+                        <option value="BX">BX</option>
+                        <option value="PQ">PQ</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Cassettes</label>
+                      <input
+                        type="number"
+                        value={biopsy.cassettes}
+                        onChange={(e) => handleEditBiopsyField(index, 'cassettes', e.target.value)}
+                        min="0"
+                        style={{
+                          width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
+                          borderRadius: '6px', fontSize: '13px'
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Trozos</label>
+                      <input
+                        type="number"
+                        value={biopsy.pieces}
+                        onChange={(e) => handleEditBiopsyField(index, 'pieces', e.target.value)}
+                        min="0"
+                        style={{
+                          width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
+                          borderRadius: '6px', fontSize: '13px'
+                        }}
+                      />
+                    </div>
+                    {biopsy.papQuantity > 0 && (
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>PAP Cantidad</label>
+                        <input
+                          type="number"
+                          value={biopsy.papQuantity}
+                          onChange={(e) => handleEditBiopsyField(index, 'papQuantity', Number(e.target.value))}
+                          min="0"
+                          style={{
+                            width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
+                            borderRadius: '6px', fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                    )}
+                    {biopsy.citologiaQuantity > 0 && (
+                      <div>
+                        <label style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Citología Cantidad</label>
+                        <input
+                          type="number"
+                          value={biopsy.citologiaQuantity}
+                          onChange={(e) => handleEditBiopsyField(index, 'citologiaQuantity', Number(e.target.value))}
+                          min="0"
+                          style={{
+                            width: '100%', padding: '6px 10px', border: '1px solid #d1d5db',
+                            borderRadius: '6px', fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '16px 20px', borderTop: '1px solid #e5e7eb',
+              display: 'flex', gap: '10px', justifyContent: 'flex-end',
+              position: 'sticky', bottom: 0, background: 'white', borderRadius: '0 0 16px 16px'
+            }}>
+              <button
+                onClick={() => setEditingEntry(null)}
+                style={{
+                  padding: '10px 20px', borderRadius: '8px', border: '1px solid #d1d5db',
+                  background: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '500', color: '#374151'
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                style={{
+                  padding: '10px 20px', borderRadius: '8px', border: 'none',
+                  background: 'linear-gradient(135deg, #16a34a 0%, #15803d 100%)',
+                  color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '600',
+                  display: 'flex', alignItems: 'center', gap: '6px'
+                }}
+              >
+                <Save size={16} />
+                Guardar Cambios
               </button>
             </div>
           </div>

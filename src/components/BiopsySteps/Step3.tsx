@@ -26,7 +26,7 @@ export const Step3: React.FC<Step3Props> = ({
     }}>
       {/* Header Compacto y Limpio */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 16px',
         flexShrink: 0,
@@ -124,7 +124,7 @@ export const Step3: React.FC<Step3Props> = ({
           padding: '0 16px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
             padding: '6px',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
@@ -182,7 +182,7 @@ export const Step3: React.FC<Step3Props> = ({
               
               {/* Opción BX - Biopsia */}
               <button
-                onClick={() => onTypeChange('BX')}
+                onClick={() => { onTypeChange('BX'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
                   padding: '28px',
@@ -255,7 +255,7 @@ export const Step3: React.FC<Step3Props> = ({
 
               {/* Opción PQ - Pieza Quirúrgica */}
               <button
-                onClick={() => onTypeChange('PQ')}
+                onClick={() => { onTypeChange('PQ'); setTimeout(() => onNext(), 300); }}
                 style={{
                   flex: 1,
                   padding: '28px',

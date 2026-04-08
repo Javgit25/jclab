@@ -1,512 +1,548 @@
 import React, { useState, useCallback } from 'react';
-import { Users, User, Shield, AlertCircle } from 'lucide-react';
-import { DoctorInfo, VirtualKeyboard as VirtualKeyboardType } from '../types';
+import { Shield, AlertCircle, Lock, Mail, UserPlus, LogIn, Key } from 'lucide-react';
+import { DoctorInfo, RegisteredDoctor } from '../types';
+import { VirtualKeyboard as VirtualKeyboardType } from '../types';
 import { VirtualKeyboard } from './VirtualKeyboard';
 
 interface LoginScreenProps {
   onLogin: (doctorInfo: DoctorInfo) => void;
   onGoToAdmin: () => void;
+  onGoToSuperAdmin?: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin }) => {
+const getRegisteredDoctors = (): RegisteredDoctor[] => {
+  try { return JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); }
+  catch { return []; }
+};
+
+const saveRegisteredDoctors = (doctors: RegisteredDoctor[]) => {
+  localStorage.setItem('registeredDoctors', JSON.stringify(doctors));
+};
+
+const findDoctorByEmail = (email: string): RegisteredDoctor | undefined => {
+  return getRegisteredDoctors().find(d => d.email.toLowerCase() === email.toLowerCase());
+};
+
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToSuperAdmin }) => {
+  const [mode, setMode] = useState<'email' | 'login' | 'register' | 'recover'>('email');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [hospitalName, setHospitalName] = useState('');
-  const [email, setEmail] = useState('');
+  const [whatsapp, setWhatsapp] = useState('');
+  const [labCode, setLabCode] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [existingDoctor, setExistingDoctor] = useState<RegisteredDoctor | null>(null);
+  const [recoverySuccess, setRecoverySuccess] = useState(false);
 
-  // Estado para el teclado virtual
+  // Teclado virtual
   const [keyboard, setKeyboard] = useState<VirtualKeyboardType>({
-    isOpen: false,
-    type: 'full',
-    targetField: '',
-    targetValue: ''
+    isOpen: false, type: 'full', targetField: '', targetValue: ''
   });
 
-  // Función de validación
-  const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
-
-    // Nombre es obligatorio
-    if (!firstName.trim()) {
-      newErrors.firstName = 'El nombre es obligatorio';
-    } else if (firstName.trim().length < 2) {
-      newErrors.firstName = 'El nombre debe tener al menos 2 caracteres';
-    }
-
-    // Apellido es obligatorio
-    if (!lastName.trim()) {
-      newErrors.lastName = 'El apellido es obligatorio';
-    } else if (lastName.trim().length < 2) {
-      newErrors.lastName = 'El apellido debe tener al menos 2 caracteres';
-    }
-
-    // Email es obligatorio y debe ser válido
-    if (!email.trim()) {
-      newErrors.email = 'El email es obligatorio';
-    } else if (!email.includes('@') || !email.includes('.')) {
-      newErrors.email = 'Ingrese un email válido (ej: doctor@hospital.com)';
-    } else if (email.trim().length < 5) {
-      newErrors.email = 'El email debe tener al menos 5 caracteres';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const openKeyboard = (field: string, currentValue: string) => {
+    setKeyboard({ isOpen: true, type: 'full', targetField: field, targetValue: currentValue });
   };
 
-  const handleLogin = useCallback(async () => {
-    if (isSubmitting) return;
-
-    // Validar formulario
-    if (!validateForm()) {
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const doctorInfo: DoctorInfo = {
-        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
-        hospital: hospitalName.trim() || 'No especificado',
-        email: email.trim(),
-        selectedDate: new Date().toDateString(),
-        loginDate: new Date().toDateString()
-      };
-
-      // Simular un pequeño delay para mejor UX
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      onLogin(doctorInfo);
-    } catch (error) {
-      console.error('Error en login:', error);
-      alert('Error al iniciar sesión. Por favor, intente nuevamente.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [firstName, lastName, hospitalName, email, onLogin, isSubmitting]);
-
-  // Funciones para el teclado virtual
-  const openKeyboard = (field: string) => {
-    let currentValue = '';
-    switch (field) {
-      case 'firstName':
-        currentValue = firstName;
-        break;
-      case 'lastName':
-        currentValue = lastName;
-        break;
-      case 'hospitalName':
-        currentValue = hospitalName;
-        break;
-      case 'email':
-        currentValue = email;
-        break;
-    }
-    
-    setKeyboard({
-      isOpen: true,
-      type: 'full',
-      targetField: field,
-      targetValue: currentValue
-    });
-  };
-
-  const handleKeyPress = (key: string) => {
+  const handleVirtualKeyPress = (key: string) => {
     let newValue = keyboard.targetValue;
-    
     if (key === 'BACKSPACE' || key === 'backspace') {
       newValue = newValue.slice(0, -1);
     } else if (key === 'SPACE' || key === 'space') {
       newValue += ' ';
     } else {
-      // Agregar la tecla tal como viene (números, letras, símbolos)
       newValue += key;
     }
-    
-    // Actualizar el estado del teclado
     setKeyboard(prev => ({ ...prev, targetValue: newValue }));
-    
-    // ✅ NUEVO: Actualizar el campo correspondiente en tiempo real
-    switch (keyboard.targetField) {
-      case 'firstName':
-        setFirstName(newValue);
-        if (errors.firstName) {
-          setErrors(prev => ({...prev, firstName: ''}));
-        }
-        break;
-      case 'lastName':
-        setLastName(newValue);
-        if (errors.lastName) {
-          setErrors(prev => ({...prev, lastName: ''}));
-        }
-        break;
-      case 'hospitalName':
-        setHospitalName(newValue);
-        break;
-      case 'email':
-        setEmail(newValue);
-        if (errors.email) {
-          setErrors(prev => ({...prev, email: ''}));
-        }
-        break;
+
+    // Actualizar campo correspondiente
+    const f = keyboard.targetField;
+    if (f === 'email') { setEmail(newValue.toLowerCase()); setErrors({}); }
+    else if (f === 'password') { setPassword(newValue); setErrors({}); }
+    else if (f === 'firstName') { setFirstName(newValue.charAt(0).toUpperCase() + newValue.slice(1).toLowerCase()); }
+    else if (f === 'lastName') { setLastName(newValue.charAt(0).toUpperCase() + newValue.slice(1).toLowerCase()); }
+    else if (f === 'hospitalName') { setHospitalName(newValue); }
+    else if (f === 'labCode') { setLabCode(newValue.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6)); }
+    else if (f === 'whatsapp') { setWhatsapp(newValue.replace(/\D/g, '')); }
+    else if (f === 'confirmPassword') { setConfirmPassword(newValue); }
+    else if (f === 'newPassword') { setNewPassword(newValue); }
+  };
+
+  const closeKeyboard = () => setKeyboard(prev => ({ ...prev, isOpen: false }));
+
+  const checkEmail = useCallback(() => {
+    if (!email.trim() || !email.includes('@') || !email.includes('.')) {
+      setErrors({ email: 'Ingrese un email válido' });
+      return;
     }
-  };
+    setErrors({});
+    const doctor = findDoctorByEmail(email.trim());
+    if (doctor) { setExistingDoctor(doctor); setMode('login'); }
+    else { setExistingDoctor(null); setMode('register'); }
+  }, [email]);
 
-  const handleKeyboardConfirm = () => {
-    // Ya no necesitamos actualizar los valores aquí porque se actualizan en tiempo real
-    // Solo cerramos el teclado
-    setKeyboard(prev => ({ ...prev, isOpen: false }));
-  };
+  const handleLogin = useCallback(async () => {
+    if (isSubmitting || !existingDoctor) return;
+    if (!password) { setErrors({ password: 'Ingrese su contraseña' }); return; }
+    if (password !== existingDoctor.password) { setErrors({ password: 'Contraseña incorrecta' }); return; }
 
-  const handleSwitchKeyboardType = (type: 'numeric' | 'full') => {
-    setKeyboard(prev => ({ ...prev, type }));
-  };
+    setIsSubmitting(true); setErrors({});
+    try {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      onLogin({
+        id: existingDoctor.id,
+        name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
+        firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
+        hospital: existingDoctor.hospital, email: existingDoctor.email,
+        selectedDate: new Date().toDateString(), loginDate: new Date().toDateString()
+      });
+    } catch { setErrors({ general: 'Error al iniciar sesión' }); }
+    finally { setIsSubmitting(false); }
+  }, [existingDoctor, password, onLogin, isSubmitting]);
 
-  // Manejar Enter key
-  const handleKeyPressOriginal = (e: React.KeyboardEvent) => {
+  const handleRegister = useCallback(async () => {
+    if (isSubmitting) return;
+    const newErrors: {[key: string]: string} = {};
+    if (!firstName.trim() || firstName.trim().length < 2) newErrors.firstName = 'Mínimo 2 caracteres';
+    if (!lastName.trim() || lastName.trim().length < 2) newErrors.lastName = 'Mínimo 2 caracteres';
+    if (!labCode.trim()) {
+      newErrors.labCode = 'Ingresá el código del laboratorio';
+    } else {
+      // Verificar que el código exista
+      try {
+        const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+        const labExists = labs.some((l: any) => l.labCode === labCode.trim().toUpperCase() && l.estado !== 'suspendido');
+        if (!labExists) newErrors.labCode = 'Código no válido o laboratorio suspendido';
+      } catch { newErrors.labCode = 'Error al verificar código'; }
+    }
+    if (!password || password.length < 4) newErrors.password = 'Mínimo 4 caracteres';
+    if (password !== confirmPassword) newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
+
+    setIsSubmitting(true); setErrors({});
+    try {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const newDoctor: RegisteredDoctor = {
+        id: `DOC_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+        firstName: firstName.trim(), lastName: lastName.trim(),
+        email: email.trim().toLowerCase(),
+        hospital: hospitalName.trim() || '',
+        whatsapp: whatsapp.trim(),
+        labCode: labCode.trim().toUpperCase(),
+        password, registeredAt: new Date().toISOString(), profileChanges: []
+      };
+      const doctors = getRegisteredDoctors();
+      doctors.push(newDoctor);
+      saveRegisteredDoctors(doctors);
+
+      // Actualizar medicosActivos del laboratorio
+      try {
+        const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+        const updatedLabs = labs.map((l: any) => {
+          if (l.labCode === newDoctor.labCode) {
+            const count = doctors.filter((d: any) => d.labCode === l.labCode).length;
+            return { ...l, medicosActivos: count };
+          }
+          return l;
+        });
+        localStorage.setItem('superAdmin_laboratories', JSON.stringify(updatedLabs));
+      } catch {}
+
+      onLogin({
+        id: newDoctor.id, name: `${newDoctor.firstName} ${newDoctor.lastName}`,
+        firstName: newDoctor.firstName, lastName: newDoctor.lastName,
+        hospital: newDoctor.hospital, email: newDoctor.email,
+        selectedDate: new Date().toDateString(), loginDate: new Date().toDateString()
+      });
+    } catch { setErrors({ general: 'Error al registrar' }); }
+    finally { setIsSubmitting(false); }
+  }, [firstName, lastName, hospitalName, email, password, confirmPassword, onLogin, isSubmitting]);
+
+  const handleRecoverPassword = useCallback(() => {
+    if (!newPassword || newPassword.length < 4) {
+      setErrors({ newPassword: 'Mínimo 4 caracteres' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setErrors({ confirmPassword: 'Las contraseñas no coinciden' });
+      return;
+    }
+
+    const doctors = getRegisteredDoctors();
+    const idx = doctors.findIndex(d => d.email.toLowerCase() === email.toLowerCase());
+    if (idx >= 0) {
+      doctors[idx].password = newPassword;
+      doctors[idx].profileChanges.push({
+        field: 'password', oldValue: '***', newValue: '***',
+        changedAt: new Date().toISOString()
+      });
+      saveRegisteredDoctors(doctors);
+      setRecoverySuccess(true);
+      setTimeout(() => {
+        setMode('login');
+        setExistingDoctor(doctors[idx]);
+        setPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setRecoverySuccess(false);
+      }, 1500);
+    }
+  }, [email, newPassword, confirmPassword]);
+
+  const handleKeyPressNative = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isSubmitting) {
-      handleLogin();
+      if (mode === 'email') checkEmail();
+      else if (mode === 'login') handleLogin();
+      else if (mode === 'register') handleRegister();
+      else if (mode === 'recover') handleRecoverPassword();
     }
   };
 
-      const isFormValid = firstName.trim().length >= 2 && lastName.trim().length >= 2 && email.trim().length >= 5 && email.includes('@') && email.includes('.');
+  const goBack = () => {
+    setMode('email'); setPassword(''); setConfirmPassword(''); setNewPassword('');
+    setErrors({}); setExistingDoctor(null); setRecoverySuccess(false);
+  };
+
+  const inputClass = (field: string) =>
+    `w-full px-3 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-base ${
+      errors[field] ? 'border-red-500 bg-red-50' : 'border-gray-300'
+    }`;
 
   return (
     <div className="h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-2 overflow-hidden">
-      <div className="bg-white rounded-xl shadow-2xl p-2 w-full max-w-md h-fit">
-        <div className="text-center">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-3 border-2 border-blue-200 shadow-sm">
-            <img 
-              src="/assets/biopsytracker_logo_final.svg" 
-              alt="BiopsyTracker Logo" 
-              className="w-full h-56 mx-auto"
+      <div className="bg-white rounded-xl shadow-2xl p-3 w-full max-w-md h-fit max-h-[95vh] overflow-y-auto">
+        {/* Logo - Grande y prominente */}
+        <div className="text-center mb-2">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 border-2 border-blue-200 shadow-sm">
+            <img
+              src="/assets/biopsytracker_logo_final.svg"
+              alt="BiopsyTracker Logo"
+              className="w-full mx-auto"
               style={{
+                maxHeight: mode === 'email' ? '200px' : '120px',
+                transition: 'max-height 0.3s ease',
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
               }}
             />
           </div>
-          <p className="text-sm text-gray-500">Complete los datos para acceder</p>
         </div>
 
-        <div className="space-y-1">
-          {/* Campo Nombre - OBLIGATORIO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nombre <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={firstName}
-              onChange={(e) => {
-                // Capitalizar solo la primera letra
-                const value = e.target.value;
-                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-                setFirstName(capitalizedValue);
-                if (errors.firstName) {
-                  setErrors(prev => ({...prev, firstName: ''}));
-                }
-              }}
-              onKeyPress={handleKeyPressOriginal}
-              onFocus={() => openKeyboard('firstName')}
-              style={{ textTransform: 'none' }}
-              className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.firstName 
-                  ? 'border-red-500 bg-red-50' 
-                  : 'border-gray-300'
-              }`}
-              placeholder="Ingrese su nombre"
-              required
-              autoComplete="given-name"
-            />
-            {errors.firstName && (
-              <div className="flex items-center mt-1 text-red-600 text-sm">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.firstName}
-              </div>
-            )}
-          </div>
-
-          {/* Campo Apellido - OBLIGATORIO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Apellido <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={lastName}
-              onChange={(e) => {
-                // Capitalizar solo la primera letra
-                const value = e.target.value;
-                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-                setLastName(capitalizedValue);
-                if (errors.lastName) {
-                  setErrors(prev => ({...prev, lastName: ''}));
-                }
-              }}
-              onKeyPress={handleKeyPressOriginal}
-              onFocus={() => openKeyboard('lastName')}
-              style={{ textTransform: 'none' }}
-              className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.lastName 
-                  ? 'border-red-500 bg-red-50' 
-                  : 'border-gray-300'
-              }`}
-              placeholder="Ingrese su apellido"
-              required
-              autoComplete="family-name"
-            />
-            {errors.lastName && (
-              <div className="flex items-center mt-1 text-red-600 text-sm">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.lastName}
-              </div>
-            )}
-          </div>
-
-          {/* Campo Hospital - OPCIONAL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Hospital/Clínica <span className="text-gray-400">(opcional)</span>
-            </label>
-            <input
-              type="text"
-              value={hospitalName}
-              onChange={(e) => {
-                // Capitalizar solo la primera letra
-                const value = e.target.value;
-                const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-                setHospitalName(capitalizedValue);
-              }}
-              onKeyPress={handleKeyPressOriginal}
-              onFocus={() => openKeyboard('hospitalName')}
-              style={{ textTransform: 'none' }}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              placeholder="Nombre del hospital o clínica"
-              autoComplete="organization"
-            />
-          </div>
-
-          {/* Campo Email - OBLIGATORIO */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => {
-                // Para email, mantener en minúsculas
-                setEmail(e.target.value.toLowerCase());
-                if (errors.email) {
-                  setErrors(prev => ({...prev, email: ''}));
-                }
-              }}
-              onKeyPress={handleKeyPressOriginal}
-              onFocus={() => openKeyboard('email')}
-              style={{ textTransform: 'none' }}
-              className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
-                errors.email 
-                  ? 'border-red-500 bg-red-50' 
-                  : 'border-gray-300'
-              }`}
-              placeholder="doctor@hospital.com"
-              required
-              autoComplete="email"
-            />
-            {errors.email && (
-              <div className="flex items-center mt-1 text-red-600 text-sm">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.email}
-              </div>
-            )}
-          </div>
-
-          {/* Indicador de campos obligatorios - compacto */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-            <div className="flex items-center">
-              <AlertCircle className="h-3 w-3 text-yellow-600 mr-1" />
-              <span className="text-xs text-yellow-800">
-                Los campos con <span className="text-red-500 font-medium">*</span> son obligatorios
-              </span>
+        {/* Paso 1: Email */}
+        {mode === 'email' && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500 text-center">Ingrese su email para continuar</p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Mail size={14} className="inline mr-1" /> Email <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="email" value={email}
+                onChange={(e) => { setEmail(e.target.value.toLowerCase()); setErrors({}); }}
+                onFocus={() => openKeyboard('email', email)}
+                onKeyPress={handleKeyPressNative}
+                className={inputClass('email')}
+                placeholder="doctor@hospital.com"
+                autoComplete="email"
+              />
+              {errors.email && (
+                <div className="flex items-center mt-1 text-red-600 text-xs">
+                  <AlertCircle className="h-3 w-3 mr-1" /> {errors.email}
+                </div>
+              )}
             </div>
-          </div>
 
-          {/* Botón de Login - ajustado */}
-          <button
-            onClick={handleLogin}
-            disabled={!isFormValid || isSubmitting}
-            className={`w-full font-medium py-2.5 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 ${
-              isFormValid && !isSubmitting
-                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span className="text-sm">Ingresando...</span>
-              </>
-            ) : (
-              <>
-                <User size={18} />
-                <span className="text-sm">Ingresar como Médico</span>
-              </>
-            )}
-          </button>
+            <button onClick={checkEmail} disabled={!email.trim() || !email.includes('@')}
+              className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base ${
+                email.trim() && email.includes('@')
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <span>Continuar</span>
+            </button>
 
-          <div className="relative my-3">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-gray-300" /></div>
+              <div className="relative flex justify-center text-sm"><span className="px-2 bg-white text-gray-500 text-xs">o</span></div>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-gray-500 text-xs">o</span>
-            </div>
+
+            <button onClick={onGoToAdmin}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            >
+              <Shield size={18} /><span className="text-sm">Panel de Administrador</span>
+            </button>
           </div>
+        )}
 
-          {/* Botón de Admin - ajustado */}
-          <button
-            onClick={onGoToAdmin}
-            disabled={isSubmitting}
-            className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-          >
-            <Shield size={18} />
-            <span className="text-sm">Panel de Administrador</span>
-          </button>
-          
-          {/* BOTÓN DE PRUEBA TEMPORAL - PARA DEBUG */}
-          <button
-            onClick={() => {
-              // Crear datos de prueba en localStorage
-              const testData = {
-                'test-entry-001': {
-                  id: 'test-entry-001',
-                  date: new Date().toISOString(),
-                  timestamp: new Date().toISOString(),
-                  doctorInfo: {
-                    name: 'Dr. Test Médico',
-                    email: 'test@hospital.com',
-                    hospital: 'Hospital de Prueba',
-                    selectedDate: new Date().toDateString()
-                  },
-                  biopsies: [
-                    {
-                      number: '1',
-                      tissueType: 'Piel - Melanoma Sospechoso',
-                      type: 'biopsia',
-                      cassettes: '2',
-                      pieces: '4',
-                      endoscopiaSubTypes: [],
-                      cassettesNumbers: [
-                        { base: 'A', suffix: '001' },
-                        { base: 'A', suffix: '002' }
-                      ],
-                      declassify: 'No',
-                      observations: 'Sospecha de melanoma - URGENTE PARA ANALIZAR',
-                      papQuantity: 0,
-                      papUrgente: false,
-                      citologiaQuantity: 0,
-                      citologiaUrgente: false,
-                      servicios: {
-                        cassetteUrgente: true,
-                        pap: false,
-                        papUrgente: false,
-                        citologia: false,
-                        citologiaUrgente: false,
-                        corteBlancoIHQ: true,
-                        corteBlancoIHQQuantity: 3,
-                        corteBlancoComun: false,
-                        corteBlancoComunQuantity: 0,
-                        giemsaPASMasson: false,
-                        giemsaOptions: {
-                          giemsa: false,
-                          pas: false,
-                          masson: false
-                        }
-                      }
-                    },
-                    {
-                      number: '2',
-                      tissueType: 'Mama - Biopsia Core',
-                      type: 'biopsia',
-                      cassettes: '1',
-                      pieces: '2',
-                      endoscopiaSubTypes: [],
-                      cassettesNumbers: [
-                        { base: 'B', suffix: '001' }
-                      ],
-                      declassify: 'No',
-                      observations: 'Control rutinario',
-                      papQuantity: 0,
-                      papUrgente: false,
-                      citologiaQuantity: 0,
-                      citologiaUrgente: false,
-                      servicios: {
-                        cassetteUrgente: false,
-                        pap: false,
-                        papUrgente: false,
-                        citologia: false,
-                        citologiaUrgente: false,
-                        corteBlancoIHQ: false,
-                        corteBlancoIHQQuantity: 0,
-                        corteBlancoComun: true,
-                        corteBlancoComunQuantity: 2,
-                        giemsaPASMasson: false,
-                        giemsaOptions: {
-                          giemsa: false,
-                          pas: false,
-                          masson: false
-                        }
-                      }
-                    }
-                  ]
-                }
-              };
-              localStorage.setItem('test@hospital.com_history', JSON.stringify(testData));
-              console.log('✅ Datos de prueba creados:', testData);
-              alert('✅ Datos de prueba creados!\n\nEmail: test@hospital.com\nNombre: Dr. Test Médico\nHospital: Hospital de Prueba\n\nAhora puedes hacer login y ver el historial para probar la vista preliminar.');
-            }}
-            disabled={isSubmitting}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 mt-2"
-          >
-            <span className="text-sm">🧪 CREAR DATOS PARA PRUEBA</span>
-          </button>
-        </div>
+        {/* Paso 2a: Login */}
+        {mode === 'login' && existingDoctor && (
+          <div className="space-y-3">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+              <div className="text-lg font-bold text-blue-800">
+                Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}
+              </div>
+              <div className="text-xs text-blue-600">{existingDoctor.email}</div>
+            </div>
 
-        <div className="mt-2 text-center">
-          <p className="text-xs text-gray-500">
-            BiopsyTracker v1.0 • Sistema seguro y confiable
-          </p>
-        </div>
-
-        {/* Teclado Virtual - Como overlay modal */}
-        {keyboard.isOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
-            <div className="bg-white w-full max-w-4xl rounded-t-2xl shadow-2xl">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {keyboard.targetField === 'firstName' && 'Ingrese su nombre'}
-                  {keyboard.targetField === 'lastName' && 'Ingrese su apellido'}
-                  {keyboard.targetField === 'hospitalName' && 'Ingrese hospital/clínica'}
-                  {keyboard.targetField === 'email' && 'Ingrese su email'}
-                </h3>
-                <button
-                  onClick={() => setKeyboard(prev => ({ ...prev, isOpen: false }))}
-                  className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
-                >
-                  ×
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                <Lock size={14} className="inline mr-1" /> Contraseña
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'} value={password}
+                  onChange={(e) => { setPassword(e.target.value); setErrors({}); }}
+                  onFocus={() => openKeyboard('password', password)}
+                  onKeyPress={handleKeyPressNative}
+                  className={inputClass('password')}
+                  placeholder="Ingrese su contraseña"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                  {showPassword ? 'Ocultar' : 'Ver'}
                 </button>
               </div>
-              <VirtualKeyboard
-                keyboard={keyboard}
-                onKeyPress={handleKeyPress}
-                onConfirm={handleKeyboardConfirm}
-                onSwitchType={handleSwitchKeyboardType}
-              />
+              {errors.password && (
+                <div className="flex items-center mt-1 text-red-600 text-xs">
+                  <AlertCircle className="h-3 w-3 mr-1" /> {errors.password}
+                </div>
+              )}
+            </div>
+
+            <button onClick={handleLogin} disabled={!password || isSubmitting}
+              className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base ${
+                password && !isSubmitting ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isSubmitting ? (
+                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /><span>Ingresando...</span></>
+              ) : (
+                <><LogIn size={18} /><span>Ingresar</span></>
+              )}
+            </button>
+
+            <div className="flex justify-between">
+              <button onClick={goBack} className="text-sm text-gray-500 hover:text-gray-700 py-1">
+                ← Otro email
+              </button>
+              <button onClick={() => { setMode('recover'); setErrors({}); setNewPassword(''); setConfirmPassword(''); }}
+                className="text-sm text-blue-500 hover:text-blue-700 py-1 flex items-center gap-1">
+                <Key size={12} /> Olvidé mi contraseña
+              </button>
             </div>
           </div>
         )}
+
+        {/* Paso 2b: Registro */}
+        {mode === 'register' && (
+          <div className="space-y-2">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
+              <UserPlus size={16} className="inline mr-1 text-green-600" />
+              <span className="text-sm font-medium text-green-800">Nuevo registro</span>
+              <div className="text-xs text-green-600">{email}</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nombre <span className="text-red-500">*</span></label>
+                <input type="text" value={firstName}
+                  onChange={(e) => { const v = e.target.value; setFirstName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); if (errors.firstName) setErrors(prev => ({...prev, firstName: ''})); }}
+                  onFocus={() => openKeyboard('firstName', firstName)}
+                  onKeyPress={handleKeyPressNative}
+                  className={inputClass('firstName')} placeholder="Nombre"
+                />
+                {errors.firstName && <div className="text-red-600 text-xs mt-0.5">{errors.firstName}</div>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Apellido <span className="text-red-500">*</span></label>
+                <input type="text" value={lastName}
+                  onChange={(e) => { const v = e.target.value; setLastName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); if (errors.lastName) setErrors(prev => ({...prev, lastName: ''})); }}
+                  onFocus={() => openKeyboard('lastName', lastName)}
+                  onKeyPress={handleKeyPressNative}
+                  className={inputClass('lastName')} placeholder="Apellido"
+                />
+                {errors.lastName && <div className="text-red-600 text-xs mt-0.5">{errors.lastName}</div>}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Hospital <span className="text-gray-400">(opcional)</span></label>
+              <input type="text" value={hospitalName}
+                onChange={(e) => { const v = e.target.value; setHospitalName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); }}
+                onFocus={() => openKeyboard('hospitalName', hospitalName)}
+                onKeyPress={handleKeyPressNative}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder="Hospital o clínica"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Código de laboratorio <span className="text-red-500">*</span></label>
+              <input type="text" value={labCode}
+                onChange={(e) => setLabCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                onFocus={() => openKeyboard('labCode', labCode)}
+                onKeyPress={handleKeyPressNative}
+                className={inputClass('labCode')}
+                placeholder="Ej: A1B2C3"
+                maxLength={6}
+                style={{ textTransform: 'uppercase', letterSpacing: '2px', fontFamily: 'monospace', fontWeight: '700' }}
+              />
+              {errors.labCode && <div className="text-red-600 text-xs mt-0.5">{errors.labCode}</div>}
+              <p className="text-xs text-gray-400 mt-1">Código proporcionado por el laboratorio</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">WhatsApp <span className="text-gray-400">(sin 54 9)</span></label>
+              <input type="tel" value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                onFocus={() => openKeyboard('whatsapp', whatsapp)}
+                onKeyPress={handleKeyPressNative}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                placeholder="Ej: 1155667788"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
+                <Lock size={12} className="inline mr-1" /> Contraseña <span className="text-red-500">*</span>
+              </label>
+              <input type={showPassword ? 'text' : 'password'} value={password}
+                onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors(prev => ({...prev, password: ''})); }}
+                onFocus={() => openKeyboard('password', password)}
+                onKeyPress={handleKeyPressNative}
+                className={inputClass('password')} placeholder="Mínimo 4 caracteres"
+              />
+              {errors.password && <div className="text-red-600 text-xs mt-0.5">{errors.password}</div>}
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">Confirmar contraseña <span className="text-red-500">*</span></label>
+              <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
+                onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) setErrors(prev => ({...prev, confirmPassword: ''})); }}
+                onFocus={() => openKeyboard('confirmPassword', confirmPassword)}
+                onKeyPress={handleKeyPressNative}
+                className={inputClass('confirmPassword')} placeholder="Repita la contraseña"
+              />
+              {errors.confirmPassword && <div className="text-red-600 text-xs mt-0.5">{errors.confirmPassword}</div>}
+            </div>
+
+            <label className="flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" checked={showPassword} onChange={() => setShowPassword(!showPassword)} className="w-3 h-3" />
+              <span className="text-xs text-gray-500">Mostrar contraseñas</span>
+            </label>
+
+            <button onClick={handleRegister} disabled={isSubmitting}
+              className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 ${
+                !isSubmitting ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isSubmitting ? (
+                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /><span className="text-sm">Registrando...</span></>
+              ) : (
+                <><UserPlus size={18} /><span className="text-sm">Registrarse e Ingresar</span></>
+              )}
+            </button>
+
+            <button onClick={goBack} className="w-full text-sm text-gray-500 hover:text-gray-700 py-1">← Usar otro email</button>
+          </div>
+        )}
+
+        {/* Recuperación de contraseña */}
+        {mode === 'recover' && (
+          <div className="space-y-3">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+              <Key size={18} className="inline mr-1 text-yellow-600" />
+              <span className="text-sm font-medium text-yellow-800">Recuperar contraseña</span>
+              <div className="text-xs text-yellow-600 mt-1">{email}</div>
+            </div>
+
+            {recoverySuccess ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <div className="text-green-700 font-medium">Contraseña actualizada correctamente</div>
+                <div className="text-xs text-green-600 mt-1">Redirigiendo al login...</div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
+                  <input type={showPassword ? 'text' : 'password'} value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setErrors({}); }}
+                    onFocus={() => openKeyboard('newPassword', newPassword)}
+                    onKeyPress={handleKeyPressNative}
+                    className={inputClass('newPassword')} placeholder="Mínimo 4 caracteres"
+                  />
+                  {errors.newPassword && <div className="text-red-600 text-xs mt-0.5">{errors.newPassword}</div>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar nueva contraseña</label>
+                  <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setErrors({}); }}
+                    onFocus={() => openKeyboard('confirmPassword', confirmPassword)}
+                    onKeyPress={handleKeyPressNative}
+                    className={inputClass('confirmPassword')} placeholder="Repita la contraseña"
+                  />
+                  {errors.confirmPassword && <div className="text-red-600 text-xs mt-0.5">{errors.confirmPassword}</div>}
+                </div>
+
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" checked={showPassword} onChange={() => setShowPassword(!showPassword)} className="w-3 h-3" />
+                  <span className="text-xs text-gray-500">Mostrar contraseñas</span>
+                </label>
+
+                <button onClick={handleRecoverPassword}
+                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2"
+                >
+                  <Key size={18} /><span className="text-sm">Cambiar Contraseña</span>
+                </button>
+              </>
+            )}
+
+            <button onClick={goBack} className="w-full text-sm text-gray-500 hover:text-gray-700 py-1">← Volver al inicio</button>
+          </div>
+        )}
+
+        <div className="mt-2 text-center">
+          <p className="text-xs text-gray-400">
+            {(() => { try { const c = JSON.parse(localStorage.getItem('superAdmin_config') || '{}'); return (c.appNombre || 'BiopsyTracker') + ' v' + (c.appVersion || '2.5.0'); } catch { return 'BiopsyTracker v2.5.0'; } })()}
+            {onGoToSuperAdmin && (
+              <span onClick={onGoToSuperAdmin} className="ml-2 cursor-pointer hover:text-gray-600" style={{ userSelect: 'none' }}>
+                 | Super Admin
+              </span>
+            )}
+          </p>
+        </div>
       </div>
+
+      {/* Teclado Virtual */}
+      {keyboard.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
+          <div className="bg-white w-full max-w-4xl rounded-t-2xl shadow-2xl">
+            <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-base font-semibold text-gray-800">
+                {keyboard.targetField === 'email' && 'Ingrese su email'}
+                {keyboard.targetField === 'password' && 'Ingrese su contraseña'}
+                {keyboard.targetField === 'firstName' && 'Ingrese su nombre'}
+                {keyboard.targetField === 'lastName' && 'Ingrese su apellido'}
+                {keyboard.targetField === 'hospitalName' && 'Ingrese hospital'}
+                {keyboard.targetField === 'confirmPassword' && 'Confirme contraseña'}
+                {keyboard.targetField === 'newPassword' && 'Nueva contraseña'}
+              </h3>
+              <button onClick={closeKeyboard} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">×</button>
+            </div>
+            <VirtualKeyboard
+              keyboard={keyboard}
+              onKeyPress={handleVirtualKeyPress}
+              onConfirm={closeKeyboard}
+              onSwitchType={(type) => setKeyboard(prev => ({ ...prev, type }))}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

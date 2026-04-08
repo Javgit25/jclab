@@ -145,7 +145,7 @@ export const Step7: React.FC<Step7Props> = ({
     }}>
       {/* Header Compacto y Limpio - MISMA METODOLOGÍA */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 16px',
         flexShrink: 0,
@@ -223,6 +223,10 @@ export const Step7: React.FC<Step7Props> = ({
               <ChevronLeft size={16} />
               Anterior
             </button>
+            <div style={{ fontSize: '10px', color: '#64748b', lineHeight: '1.4', textAlign: 'center', padding: '0 8px' }}>
+              <span style={{ fontWeight: '600', color: '#16a34a' }}>GUARDAR</span> = guarda este paciente y seguís cargando más.
+              {' '}<span style={{ fontWeight: '600', color: '#d97706' }}>FINALIZAR</span> = cierra el remito, no se pueden agregar más pacientes.
+            </div>
             <button
               onClick={onSave}
               style={{

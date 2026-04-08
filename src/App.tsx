@@ -7,8 +7,9 @@ import NewBiopsyScreen from './components/NewBiopsyScreen';
 import TodayListScreen from './components/TodayListScreen';
 import HistoryScreen from './components/HistoryScreen';
 import AdminPanel from './components/AdminPanel';
+import SuperAdminPanel from './components/SuperAdminPanel';
 
-type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin';
+type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
@@ -275,20 +276,57 @@ function App() {
   }, [todayBiopsies, doctorInfo, addToSyncQueue]);
 
   // Función para actualizar tejidos frecuentes
+  // Normalizar texto: sin tildes, lowercase
+  const normalizeText = (text: string) => {
+    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  };
+
+  // Agregar tejido a la config del admin si no existe (autoaprendizaje)
+  const syncTissueToAdmin = useCallback((tissue: string) => {
+    if (!tissue || tissue.trim() === '') return;
+    try {
+      const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
+      const existingTissues: string[] = adminConfig.tiposTejido || [
+        'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia',
+        'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',
+        'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'PAP', 'Citología'
+      ];
+
+      const tissueNormalized = normalizeText(tissue);
+      const alreadyExists = existingTissues.some(t => normalizeText(t) === tissueNormalized);
+
+      if (!alreadyExists) {
+        const cleaned = tissue.trim();
+        const capitalized = cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+        existingTissues.push(capitalized);
+        adminConfig.tiposTejido = existingTissues;
+        localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
+      }
+    } catch {}
+  }, []);
+
   const updateFrequentTissues = useCallback((tissue: string) => {
     if (!tissue || tissue.trim() === '') return;
 
+    // Sincronizar con admin
+    syncTissueToAdmin(tissue);
+
     setFrequentTissues(prev => {
-      const tissueToAdd = tissue.trim();
-      if (prev.includes(tissueToAdd)) {
+      const cleaned = tissue.trim();
+      const tissueToAdd = cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+      const normalized = normalizeText(tissueToAdd);
+      // Buscar si ya existe ignorando tildes y mayúsculas
+      const existingIndex = prev.findIndex(t => normalizeText(t) === normalized);
+      if (existingIndex >= 0) {
         // Mover al principio si ya existe
-        return [tissueToAdd, ...prev.filter(t => t !== tissueToAdd)];
+        const existing = prev[existingIndex];
+        return [existing, ...prev.filter((_, i) => i !== existingIndex)];
       } else {
-        // Agregar al principio y mantener solo los últimos 10
+        // Agregar al principio
         return [tissueToAdd, ...prev].slice(0, 10);
       }
     });
-  }, []);
+  }, [syncTissueToAdmin]);
 
   // Función para guardar en historial - CORREGIDA para usar EMAIL
   const saveToHistory = useCallback(() => {
@@ -357,7 +395,15 @@ function App() {
             citologiaUrgente: biopsy.servicios?.citologiaUrgente ? 1 : 0,
             corteBlanco: biopsy.servicios?.corteBlancoComun ? (biopsy.servicios.corteBlancoComunQuantity || 1) : 0,
             corteBlancoIHQ: biopsy.servicios?.corteBlancoIHQ ? (biopsy.servicios.corteBlancoIHQQuantity || 1) : 0,
-            giemsaPASMasson: biopsy.servicios?.giemsaPASMasson ? 1 : 0
+            giemsaPASMasson: biopsy.servicios?.giemsaPASMasson
+              ? (typeof biopsy.servicios.giemsaPASMasson === 'number'
+                ? biopsy.servicios.giemsaPASMasson
+                : (biopsy.servicios.giemsaPASMassonTotal || Object.values(biopsy.servicios.giemsaOptions || {}).filter(Boolean).length || 1))
+              : 0,
+            giemsaOptions: biopsy.servicios?.giemsaOptions || undefined,
+            corteBlancoIHQCassettes: biopsy.servicios?.corteBlancoIHQCassettes || undefined,
+            corteBlancoComunCassettes: biopsy.servicios?.corteBlancoComunCassettes || undefined,
+            giemsaCassettes: biopsy.servicios?.giemsaCassettes || undefined
           };
 
           return {
@@ -369,8 +415,9 @@ function App() {
             desclasificar: biopsy.declassify === 'Sí' ? 'Sí' : 'No',
             servicios: servicios,
             // ✅ NUEVOS CAMPOS AGREGADOS PARA MANEJAR CANTIDADES:
-            papQuantity: biopsy.papQuantity || 0,           // Cantidad de PAP
-            citologiaQuantity: biopsy.citologiaQuantity || 0 // Cantidad de vidrios de citología
+            papQuantity: biopsy.papQuantity || 0,
+            citologiaQuantity: biopsy.citologiaQuantity || 0,
+            cassettesNumbers: biopsy.cassettesNumbers || []
           };
         }),
         estado: 'pendiente',
@@ -524,7 +571,7 @@ function App() {
 
   // Renderizado condicional de pantallas
   if (currentScreen === 'login') {
-    return <LoginScreen onLogin={handleLogin} onGoToAdmin={goToAdmin} />;
+    return <LoginScreen onLogin={handleLogin} onGoToAdmin={goToAdmin} onGoToSuperAdmin={() => setCurrentScreen('superadmin')} />;
   }
 
   if (currentScreen === 'admin') {
@@ -597,8 +644,17 @@ function App() {
   }
 
   if (currentScreen === 'history') {
-    // Convertir historyData (objeto) a array para HistoryScreen
-    const historyEntries = Object.values(historyData).map(entry => ({
+    // Recargar historial fresco desde localStorage cada vez que se entra
+    const freshHistory = (() => {
+      try {
+        if (!doctorInfo?.email) return historyData;
+        const doctorKey = generateDoctorKey(doctorInfo.email);
+        const saved = localStorage.getItem(`${doctorKey}_history`);
+        return saved ? JSON.parse(saved) : historyData;
+      } catch { return historyData; }
+    })();
+
+    const historyEntries = Object.values(freshHistory).map((entry: any) => ({
       ...entry,
       id: entry.id || `${entry.date}_${entry.timestamp}` // Asegurar que tenga ID
     }));
@@ -611,6 +667,22 @@ function App() {
         backupStatus={backupStatus === 'success' ? 'synced' : backupStatus === 'syncing' ? 'pending' : backupStatus === 'idle' ? 'synced' : 'error'}
         syncQueueLength={syncQueue.length}
         onGoBack={() => setCurrentScreen('main')}
+        onUpdateEntry={(updatedEntry: HistoryEntry) => {
+          if (!doctorInfo || !doctorInfo.email) return;
+          const doctorKey = generateDoctorKey(doctorInfo.email);
+          const historyKey = `${doctorKey}_history`;
+          const currentHistory = { ...historyData };
+
+          // Actualizar la entrada
+          Object.keys(currentHistory).forEach(key => {
+            if (currentHistory[key].id === updatedEntry.id || key === updatedEntry.id) {
+              currentHistory[key] = updatedEntry;
+            }
+          });
+
+          localStorage.setItem(historyKey, JSON.stringify(currentHistory));
+          setHistoryData(currentHistory);
+        }}
         onDeleteEntry={(entryId: string) => {
           if (!doctorInfo || !doctorInfo.email) return;
           
@@ -634,6 +706,12 @@ function App() {
           }
         }}
       />
+    );
+  }
+
+  if (currentScreen === 'superadmin') {
+    return (
+      <SuperAdminPanel onGoBack={() => setCurrentScreen('login')} />
     );
   }
 

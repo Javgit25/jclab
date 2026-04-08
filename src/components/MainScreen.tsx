@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud } from 'lucide-react';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail } from 'lucide-react';
 import { BiopsyForm, DoctorInfo } from '../types';
 import { ConnectionStatus } from './ConnectionStatus';
 import { VirtualKeyboard } from './VirtualKeyboard';
@@ -34,6 +34,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [viewingRemitoFromSearch, setViewingRemitoFromSearch] = useState<any>(null);
   const [searchFilters, setSearchFilters] = useState({
     query: '',
     dateFrom: '',
@@ -47,6 +48,48 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     data: any;
     title: string;
   } | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsData, setNotificationsData] = useState<any[]>([]);
+
+  // Cargar notificaciones del médico (todas, incluidas leídas recientes)
+  const loadNotifications = () => {
+    try {
+      const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+      const mine = all.filter((n: any) => n.medicoEmail === doctorInfo.email);
+      setNotificationsData(mine);
+    } catch { setNotificationsData([]); }
+  };
+
+  // Cargar al montar y periódicamente
+  useState(() => { loadNotifications(); });
+
+  const unreadCount = notificationsData.filter(n => !n.leida).length;
+
+  // Detectar notificaciones de "listo para retirar" no leídas
+  const [listoAlert, setListoAlert] = useState<any>(null);
+  React.useEffect(() => {
+    const listoNotif = notificationsData.find(n => n.tipo === 'listo' && !n.leida);
+    if (listoNotif && !listoAlert) {
+      setListoAlert(listoNotif);
+    }
+  }, [notificationsData]);
+
+  const markNotificationsRead = () => {
+    try {
+      const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+      const updated = all.map((n: any) => {
+        if (n.medicoEmail === doctorInfo.email) return { ...n, leida: true };
+        return n;
+      });
+      localStorage.setItem('doctorNotifications', JSON.stringify(updated));
+      loadNotifications();
+    } catch {}
+  };
+
+  const closeNotifications = () => {
+    setShowNotifications(false);
+    if (unreadCount > 0) markNotificationsRead();
+  };
   const [qrImageSrc, setQrImageSrc] = useState<string>('');
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   
@@ -59,41 +102,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const getTodayMetrics = () => {
     try {
       let todayBiopsiesFromHistory: any[] = [];
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-      
-      if (doctorInfo.email) {
-        // Usar nuevo sistema basado en email
-        const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
-        const doctorKey = `doctor_${normalizedEmail}`;
-        const historyKey = `${doctorKey}_history`;
-        
+      const todayStr = new Date().toDateString(); // "Sun Apr 06 2026"
+
+      // Buscar en historial del médico
+      const normalizedEmail = (doctorInfo.email || '').toLowerCase().trim().replace(/\s+/g, '');
+      const historyKey = normalizedEmail ? `doctor_${normalizedEmail}_history` : `${doctorInfo.name}_history`;
+
+      try {
         const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-        const entries = Object.values(historyData) as any[];
-        
-        // Buscar biopsias del día de hoy
-        entries.forEach((entry: any) => {
-          if (entry.biopsies && entry.date) {
-            const entryDate = new Date(entry.date).toISOString().split('T')[0];
-            if (entryDate === today) {
+        Object.values(historyData).forEach((entry: any) => {
+          if (entry?.biopsies && entry.date) {
+            // Comparar usando toDateString para evitar problemas de formato
+            const entryDateStr = new Date(entry.date).toDateString();
+            if (entryDateStr === todayStr) {
               todayBiopsiesFromHistory.push(...entry.biopsies);
             }
           }
         });
-      } else {
-        // Fallback: usar sistema anterior por nombre
-        const historyKey = `${doctorInfo.name}_history`;
-        const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-        const entries = Object.values(historyData) as any[];
-        
-        entries.forEach((entry: any) => {
-          if (entry.biopsies && entry.date) {
-            const entryDate = new Date(entry.date).toISOString().split('T')[0];
-            if (entryDate === today) {
-              todayBiopsiesFromHistory.push(...entry.biopsies);
-            }
-          }
-        });
-      }
+      } catch {}
       
       // También incluir las biopsias actuales (todayBiopsies prop)
       const allTodayBiopsies = [...todayBiopsiesFromHistory, ...todayBiopsies];
@@ -102,15 +128,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         count: allTodayBiopsies.length,
         withServices: allTodayBiopsies.filter(b => {
           const servicios = b.servicios || {};
-          // Solo contar los servicios específicos del Step 7
-          const specificServices = [
+          // Solo servicios especiales y urgentes (NO PAP/Citología comunes)
+          const specialServices = [
             'cassetteUrgente',      // URGENTE 24HS
+            'papUrgente',           // PAP URGENTE
+            'citologiaUrgente',     // CITOLOGÍA URGENTE
             'corteBlancoIHQ',       // CORTE EN BLANCO PARA IHQ
             'corteBlancoComun',     // CORTE EN BLANCO COMÚN
             'giemsaPASMasson'       // GIEMSA/PAS/MASSON
           ];
-          
-          return specificServices.some(serviceKey => {
+
+          return specialServices.some(serviceKey => {
             const serviceValue = servicios[serviceKey];
             if (typeof serviceValue === 'boolean') return serviceValue;
             if (typeof serviceValue === 'number') return serviceValue > 0;
@@ -258,16 +286,19 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         console.error('Error obteniendo biopsias guardadas:', error);
       }
       
+      // Leer precios de configuración del admin (misma fuente)
+      let adminConfig: any = null;
+      try { adminConfig = JSON.parse(localStorage.getItem('adminConfig') || 'null'); } catch {}
       const precios = {
-        cassette: 300,
-        cassetteUrgente: 400,
-        profundizacion: 120,
-        pap: 90,
-        papUrgente: 110,
-        citologia: 90,
-        citologiaUrgente: 120,
-        corteBlanco: 60,
-        corteBlancoIHQ: 85,
+        cassette: adminConfig?.precioCassette || 300,
+        cassetteUrgente: adminConfig?.precioCassetteUrgente || 400,
+        profundizacion: adminConfig?.precioProfundizacion || 120,
+        pap: adminConfig?.precioPAP || 90,
+        papUrgente: adminConfig?.precioPAPUrgente || 110,
+        citologia: adminConfig?.precioCitologia || 90,
+        citologiaUrgente: adminConfig?.precioCitologiaUrgente || 120,
+        corteBlanco: adminConfig?.precioCorteBlanco || 60,
+        corteBlancoIHQ: adminConfig?.precioCorteBlancoIHQ || 85,
         giemsaPASMasson: 75
       };
 
@@ -275,71 +306,90 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       let totalBiopsias = 0;
       let totalPAP = 0;
       let totalCitologia = 0;
-      let totalBX = 0; // Biopsias histológicas (BX)
+      let totalBX = 0;
+      let totalPQ = 0;
+      let totalOtros = 0;
       let totalUrgentes = 0;
       let costoPromedio = 0;
+      let totalRemitosDelMes = 0;
 
-      savedBiopsies.forEach((biopsy) => {
-        totalBiopsias++;
-        let costoBiopsia = 0;
-
-        // Determinar tipo de biopsia y contar apropiadamente
-        const esPAP = biopsy.papQuantity && biopsy.papQuantity > 0;
-        const esCitologia = biopsy.citologiaQuantity && biopsy.citologiaQuantity > 0;
-        const esBX = !esPAP && !esCitologia; // Es BX si no es PAP ni Citología
-
-        if (esBX) {
-          totalBX++;
-        }
-
-        // Cassettes (solo para BX)
-        const cassettes = biopsy.cassettes || 0;
-        if (cassettes > 0) {
-          if (biopsy.serviciosEspeciales?.cassetteUrgente) {
-            costoBiopsia += cassettes * precios.cassetteUrgente;
-            totalUrgentes++;
-          } else {
-            costoBiopsia += precios.cassette;
-            if (cassettes > 1) {
-              costoBiopsia += (cassettes - 1) * precios.profundizacion;
+      // Contar remitos del mes (no solo biopsias)
+      try {
+        const normalizedEmail = doctorInfo.email?.toLowerCase().trim().replace(/\s+/g, '') || '';
+        const doctorKey = `doctor_${normalizedEmail}`;
+        const historyKey = `${doctorKey}_history`;
+        const historyData2 = JSON.parse(localStorage.getItem(historyKey) || '{}');
+        Object.values(historyData2).forEach((entry: any) => {
+          if (entry.date) {
+            const d = new Date(entry.date);
+            if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
+              totalRemitosDelMes++;
             }
+          }
+        });
+      } catch {}
+
+      // Función de cálculo IDÉNTICA al AdminPanel
+      const calcularBiopsia = (biopsy: any) => {
+        let total = 0;
+        const svc = biopsy.servicios || {};
+        const cassettes = parseInt(biopsy.cassettes) || 0;
+        const papQty = biopsy.papQuantity || 0;
+        const citoQty = biopsy.citologiaQuantity || 0;
+        const esCassetteUrgente = svc.cassetteUrgente ? true : false;
+        const esPapUrgente = svc.papUrgente ? true : false;
+        const esCitoUrgente = svc.citologiaUrgente ? true : false;
+
+        // Cassettes: primer cassette al precio base, resto profundización
+        if (cassettes > 0) {
+          total += esCassetteUrgente ? precios.cassetteUrgente : precios.cassette;
+          if (cassettes > 1) {
+            total += (cassettes - 1) * precios.profundizacion;
           }
         }
 
         // PAP
-        if (esPAP) {
-          totalPAP += biopsy.papQuantity;
-          if (biopsy.serviciosEspeciales?.papUrgente) {
-            costoBiopsia += biopsy.papQuantity * precios.papUrgente;
-            totalUrgentes++;
-          } else {
-            costoBiopsia += biopsy.papQuantity * precios.pap;
-          }
+        if (papQty > 0) {
+          total += papQty * (esPapUrgente ? precios.papUrgente : precios.pap);
         }
 
         // Citología
-        if (esCitologia) {
-          totalCitologia += biopsy.citologiaQuantity;
-          if (biopsy.serviciosEspeciales?.citologiaUrgente) {
-            costoBiopsia += biopsy.citologiaQuantity * precios.citologiaUrgente;
-            totalUrgentes++;
-          } else {
-            costoBiopsia += biopsy.citologiaQuantity * precios.citologia;
-          }
+        if (citoQty > 0) {
+          total += citoQty * (esCitoUrgente ? precios.citologiaUrgente : precios.citologia);
         }
 
-        // Servicios especiales
-        if (biopsy.serviciosEspeciales?.corteBlanco) {
-          costoBiopsia += precios.corteBlanco;
-        }
-        if (biopsy.serviciosEspeciales?.corteBlancoIHQ) {
-          costoBiopsia += precios.corteBlancoIHQ;
-        }
-        if (biopsy.serviciosEspeciales?.giemsaPASMasson) {
-          costoBiopsia += precios.giemsaPASMasson;
-        }
+        // Cortes en blanco
+        const corteBlancoQty = svc.corteBlancoComun ? (svc.corteBlancoComunQuantity || 1) : (svc.corteBlanco || 0);
+        total += corteBlancoQty * precios.corteBlanco;
 
-        totalFacturado += costoBiopsia;
+        // Cortes IHQ
+        const corteIHQQty = svc.corteBlancoIHQ ? (svc.corteBlancoIHQQuantity || 1) : 0;
+        total += corteIHQQty * precios.corteBlancoIHQ;
+
+        // Giemsa/PAS/Masson
+        const giemsaCount = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : (svc.giemsaPASMasson ? 1 : 0);
+        total += giemsaCount * precios.giemsaPASMasson;
+
+        return total;
+      };
+
+      savedBiopsies.forEach((biopsy) => {
+        totalBiopsias++;
+
+        const esPAP = biopsy.papQuantity && biopsy.papQuantity > 0;
+        const esCitologia = biopsy.citologiaQuantity && biopsy.citologiaQuantity > 0;
+        const esPQ = biopsy.type === 'PQ' || biopsy.tipo === 'PQ';
+        const esBX = !esPAP && !esCitologia && !esPQ;
+
+        if (esPQ) totalPQ++;
+        else if (esBX) totalBX++;
+        if (esPAP) totalPAP += biopsy.papQuantity;
+        if (esCitologia) totalCitologia += biopsy.citologiaQuantity;
+
+        const svc = biopsy.servicios || {};
+        if (svc.cassetteUrgente || svc.papUrgente || svc.citologiaUrgente) totalUrgentes++;
+
+        totalFacturado += calcularBiopsia(biopsy);
       });
 
       costoPromedio = totalBiopsias > 0 ? Math.round(totalFacturado / totalBiopsias) : 0;
@@ -350,49 +400,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       
       previousMonthBiopsies.forEach((biopsy) => {
         totalBiopsiasPrevious++;
-        let costoBiopsia = 0;
-
-        // Mismo cálculo que para el mes actual
-        const cassettes = biopsy.cassettes || 0;
-        if (cassettes > 0) {
-          if (biopsy.serviciosEspeciales?.cassetteUrgente) {
-            costoBiopsia += cassettes * precios.cassetteUrgente;
-          } else {
-            costoBiopsia += precios.cassette;
-          }
-        }
-
-        if (biopsy.profundizacion > 0) {
-          costoBiopsia += biopsy.profundizacion * precios.profundizacion;
-        }
-
-        if (biopsy.papQuantity > 0) {
-          if (biopsy.serviciosEspeciales?.papUrgente) {
-            costoBiopsia += biopsy.papQuantity * precios.papUrgente;
-          } else {
-            costoBiopsia += biopsy.papQuantity * precios.pap;
-          }
-        }
-
-        if (biopsy.citologiaQuantity > 0) {
-          if (biopsy.serviciosEspeciales?.citologiaUrgente) {
-            costoBiopsia += biopsy.citologiaQuantity * precios.citologiaUrgente;
-          } else {
-            costoBiopsia += biopsy.citologiaQuantity * precios.citologia;
-          }
-        }
-
-        if (biopsy.serviciosEspeciales?.corteBlanco) {
-          costoBiopsia += precios.corteBlanco;
-        }
-        if (biopsy.serviciosEspeciales?.corteBlancoIHQ) {
-          costoBiopsia += precios.corteBlancoIHQ;
-        }
-        if (biopsy.serviciosEspeciales?.giemsaPASMasson) {
-          costoBiopsia += precios.giemsaPASMasson;
-        }
-
-        totalFacturadoPrevious += costoBiopsia;
+        totalFacturadoPrevious += calcularBiopsia(biopsy);
       });
 
       // Calcular tendencia mensual
@@ -416,7 +424,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         totalBX,
         totalUrgentes,
         costoPromedio,
-        totalRemitos: stats.totalRemitos,
+        totalRemitos: totalRemitosDelMes,
+        totalPQ,
+        totalOtros,
         // Nuevos datos
         totalFacturadoPrevious,
         tendenciaPorcentaje,
@@ -451,7 +461,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         }}>
           {/* Header con Gradiente */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #8b5cf6 75%, #a855f7 100%)',
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #1e40af 75%, #2563eb 100%)',
             color: 'white',
             padding: '18px 22px',
             display: 'flex',
@@ -477,7 +487,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 opacity: 0.9,
                 margin: '4px 0 0 0'
               }}>
-                Dr/a. {doctorInfo.name} - {doctorInfo.hospital}
+                Dr/a. {doctorInfo.name}{doctorInfo.hospital && doctorInfo.hospital !== 'No especificado' && doctorInfo.hospital.trim() ? ` - ${doctorInfo.hospital}` : ''}
               </p>
             </div>
             
@@ -516,116 +526,39 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             overflow: 'hidden'
           }}>
             
-            {/* Fila 1: Métricas Financieras Principales */}
+            {/* Fila 1: KPIs con íconos */}
             <div style={{
               gridColumn: '1 / -1',
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '10px'
+              gap: '8px'
             }}>
-              {/* Total Facturado */}
-              <div style={{
-                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                color: 'white',
-                padding: '16px',
-                borderRadius: '12px',
-                textAlign: 'center',
-                boxShadow: '0 6px 20px -5px rgba(16, 185, 129, 0.3)'
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
-                  Total Facturado
+              {[
+                { icon: <DollarSign size={32} strokeWidth={1.5} />, label: 'TOTAL FACTURADO', value: `$${financialData.totalFacturado.toLocaleString()}`, bg: '#0c4a6e', bg2: '#0369a1' },
+                { icon: <BarChart3 size={32} strokeWidth={1.5} />, label: 'PROMEDIO/ESTUDIO', value: `$${financialData.costoPromedio}`, bg: '#1e40af', bg2: '#3b82f6' },
+                { icon: <FileText size={32} strokeWidth={1.5} />, label: 'REMITOS DEL MES', value: financialData.totalRemitos, bg: '#1e3a5f', bg2: '#1e40af' },
+                { icon: <Activity size={32} strokeWidth={1.5} />, label: 'TOTAL ESTUDIOS', value: financialData.totalBiopsias, bg: '#0f4c75', bg2: '#1b6ca8' }
+              ].map((kpi, i) => (
+                <div key={i} style={{
+                  background: `linear-gradient(135deg, ${kpi.bg} 0%, ${kpi.bg2} 100%)`,
+                  color: 'white', padding: '10px 6px', borderRadius: '12px',
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '4px'
+                }}>
+                  <div style={{ opacity: 0.4 }}>{kpi.icon}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', lineHeight: 1 }}>{kpi.value}</div>
+                  <div style={{ fontSize: '10px', fontWeight: '600', textTransform: 'uppercase', opacity: 0.8, letterSpacing: '0.3px' }}>{kpi.label}</div>
                 </div>
-                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
-                  ${financialData.totalFacturado.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                  Acumulado
-                </div>
-              </div>
-
-              {/* Costo Promedio */}
-              <div style={{
-                background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
-                color: 'white',
-                padding: '16px',
-                borderRadius: '12px',
-                textAlign: 'center',
-                boxShadow: '0 6px 20px -5px rgba(59, 130, 246, 0.3)'
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
-                  Promedio/Biopsia
-                </div>
-                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
-                  ${financialData.costoPromedio}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                  Por estudio
-                </div>
-              </div>
-
-              {/* Total Remitos */}
-              <div style={{
-                background: 'linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)',
-                color: 'white',
-                padding: '16px',
-                borderRadius: '12px',
-                textAlign: 'center',
-                boxShadow: '0 6px 20px -5px rgba(139, 92, 246, 0.3)'
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
-                  Total Remitos
-                </div>
-                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
-                  {financialData.totalRemitos}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                  Enviados
-                </div>
-              </div>
-
-              {/* Total Biopsias */}
-              <div style={{
-                background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-                color: 'white',
-                padding: '16px',
-                borderRadius: '12px',
-                textAlign: 'center',
-                boxShadow: '0 6px 20px -5px rgba(239, 68, 68, 0.3)'
-              }}>
-                <div style={{ fontSize: '14px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '8px', opacity: 0.9 }}>
-                  Total Biopsias
-                </div>
-                <div style={{ fontSize: '22px', fontWeight: '700', marginBottom: '4px' }}>
-                  {financialData.totalBiopsias}
-                </div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                  Procesadas
-                </div>
-              </div>
+              ))}
             </div>
 
-            {/* Selector de Mes */}
+            {/* Selector de Mes - Inline */}
             <div style={{
               gridColumn: '1 / -1',
-              backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              borderRadius: '12px',
-              padding: '12px 16px',
-              boxShadow: '0 4px 12px -2px rgba(0, 0, 0, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
+              display: 'flex', alignItems: 'center', gap: '6px'
             }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <Calendar style={{ height: '20px', width: '20px', color: '#3b82f6' }} />
-                <span style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>
-                  Período de Consulta:
-                </span>
-              </div>
+              <Calendar style={{ height: '12px', width: '12px', color: '#94a3b8', flexShrink: 0 }} />
+              <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', whiteSpace: 'nowrap' }}>Período:</span>
               <select
                 value={`${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`}
                 onChange={(e) => {
@@ -634,151 +567,67 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   setSelectedMonth(parseInt(month));
                 }}
                 style={{
-                  backgroundColor: '#f8fafc',
-                  color: '#374151',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '8px',
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  minWidth: '150px'
+                  backgroundColor: 'transparent', color: '#1e293b',
+                  border: 'none', borderBottom: '1px solid #cbd5e1',
+                  padding: '2px 4px', fontSize: '12px', fontWeight: '700',
+                  cursor: 'pointer', outline: 'none'
                 }}
               >
                 {Array.from({ length: 12 }, (_, i) => {
-                  const currentDate = new Date();
-                  currentDate.setMonth(currentDate.getMonth() - i);
-                  const year = currentDate.getFullYear();
-                  const month = currentDate.getMonth();
-                  const monthNames = [
-                    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-                  ];
-                  return (
-                    <option 
-                      key={`${year}-${month}`} 
-                      value={`${year}-${month.toString().padStart(2, '0')}`}
-                    >
-                      {monthNames[month]} {year}
-                    </option>
-                  );
+                  const d = new Date(); d.setMonth(d.getMonth() - i);
+                  const y = d.getFullYear(), m = d.getMonth();
+                  const names = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                  return <option key={`${y}-${m}`} value={`${y}-${m.toString().padStart(2, '0')}`}>{names[m]} {y}</option>;
                 })}
               </select>
             </div>
 
-            {/* Fila 2: Detalle de Estudios */}
+            {/* Fila 2: Detalle de Estudios - ocupa todo el box */}
             <div style={{
               backgroundColor: 'white',
-              border: '2px solid #e5e7eb',
-              borderRadius: '12px',
-              padding: '16px',
-              boxShadow: '0 6px 20px -5px rgba(0, 0, 0, 0.1)'
+              border: '1px solid #e5e7eb',
+              borderRadius: '10px',
+              padding: '10px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+              display: 'flex', flexDirection: 'column'
             }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '700',
-                color: '#374151',
-                marginBottom: '16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <Activity style={{ height: '20px', width: '20px', color: '#3b82f6' }} />
+              <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Detalle de Estudios
-              </h3>
-              
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* PAP */}
-                <div style={{
-                  backgroundColor: '#fdf2f8',
-                  border: '1px solid #fce7f3',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#be185d', marginBottom: '4px' }}>
-                      Papanicolaou (PAP)
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Citología cervical
-                    </div>
-                  </div>
-                  <div style={{
-                    backgroundColor: '#ec4899',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    fontSize: '16px',
-                    fontWeight: '700'
-                  }}>
-                    {financialData.totalPAP}
-                  </div>
-                </div>
-
-                {/* Citología */}
-                <div style={{
-                  backgroundColor: '#f3f4f6',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#7c3aed', marginBottom: '4px' }}>
-                      Citología
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Estudios citológicos
-                    </div>
-                  </div>
-                  <div style={{
-                    backgroundColor: '#8b5cf6',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    fontSize: '16px',
-                    fontWeight: '700'
-                  }}>
-                    {financialData.totalCitologia}
-                  </div>
-                </div>
-
-                {/* Biopsias BX */}
-                <div style={{
-                  backgroundColor: '#f0fdf4',
-                  border: '1px solid #dcfce7',
-                  borderRadius: '12px',
-                  padding: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: '600', color: '#059669', marginBottom: '4px' }}>
-                      Biopsias (BX)
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                      Estudios histológicos
-                    </div>
-                  </div>
-                  <div style={{
-                    backgroundColor: '#10b981',
-                    color: 'white',
-                    padding: '8px 16px',
-                    borderRadius: '20px',
-                    fontSize: '16px',
-                    fontWeight: '700'
-                  }}>
-                    {financialData.totalBX}
-                  </div>
-                </div>
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '8px', flex: 1 }}>
+                {[
+                  { label: 'BX', desc: 'Biopsias', val: financialData.totalBX, badge: '#1e40af' },
+                  { label: 'PQ', desc: 'Piezas Quirúrgicas', val: financialData.totalPQ || 0, badge: '#0369a1' },
+                  { label: 'PAP', desc: 'Papanicolaou', val: financialData.totalPAP, badge: '#4338ca' },
+                  { label: 'Citología', desc: 'Citológicos', val: financialData.totalCitologia, badge: '#475569' }
+                ].map((item, i) => (
+                  <div key={i} style={{
+                    backgroundColor: item.badge, border: 'none',
+                    borderRadius: '10px', padding: '12px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    boxSizing: 'border-box', textAlign: 'center'
+                  }}>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'white', marginBottom: '6px' }}>{item.label}</div>
+                    <div style={{
+                      backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '8px',
+                      padding: '4px 14px', fontSize: '18px', fontWeight: '700', color: 'white'
+                    }}>{item.val}</div>
+                    <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.55)', marginTop: '4px' }}>{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => alert(`Reporte preparado para enviar a ${doctorInfo.email}.`)}
+                style={{
+                  width: '100%', marginTop: '10px', padding: '10px',
+                  background: '#1e40af', color: 'white', border: 'none',
+                  borderRadius: '10px', fontSize: '13px', fontWeight: '600',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', gap: '6px'
+                }}
+              >
+                <Mail size={14} /> Enviar detalle a mi email
+              </button>
             </div>
 
             {/* Fila 2: Resumen Financiero */}
@@ -1237,7 +1086,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         content += `🔬 BIOPSIA #${index + 1}\n`;
         content += `──────────────────\n`;
         content += `🆔 Número: ${biopsy.number || `BX-${index + 1}`}\n`;
-        content += `🧬 Tipo de Tejido: ${biopsy.tissueType || 'No especificado'}\n`;
+        content += `🧬 Tipo de Tejido: ${biopsy.tissueType || '-'}\n`;
         content += `📦 Cassettes: ${biopsy.cassettes || 0}\n`;
         content += `🔍 Procedimiento: ${biopsy.procedureType || 'Biopsia'}\n`;
         
@@ -1291,6 +1140,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   };
 
   // Función de búsqueda avanzada
+  // Auto-buscar cuando cambian tissueType o hasServices
+  const prevTissueRef = React.useRef(searchFilters.tissueType);
+  const prevServicesRef = React.useRef(searchFilters.hasServices);
+  React.useEffect(() => {
+    if (showSearchModal && (searchFilters.tissueType !== prevTissueRef.current || searchFilters.hasServices !== prevServicesRef.current)) {
+      prevTissueRef.current = searchFilters.tissueType;
+      prevServicesRef.current = searchFilters.hasServices;
+      performAdvancedSearch();
+    }
+  }, [searchFilters.tissueType, searchFilters.hasServices, showSearchModal]);
+
   const performAdvancedSearch = () => {
     try {
       let allBiopsies: any[] = [];
@@ -1352,9 +1212,22 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           if (!matchesQuery) return false;
         }
         
-        // Filtro por tipo de tejido
-        if (searchFilters.tissueType && biopsy.tissueType !== searchFilters.tissueType) {
-          return false;
+        // Filtro por tipo de tejido o tipo de estudio
+        if (searchFilters.tissueType) {
+          if (searchFilters.tissueType === '__BX') {
+            if (biopsy.type === 'PQ' || biopsy.tissueType === 'PAP' || biopsy.tissueType === 'Citología') return false;
+          } else if (searchFilters.tissueType === '__PQ') {
+            if (biopsy.type !== 'PQ') return false;
+          } else if (searchFilters.tissueType === '__PAP') {
+            if (biopsy.tissueType !== 'PAP' && !(biopsy.papQuantity > 0)) return false;
+          } else if (searchFilters.tissueType === '__CITO') {
+            if (biopsy.tissueType !== 'Citología' && !(biopsy.citologiaQuantity > 0)) return false;
+          } else {
+            // Filtro por tejido específico (ignorando tildes y mayúsculas)
+            const filterNorm = searchFilters.tissueType.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            const biopsyNorm = (biopsy.tissueType || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+            if (!biopsyNorm.includes(filterNorm)) return false;
+          }
         }
         
         // Filtro por fecha
@@ -1365,11 +1238,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           return false;
         }
         
-        // Filtro por servicios especiales
+        // Filtro por servicios especiales (solo urgentes y servicios adicionales, NO PAP/Citología comunes)
         if (searchFilters.hasServices) {
-          const hasSpecialServices = Object.keys(biopsy.servicios || {}).some(key => 
-            ['cassetteUrgente', 'corteBlancoIHQ', 'corteBlancoComun', 'giemsaPASMasson'].includes(key) &&
-            biopsy.servicios[key]
+          const specialServiceKeys = ['cassetteUrgente', 'papUrgente', 'citologiaUrgente', 'corteBlancoIHQ', 'corteBlancoComun', 'giemsaPASMasson'];
+          const hasSpecialServices = Object.keys(biopsy.servicios || {}).some(key =>
+            specialServiceKeys.includes(key) && biopsy.servicios[key]
           );
           if (!hasSpecialServices) return false;
         }
@@ -1515,12 +1388,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const getSpecialServices = (result: any) => {
     const services: string[] = [];
     const servicios = result.servicios || {};
-    
+
     if (servicios.cassetteUrgente) services.push('Cassette Urgente');
     if (servicios.corteBlancoIHQ) services.push('Corte Blanco IHQ');
     if (servicios.corteBlancoComun) services.push('Corte Blanco Común');
     if (servicios.giemsaPASMasson) services.push('Giemsa/PAS/Masson');
-    
+    if (servicios.pap) services.push('PAP');
+    if (servicios.papUrgente) services.push('PAP Urgente');
+    if (servicios.citologia) services.push('Citología');
+    if (servicios.citologiaUrgente) services.push('Citología Urgente');
+
     return services;
   };
 
@@ -1538,46 +1415,88 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden' }}>
-      {/* Header Ultra Compacto para Tablet */}
+    <div style={{ height: '100vh', backgroundColor: '#f8fafc', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Header Optimizado para Tablet */}
+      {(() => {
+        let labCfg = { nombre: '', logoUrl: '' };
+        try { labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch {}
+        return null;
+      })()}
       <div style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        padding: '8px 16px',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%)',
+        padding: '10px 16px',
         flexShrink: 0
       }}>
+        {/* Logo del laboratorio centrado (protagonista) */}
+        <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+          {(() => {
+            let labCfg = { nombre: '', logoUrl: '' };
+            try { labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch {}
+            return labCfg.logoUrl ? (
+              <img
+                src={labCfg.logoUrl}
+                alt={labCfg.nombre || 'Laboratorio'}
+                style={{ height: '48px', margin: '0 auto', maxWidth: '280px', objectFit: 'contain' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            ) : (
+              <div style={{ fontSize: '18px', fontWeight: '700', color: 'white', letterSpacing: '0.5px' }}>
+                {labCfg.nombre || 'Laboratorio de Anatomía Patológica'}
+              </div>
+            );
+          })()}
+        </div>
+        {/* Info del doctor y controles */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1 style={{
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#1f2937',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: 'rgba(255,255,255,0.95)',
               margin: 0,
               lineHeight: '1.2'
             }}>
-              Dr. {doctorInfo.name}
+              Dr. {(doctorInfo.name || '').replace(/\s*-?\s*No especificado/gi, '').trim()}
             </h1>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '2px' }}>
-              {doctorInfo.email && (
-                <p style={{
-                  fontSize: '11px',
-                  color: '#2563eb',
-                  margin: 0
-                }}>📧 {doctorInfo.email}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', flexWrap: 'wrap' }}>
+              {doctorInfo.hospital && doctorInfo.hospital !== 'No especificado' && (
+                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.8)', margin: 0, fontWeight: '500' }}>{doctorInfo.hospital}</p>
               )}
-              <p style={{
-                fontSize: '11px',
-                color: '#6b7280',
-                margin: 0
-              }}>{new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+              {doctorInfo.email && (
+                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{doctorInfo.email}</p>
+              )}
+              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+                {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ConnectionStatus 
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <ConnectionStatus
               isOnline={isOnline}
               backupStatus={backupStatus}
               syncQueueLength={syncQueueLength}
             />
+            {/* Campanilla de notificaciones */}
+            <button
+              onClick={() => { if (showNotifications) { closeNotifications(); } else { loadNotifications(); setShowNotifications(true); } }}
+              style={{
+                padding: '6px', backgroundColor: 'transparent', border: 'none',
+                borderRadius: '6px', cursor: 'pointer', position: 'relative'
+              }}
+            >
+              <Bell style={{ height: '16px', width: '16px', color: 'rgba(255,255,255,0.8)' }} />
+              {unreadCount > 0 && (
+                <div style={{
+                  position: 'absolute', top: '0', right: '0',
+                  width: '14px', height: '14px', borderRadius: '50%',
+                  backgroundColor: '#ef4444', color: 'white', fontSize: '8px',
+                  fontWeight: 'bold', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', border: '2px solid #1e3a5f'
+                }}>
+                  {unreadCount}
+                </div>
+              )}
+            </button>
             <button
               onClick={onLogout}
               style={{
@@ -1589,424 +1508,236 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 transition: 'background-color 0.2s'
               }}
               onMouseOver={(e) => {
-                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)';
               }}
               onMouseOut={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
               }}
               title="Cerrar sesión"
             >
-              <LogOut style={{ height: '16px', width: '16px', color: '#6b7280' }} />
+              <LogOut style={{ height: '16px', width: '16px', color: 'rgba(255,255,255,0.8)' }} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Contenido Principal Ultra Optimizado para Tablet 22cm x 13cm */}
+      {/* Contenido Principal - Sin scroll, ajustado 100% a tablet */}
       <div style={{
-        padding: '16px',
-        height: 'calc(100vh - 64px)', // Restar altura del header
+        padding: '10px 12px',
+        flex: 1,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
-        maxWidth: '100%'
+        gap: '8px'
       }}>
-        
-        {/* Dashboard Expandido - Ocupa más espacio */}
+        {/* Métricas del día - Compacto */}
         <div style={{
-          background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 25%, #8b5cf6 75%, #a855f7 100%)',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%)',
           color: 'white',
-          padding: '24px',
-          borderRadius: '16px',
-          marginBottom: '16px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          padding: '14px 16px',
+          borderRadius: '14px',
           position: 'relative',
           overflow: 'hidden'
         }}>
-          {/* Patrón de fondo decorativo */}
-          <div style={{
-            position: 'absolute',
-            top: '-50%',
-            right: '-10%',
-            width: '200px',
-            height: '200px',
-            background: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '50%',
-            filter: 'blur(40px)'
-          }}></div>
-          <div style={{
-            position: 'absolute',
-            bottom: '-30%',
-            left: '-5%',
-            width: '150px',
-            height: '150px',
-            background: 'rgba(255, 255, 255, 0.05)',
-            borderRadius: '50%',
-            filter: 'blur(30px)'
-          }}></div>
-          
-          <div style={{
-            position: 'relative',
-            zIndex: 1
-          }}>
-            <h2 style={{
-              fontSize: '22px',
-              fontWeight: 'bold',
-              marginBottom: '20px',
-              textAlign: 'center',
-              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}>
-              📊 Resumen del Día - {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </h2>
+          <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '20px',
-              textAlign: 'center'
+              fontSize: '13px', fontWeight: '600', marginBottom: '10px', textAlign: 'center', opacity: 0.9
             }}>
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                padding: '16px',
-                borderRadius: '12px',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{todayBiopsiesCount}</div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>PACIENTES HOY</div>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                padding: '16px',
-                borderRadius: '12px',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{biopsiesWithServices}</div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>CON SERVICIOS</div>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                padding: '16px',
-                borderRadius: '12px',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{efficiency}%</div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>EFICIENCIA</div>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                padding: '16px',
-                borderRadius: '12px',
-                backdropFilter: 'blur(10px)'
-              }}>
-                <div style={{ fontSize: '32px', fontWeight: 'bold', lineHeight: '1', marginBottom: '8px' }}>{stats.totalRemitos}</div>
-                <div style={{ fontSize: '12px', opacity: 0.9 }}>TOTAL REMITOS</div>
-              </div>
+              Resumen del Día — {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
-            
-            {/* Barra de progreso */}
-            <div style={{ marginTop: '20px' }}>
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginBottom: '8px'
-              }}>
-                <span style={{ fontSize: '14px', opacity: 0.9 }}>Progreso Diario</span>
-                <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{todayBiopsiesCount}/12 objetivo</span>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                borderRadius: '10px',
-                height: '8px',
-                overflow: 'hidden'
-              }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', textAlign: 'center' }}>
+              {[
+                { val: todayBiopsiesCount, label: 'Pacientes' },
+                { val: biopsiesWithServices, label: 'Con Servicios' },
+                { val: `${efficiency}%`, label: 'Eficiencia' },
+                { val: stats.totalRemitos, label: 'Remitos' }
+              ].map((m, i) => (
+                <div key={i} style={{
+                  backgroundColor: 'rgba(255,255,255,0.12)', padding: '10px 6px',
+                  borderRadius: '10px', backdropFilter: 'blur(10px)'
+                }}>
+                  <div style={{ fontSize: '26px', fontWeight: 'bold', lineHeight: '1' }}>{m.val}</div>
+                  <div style={{ fontSize: '10px', opacity: 0.85, marginTop: '4px' }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+            {/* Barra progreso inline */}
+            <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', opacity: 0.8, whiteSpace: 'nowrap' }}>{todayBiopsiesCount}/12</span>
+              <div style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '6px', height: '6px', overflow: 'hidden' }}>
                 <div style={{
-                  backgroundColor: 'white',
-                  height: '100%',
-                  borderRadius: '10px',
-                  width: `${Math.min(100, (todayBiopsiesCount / 12) * 100)}%`,
-                  transition: 'width 1s ease-in-out',
-                  boxShadow: '0 0 10px rgba(255, 255, 255, 0.3)'
-                }}></div>
+                  backgroundColor: 'white', height: '100%', borderRadius: '6px',
+                  width: `${Math.min(100, (todayBiopsiesCount / 12) * 100)}%`, transition: 'width 0.8s'
+                }} />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Botones Principales Expandidos */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '16px',
-          marginBottom: '16px'
-        }}>
-          {/* Nuevo Paciente */}
-          <button
-            onClick={() => {
-              console.log('MainScreen - Clic en Nuevo Paciente');
-              onStartNewBiopsy();
-            }}
-            style={{
-              backgroundColor: '#3b82f6',
-              color: 'white',
-              fontWeight: '600',
-              padding: '28px 24px',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 8px 25px -5px rgba(59, 130, 246, 0.3)',
-              transition: 'all 0.3s',
-              position: 'relative',
-              overflow: 'hidden'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#2563eb';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px -5px rgba(59, 130, 246, 0.4)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = '#3b82f6';
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(59, 130, 246, 0.3)';
-            }}
-          >
-            <Plus style={{ height: '28px', width: '28px' }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1.2' }}>Nuevo Paciente</div>
-              <div style={{ color: '#dbeafe', fontSize: '14px' }}>Registro #{todayBiopsiesCount + 1}</div>
-            </div>
-          </button>
+        {/* Botón principal: Nuevo Paciente */}
+        <button
+          onClick={() => { onStartNewBiopsy(); }}
+          style={{
+            background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+            color: 'white', fontWeight: '700', padding: '22px',
+            borderRadius: '16px', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', gap: '14px', border: 'none', cursor: 'pointer',
+            boxShadow: '0 8px 24px rgba(30,64,175,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
+            fontSize: '20px', touchAction: 'manipulation', transition: 'all 0.2s'
+          }}
+        >
+          <Plus style={{ height: '28px', width: '28px' }} />
+          Nuevo Paciente
+          <span style={{ fontSize: '14px', opacity: 0.7, fontWeight: '500' }}>#{todayBiopsiesCount + 1}</span>
+        </button>
 
-          {/* Búsqueda Avanzada */}
-          <button
-            onClick={() => setShowSearchModal(true)}
-            style={{
-              backgroundColor: 'white',
-              color: '#374151',
-              fontWeight: '600',
-              padding: '28px 24px',
-              borderRadius: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px',
-              border: '2px solid #e5e7eb',
-              cursor: 'pointer',
-              boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.1)',
-              transition: 'all 0.3s'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f9fafb';
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 12px 30px -5px rgba(0, 0, 0, 0.15)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.boxShadow = '0 8px 25px -5px rgba(0, 0, 0, 0.1)';
-            }}
-          >
-            <Search style={{ height: '28px', width: '28px', color: '#3b82f6' }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1.2' }}>Búsqueda Avanzada</div>
-              <div style={{ color: '#6b7280', fontSize: '14px' }}>Filtrar y buscar</div>
-            </div>
-          </button>
-        </div>
-
-        {/* Botones Secundarios - Solo Historial y Facturación */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '12px',
-          marginBottom: '16px'
-        }}>
-          <button
-            onClick={onViewHistory}
-            style={{
-              backgroundColor: 'white',
-              color: '#374151',
-              fontWeight: '500',
-              padding: '20px 16px',
-              borderRadius: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              border: '2px solid #e5e7eb',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.borderColor = '#10b981';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.borderColor = '#e5e7eb';
-            }}
-          >
-            <History style={{ height: '24px', width: '24px', color: '#10b981' }} />
-            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Historial</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>{stats.totalRemitos} remitos</div>
-          </button>
-
-          <button
-            onClick={() => setShowStatistics(true)}
-            style={{
-              backgroundColor: 'white',
-              color: '#374151',
-              fontWeight: '500',
-              padding: '20px 16px',
-              borderRadius: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              border: '2px solid #e5e7eb',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#f3f4f6';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.borderColor = '#3b82f6';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.borderColor = '#e5e7eb';
-            }}
-          >
-            <TrendingUp style={{ height: '24px', width: '24px', color: '#3b82f6' }} />
-            <div style={{ fontSize: '16px', fontWeight: 'bold' }}>Facturación</div>
-            <div style={{ fontSize: '12px', color: '#6b7280' }}>Estadísticas</div>
-          </button>
-        </div>
-
-        {/* Estado del Sistema Compacto y Esencial */}
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '16px',
-          border: '1px solid #e5e7eb',
-          marginTop: 'auto',
-          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-        }}>
-          <h3 style={{
-            fontSize: '16px',
-            fontWeight: 'bold',
-            color: '#374151',
-            margin: '0 0 12px 0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <Activity style={{ height: '18px', width: '18px', color: '#10b981' }} />
-            Estado del Sistema
-          </h3>
-          
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '12px'
-          }}>
-            {/* Conexión WiFi */}
-            <div style={{
-              backgroundColor: '#f8fafc',
-              padding: '12px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'center'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                <Wifi style={{
-                  width: '16px',
-                  height: '16px',
-                  color: isOnline && localStorage.getItem('wifi_ssid') ? '#10b981' : 
-                         localStorage.getItem('wifi_ssid') ? '#f59e0b' : '#ef4444',
-                  marginRight: '6px'
-                }} />
-                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>CONEXIÓN WIFI</span>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                fontWeight: 'bold', 
-                color: isOnline && localStorage.getItem('wifi_ssid') ? '#10b981' : 
-                       localStorage.getItem('wifi_ssid') ? '#f59e0b' : '#ef4444'
-              }}>
-                {isOnline && localStorage.getItem('wifi_ssid') ? 'Conectado' : 
-                 localStorage.getItem('wifi_ssid') ? 'Configurado' : 'Desconectado'}
-              </div>
-            </div>
-
-            {/* Conexión Impresora */}
-            <div style={{
-              backgroundColor: '#f8fafc',
-              padding: '12px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'center'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                <Printer style={{
-                  width: '16px',
-                  height: '16px',
-                  color: localStorage.getItem('printer_ip') ? '#10b981' : '#ef4444',
-                  marginRight: '6px'
-                }} />
-                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>IMPRESORA</span>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                fontWeight: 'bold', 
-                color: localStorage.getItem('printer_ip') ? '#10b981' : '#ef4444'
-              }}>
-                {localStorage.getItem('printer_ip') ? 'Configurada' : 'No configurada'}
-              </div>
-            </div>
-
-            {/* Backup */}
-            <div style={{
-              backgroundColor: '#f8fafc',
-              padding: '12px',
-              borderRadius: '8px',
-              border: '1px solid #e2e8f0',
-              textAlign: 'center'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '6px' }}>
-                <Cloud style={{
-                  width: '16px',
-                  height: '16px',
-                  color: backupStatus === 'success' ? '#10b981' : 
-                         backupStatus === 'syncing' ? '#f59e0b' : 
-                         backupStatus === 'error' ? '#ef4444' : '#6b7280',
-                  marginRight: '6px'
-                }} />
-                <span style={{ color: '#64748b', fontSize: '11px', fontWeight: '500' }}>BACKUP</span>
-              </div>
-              <div style={{ 
-                fontSize: '14px', 
-                fontWeight: 'bold', 
-                color: backupStatus === 'success' ? '#10b981' : 
-                       backupStatus === 'syncing' ? '#f59e0b' : 
-                       backupStatus === 'error' ? '#ef4444' : '#6b7280'
-              }}>
-                {backupStatus === 'success' ? 'OK' : 
-                 backupStatus === 'syncing' ? 'Sync...' :
-                 backupStatus === 'error' ? 'Error' : 'Pendiente'}
-              </div>
-            </div>
-          </div>
+        {/* Grid 3 botones secundarios - más grandes con glass effect */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', flex: 1 }}>
+          {[
+            { onClick: () => setShowSearchModal(true), icon: <Search style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Búsqueda', sub: 'Filtrar' },
+            { onClick: onViewHistory, icon: <History style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Historial', sub: `${stats.totalRemitos} remitos` },
+            { onClick: () => setShowStatistics(true), icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' }
+          ].map((btn, i) => (
+            <button
+              key={i}
+              onClick={btn.onClick}
+              style={{
+                background: 'rgba(255,255,255,0.85)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                color: '#1e293b', fontWeight: '600',
+                borderRadius: '16px', display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: '8px',
+                border: '1px solid rgba(30,64,175,0.12)', cursor: 'pointer',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+                transition: 'all 0.2s', touchAction: 'manipulation'
+              }}
+            >
+              {btn.icon}
+              <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>{btn.label}</div>
+              <div style={{ fontSize: '11px', color: '#64748b' }}>{btn.sub}</div>
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Branding BiopsyTracker - Footer discreto */}
+      <div style={{
+        textAlign: 'center',
+        padding: '4px 0',
+        background: '#f1f5f9',
+        borderTop: '1px solid #e2e8f0',
+        flexShrink: 0
+      }}>
+        <span style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '500' }}>
+          Powered by BiopsyTracker
+        </span>
+      </div>
+
+      {/* Alerta verde: Remito listo para retirar */}
+      {listoAlert && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+            borderRadius: '20px', padding: '32px', maxWidth: '380px', width: '100%',
+            textAlign: 'center', color: 'white',
+            boxShadow: '0 25px 60px rgba(5, 150, 105, 0.4)',
+            animation: 'pulse 2s infinite'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+            <div style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px' }}>
+              Material Listo
+            </div>
+            <div style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.5', marginBottom: '20px', whiteSpace: 'pre-line' }}>
+              {listoAlert.mensaje}
+            </div>
+            <button
+              onClick={() => {
+                // Marcar como leída
+                try {
+                  const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                  const updated = all.map((n: any) => n.id === listoAlert.id ? { ...n, leida: true } : n);
+                  localStorage.setItem('doctorNotifications', JSON.stringify(updated));
+                  loadNotifications();
+                } catch {}
+                setListoAlert(null);
+              }}
+              style={{
+                background: 'white', color: '#059669', border: 'none',
+                padding: '14px 40px', borderRadius: '12px', fontSize: '16px',
+                fontWeight: '700', cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+      `}</style>
+
+      {/* Panel de notificaciones del médico */}
+      {showNotifications && (
+        <>
+          {/* Overlay para cerrar al hacer click fuera */}
+          <div
+            onClick={closeNotifications}
+            style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'transparent' }}
+          />
+          <div style={{
+            position: 'fixed', top: '70px', right: '12px', zIndex: 1000,
+            backgroundColor: 'white', borderRadius: '12px', width: '320px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)', border: '1px solid #e2e8f0',
+            maxHeight: '350px', overflow: 'hidden', display: 'flex', flexDirection: 'column'
+          }}>
+            <div style={{
+              padding: '12px 16px', borderBottom: '1px solid #f3f4f6',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0
+            }}>
+              <span style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                Notificaciones {unreadCount > 0 && <span style={{ fontSize: '11px', color: '#1e40af' }}>({unreadCount} nuevas)</span>}
+              </span>
+              <button onClick={closeNotifications} style={{
+                background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '20px', padding: '0 4px', lineHeight: 1
+              }}>×</button>
+            </div>
+            <div style={{ overflow: 'auto', flex: 1 }}>
+              {notificationsData.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '13px' }}>
+                  Sin notificaciones
+                </div>
+              ) : (
+                notificationsData.slice().reverse().map((n: any, i: number) => (
+                  <div key={n.id || i} style={{
+                    padding: '12px 16px', borderBottom: '1px solid #f3f4f6',
+                    fontSize: '12px', color: '#374151',
+                    backgroundColor: n.leida ? 'white' : '#eff6ff'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                      {!n.leida && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1e40af', flexShrink: 0 }} />}
+                      <span style={{ fontWeight: '600', color: '#1e40af', fontSize: '12px' }}>Remito modificado</span>
+                    </div>
+                    <div style={{ color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '11px' }}>{n.mensaje || n.message || 'Se realizaron cambios en un remito'}</div>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
+                      {new Date(n.fecha || n.date || Date.now()).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Modal de Código QR */}
       {showQRModal && qrData && (
@@ -2090,7 +1821,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 {[
                   { type: 'remito', label: 'Último Remito', icon: FileText, color: '#3b82f6' },
                   { type: 'doctor', label: 'Datos Doctor', icon: Activity, color: '#10b981' },
-                  { type: 'estadisticas', label: 'Estadísticas', icon: BarChart3, color: '#8b5cf6' },
+                  { type: 'estadisticas', label: 'Estadísticas', icon: BarChart3, color: '#1e40af' },
                   { type: 'backup', label: 'Backup', icon: Share, color: '#f59e0b' }
                 ].map(({ type, label, icon: Icon, color }) => (
                   <button
@@ -2432,7 +2163,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   }
                 }}
                 style={{
-                  backgroundColor: '#8b5cf6',
+                  backgroundColor: '#1e40af',
                   color: 'white',
                   border: 'none',
                   padding: '12px',
@@ -2447,10 +2178,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   transition: 'all 0.2s'
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#7c3aed';
+                  e.currentTarget.style.backgroundColor = '#1e3a5f';
                 }}
                 onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#8b5cf6';
+                  e.currentTarget.style.backgroundColor = '#1e40af';
                 }}
               >
                 <Share style={{ height: '16px', width: '16px' }} />
@@ -2534,7 +2265,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 alignItems: 'center',
                 gap: '6px'
               }}>
-                <Search style={{ height: '18px', width: '18px', color: '#8b5cf6' }} />
+                <Search style={{ height: '18px', width: '18px', color: '#1e40af' }} />
                 Búsqueda Avanzada
               </h2>
               <button
@@ -2659,10 +2390,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   }}
                 >
                   <option value="">Todos</option>
-                  <option value="Biopsia">Biopsia</option>
-                  <option value="Pieza Quirúrgica">Pieza Quirúrgica</option>
-                  <option value="PAP">PAP</option>
-                  <option value="Citología">Citología</option>
+                  <option value="__BX">BX (Biopsias)</option>
+                  <option value="__PQ">PQ (Piezas Quirúrgicas)</option>
+                  <option value="__PAP">PAP</option>
+                  <option value="__CITO">Citología</option>
                 </select>
               </div>
 
@@ -2693,7 +2424,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 <button
                   onClick={performAdvancedSearch}
                   style={{
-                    backgroundColor: '#8b5cf6',
+                    backgroundColor: '#1e40af',
                     color: 'white',
                     border: 'none',
                     padding: '8px 16px',
@@ -2759,135 +2490,128 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   overflow: 'auto'
                 }}>
                   {searchResults.map((result, index) => {
-                    const specialServices = getSpecialServices(result);
-                    const hasServices = specialServices.length > 0;
-                    
-                    // Solo 2 colores alternados para diferenciación visual
-                    const isEven = index % 2 === 0;
-                    const backgroundColor = isEven ? '#f8fafc' : '#f0f9ff';
-                    const borderColor = isEven ? '#3b82f6' : '#10b981';
-                    const titleColor = isEven ? '#1e40af' : '#059669';
-                    
+                    const svc = result.servicios || {};
+                    const tipo = result.type === 'PQ' ? 'PQ' : result.tissueType === 'PAP' ? 'PAP' : result.tissueType === 'Citología' ? 'CITO' : 'BX';
+                    const cassettes = parseInt(result.cassettes) || 0;
+                    const cn = result.cassettesNumbers || [];
+                    const isUrgent = svc.cassetteUrgente || svc.papUrgente || svc.citologiaUrgente;
+
+                    // Calcular costo
+                    let costo = 0;
+                    if (cassettes > 0) {
+                      costo += svc.cassetteUrgente ? 400 : 300;
+                      if (cassettes > 1) costo += (cassettes - 1) * 120;
+                    }
+                    if (result.papQuantity > 0) costo += result.papQuantity * (svc.papUrgente ? 110 : 90);
+                    if (result.citologiaQuantity > 0) costo += result.citologiaQuantity * (svc.citologiaUrgente ? 120 : 90);
+                    if (svc.corteBlancoComun) costo += (svc.corteBlancoComunQuantity || 1) * 60;
+                    if (svc.corteBlancoIHQ) costo += (svc.corteBlancoIHQQuantity || 1) * 85;
+                    if (svc.giemsaPASMasson) {
+                      const gc = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : 1;
+                      costo += gc * 75;
+                    }
+
+                    // Servicios detallados
+                    const serviciosDetail: string[] = [];
+                    if (svc.cassetteUrgente) serviciosDetail.push('URGENTE 24hs');
+                    if (svc.corteBlancoIHQ) {
+                      const cassLabel = (svc.corteBlancoIHQCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ');
+                      serviciosDetail.push('Corte IHQ ×' + (svc.corteBlancoIHQQuantity || 1) + (cassLabel ? ' [' + cassLabel + ']' : ''));
+                    }
+                    if (svc.corteBlancoComun) {
+                      const cassLabel = (svc.corteBlancoComunCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ');
+                      serviciosDetail.push('Corte Blanco ×' + (svc.corteBlancoComunQuantity || 1) + (cassLabel ? ' [' + cassLabel + ']' : ''));
+                    }
+                    if (svc.giemsaPASMasson) {
+                      const opts = svc.giemsaOptions || {};
+                      const t: string[] = [];
+                      if (opts.giemsa) t.push('Giemsa');
+                      if (opts.pas) t.push('PAS');
+                      if (opts.masson) t.push('Masson');
+                      const cassLabel = (svc.giemsaCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ');
+                      serviciosDetail.push((t.length > 0 ? t.join(', ') : 'Tinciones') + (cassLabel ? ' [' + cassLabel + ']' : ''));
+                    }
+
                     return (
-                      <div
-                        key={index}
-                        style={{
-                          padding: '10px',
-                          borderBottom: index < searchResults.length - 1 ? '1px solid #e5e7eb' : 'none',
-                          backgroundColor: backgroundColor,
-                          borderLeft: `4px solid ${borderColor}`
-                        }}
-                      >
-                        {/* Línea principal con información clave */}
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          marginBottom: '8px'
-                        }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ 
-                              fontSize: '15px', 
-                              fontWeight: '700', 
-                              color: titleColor,
-                              marginBottom: '4px'
-                            }}>
-                              Biopsia #{result.number || 'S/N'} - {result.tissueType || 'Sin tipo'}
-                            </div>
-                            
-                            {/* Solo mostrar órgano si existe */}
-                            {result.organ && result.organ.trim() && (
-                              <div style={{ 
-                                fontSize: '13px', 
-                                color: '#374151',
-                                marginBottom: '4px'
-                              }}>
-                                📍 {result.organ}
-                              </div>
-                            )}
-                            
-                            {/* Detalles de la biopsia */}
-                            {getBiopsyDetails(result) && (
-                              <div style={{ 
-                                fontSize: '12px', 
-                                color: '#6366f1',
-                                fontWeight: '500',
-                                marginBottom: '4px'
-                              }}>
-                                📋 {getBiopsyDetails(result)}
-                              </div>
-                            )}
+                      <div key={index} style={{
+                        padding: '12px', borderBottom: '1px solid #f1f5f9',
+                        backgroundColor: index % 2 === 0 ? 'white' : '#f8fafc'
+                      }}>
+                        {/* Header: número + tipo + tejido + costo */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                            <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>#{result.number && result.number !== '0' ? result.number : 'S/N'}</span>
+                            <span style={{
+                              padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700',
+                              background: tipo === 'PQ' ? '#fed7aa' : tipo === 'PAP' ? '#fce7f3' : tipo === 'CITO' ? '#ede9fe' : '#dcfce7',
+                              color: tipo === 'PQ' ? '#c2410c' : tipo === 'PAP' ? '#be185d' : tipo === 'CITO' ? '#7c3aed' : '#166534'
+                            }}>{tipo}</span>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>{result.tissueType}</span>
+                            {isUrgent && <span style={{ fontSize: '9px', fontWeight: '700', color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: '4px' }}>URGENTE</span>}
                           </div>
-                          
-                          {/* Servicios especiales con detalle */}
-                          {hasServices && (
-                            <div style={{ marginLeft: '12px', maxWidth: '200px' }}>
-                              <span style={{
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e',
-                                padding: '4px 8px',
-                                borderRadius: '12px',
-                                fontSize: '11px',
-                                fontWeight: '600',
-                                display: 'block',
-                                marginBottom: '4px'
-                              }}>
-                                ⭐ Con servicios
-                              </span>
-                              <div style={{
-                                fontSize: '10px',
-                                color: '#92400e',
-                                fontWeight: '500'
-                              }}>
-                                {specialServices.join(', ')}
-                              </div>
-                            </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e40af' }}>${costo.toLocaleString()}</div>
+                          </div>
+                        </div>
+
+                        {/* Detalles: cassettes, descalcificación, remito */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                          {cassettes > 0 && tipo !== 'PAP' && tipo !== 'CITO' && <span style={{ fontSize: '11px', background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>Cassettes: {cassettes}</span>}
+                          {(result.pieces && parseInt(result.pieces) > 0) && <span style={{ fontSize: '11px', background: '#f5f3ff', color: '#6d28d9', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>Trozos: {result.pieces}</span>}
+                          {cassettes > 1 && cn.length > 1 && (
+                            <span style={{ fontSize: '11px', background: '#f0f9ff', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
+                              SUBs: {cn.slice(1).map((c: any, i: number) => typeof c === 'object' ? (c.suffix || 'S' + (i+1)) : (c && c !== '0' ? c : 'S' + (i+1))).join(', ')}
+                            </span>
                           )}
+                          {(result.papQuantity || 0) > 0 && <span style={{ fontSize: '11px', background: '#fce7f3', color: '#be185d', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>PAP: {result.papQuantity}</span>}
+                          {(result.citologiaQuantity || 0) > 0 && <span style={{ fontSize: '11px', background: '#ede9fe', color: '#7c3aed', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>Cito: {result.citologiaQuantity}</span>}
+                          <span style={{ fontSize: '11px', background: result.declassify === 'Sí' ? '#fef3c7' : '#f1f5f9', color: result.declassify === 'Sí' ? '#92400e' : '#64748b', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
+                            Descalcif: {result.declassify || 'No'}
+                          </span>
                         </div>
 
-                        {/* Información de fecha (solo una vez) */}
-                        <div style={{
-                          paddingTop: '8px',
-                          borderTop: '1px solid #f3f4f6'
-                        }}>
-                          <div style={{ 
-                            fontSize: '11px', 
-                            color: '#6b7280', 
-                            fontWeight: '500',
-                            marginBottom: '2px'
-                          }}>
-                            � FECHA
+                        {/* Servicios especiales detallados */}
+                        {serviciosDetail.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                            {serviciosDetail.map((s, si) => (
+                              <span key={si} style={{
+                                fontSize: '10px', fontWeight: '600', padding: '2px 8px', borderRadius: '4px',
+                                background: s.includes('URGENTE') ? '#fee2e2' : '#eff6ff',
+                                color: s.includes('URGENTE') ? '#dc2626' : '#1e40af'
+                              }}>{s}</span>
+                            ))}
                           </div>
-                          <div style={{ 
-                            fontSize: '12px', 
-                            color: '#1f2937',
-                            fontWeight: '500'
-                          }}>
+                        )}
+
+                        {/* Footer: fecha + remito clickeable */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '11px', color: '#64748b' }}>
                             {formatDateSpanish(result.date)}
-                          </div>
+                          </span>
+                          <button
+                            onClick={() => {
+                              try {
+                                const email = doctorInfo.email?.toLowerCase().trim().replace(/\s+/g, '') || '';
+                                const hk = `doctor_${email}_history`;
+                                const history = JSON.parse(localStorage.getItem(hk) || '{}');
+                                const entry: any = Object.values(history).find((e: any) => e.id === result.remitoId);
+                                if (entry) setViewingRemitoFromSearch(entry);
+                              } catch {}
+                            }}
+                            style={{
+                              fontSize: '11px', fontWeight: '600', color: '#1e40af',
+                              background: '#eff6ff', border: '1px solid #bfdbfe',
+                              padding: '3px 10px', borderRadius: '6px', cursor: 'pointer'
+                            }}
+                          >
+                            Ver remito #{(result.remitoId || '').slice(-5).toUpperCase()}
+                          </button>
                         </div>
 
-                        {/* Observaciones si existen */}
-                        {result.observations && result.observations.trim() && (
-                          <div style={{ marginTop: '8px' }}>
-                            <div style={{ 
-                              fontSize: '11px', 
-                              color: '#6b7280', 
-                              fontWeight: '500',
-                              marginBottom: '2px'
-                            }}>
-                              💬 OBSERVACIONES
-                            </div>
-                            <div style={{ 
-                              fontSize: '12px', 
-                              color: '#4b5563',
-                              fontStyle: 'italic'
-                            }}>
-                              {result.observations.length > 100 
-                                ? `${result.observations.substring(0, 100)}...` 
-                                : result.observations
-                              }
-                            </div>
+                        {/* Observaciones */}
+                        {result.observations?.trim() && (
+                          <div style={{ marginTop: '4px', fontSize: '11px', color: '#64748b', fontStyle: 'italic' }}>
+                            {result.observations.length > 80 ? result.observations.substring(0, 80) + '...' : result.observations}
                           </div>
                         )}
                       </div>
@@ -2996,6 +2720,98 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               >
                 Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Vista de remito completo desde búsqueda */}
+      {viewingRemitoFromSearch && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '700px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e40af 100%)', padding: '14px 18px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: '700' }}>Remito #{(viewingRemitoFromSearch.id || '').slice(-6).toUpperCase()}</div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  {new Date(viewingRemitoFromSearch.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                  {' · '}{(viewingRemitoFromSearch.biopsies || []).length} pacientes
+                </div>
+              </div>
+              <button onClick={() => setViewingRemitoFromSearch(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Cerrar</button>
+            </div>
+            {/* Tabla */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>N°</th>
+                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Tejido</th>
+                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Tipo</th>
+                    <th style={{ textAlign: 'center', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Cass.</th>
+                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Descalcif.</th>
+                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Servicios</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(viewingRemitoFromSearch.biopsies || []).map((b: any, i: number) => {
+                    const t = b.type === 'PQ' ? 'PQ' : b.tissueType === 'PAP' ? 'PAP' : b.tissueType === 'Citología' ? 'CITO' : 'BX';
+                    const s = b.servicios || {};
+                    const svcs: string[] = [];
+                    if (s.cassetteUrgente) svcs.push('URGENTE 24hs');
+                    if (s.papUrgente) svcs.push('PAP Urgente');
+                    if (s.citologiaUrgente) svcs.push('Cito Urgente');
+                    if (s.corteBlancoIHQ) svcs.push('Corte IHQ ×' + (s.corteBlancoIHQQuantity || 1));
+                    if (s.corteBlancoComun) svcs.push('Corte Blanco ×' + (s.corteBlancoComunQuantity || 1));
+                    if (s.giemsaPASMasson) {
+                      const o = s.giemsaOptions || {};
+                      const ts: string[] = [];
+                      if (o.giemsa) ts.push('Giemsa');
+                      if (o.pas) ts.push('PAS');
+                      if (o.masson) ts.push('Masson');
+                      svcs.push(ts.length > 0 ? ts.join(', ') : 'Tinciones');
+                    }
+                    if ((b.papQuantity || 0) > 0) svcs.push('PAP ×' + b.papQuantity);
+                    if ((b.citologiaQuantity || 0) > 0) svcs.push('Cito ×' + b.citologiaQuantity);
+                    const cassNum = parseInt(b.cassettes) || 0;
+                    const cnArr = b.cassettesNumbers || [];
+
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '8px', fontWeight: '700', color: '#1e40af' }}>{b.number || '-'}</td>
+                        <td style={{ padding: '8px' }}>{b.tissueType}</td>
+                        <td style={{ padding: '8px' }}>
+                          <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700',
+                            background: t === 'PQ' ? '#fed7aa' : t === 'PAP' ? '#fce7f3' : t === 'CITO' ? '#ede9fe' : '#dcfce7',
+                            color: t === 'PQ' ? '#c2410c' : t === 'PAP' ? '#be185d' : t === 'CITO' ? '#7c3aed' : '#166534'
+                          }}>{t}</span>
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '600' }}>
+                          {cassNum > 0 ? cassNum : '-'}
+                          {cassNum > 1 && cnArr.length > 1 && (
+                            <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
+                              {cnArr.slice(1).map((c: any, si: number) => 'S-' + (typeof c === 'object' ? (c.suffix || (si+1)) : (c && c !== '0' ? c : (si+1)))).join(', ')}
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px', fontSize: '11px', color: b.declassify === 'Sí' ? '#92400e' : '#94a3b8' }}>{b.declassify || 'No'}</td>
+                        <td style={{ padding: '8px' }}>
+                          {svcs.length > 0 ? (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                              {svcs.map((sv, si) => (
+                                <span key={si} style={{ fontSize: '9px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px',
+                                  background: sv.includes('URGENTE') || sv.includes('Urgente') ? '#fee2e2' : '#eff6ff',
+                                  color: sv.includes('URGENTE') || sv.includes('Urgente') ? '#dc2626' : '#1e40af'
+                                }}>{sv}</span>
+                              ))}
+                            </div>
+                          ) : <span style={{ fontSize: '11px', color: '#94a3b8' }}>Estándar</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

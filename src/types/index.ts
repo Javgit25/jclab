@@ -1,11 +1,34 @@
 // ✅ TIPOS ACTUALIZADOS PARA GIEMSA CORREGIDO
 
 export interface DoctorInfo {
+  id?: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   hospital: string;
   selectedDate: string;
   loginDate?: string;
+}
+
+export interface RegisteredDoctor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  hospital: string;
+  whatsapp: string;
+  labCode: string;
+  password: string;
+  registeredAt: string;
+  profileChanges: ProfileChange[];
+}
+
+export interface ProfileChange {
+  field: string;
+  oldValue: string;
+  newValue: string;
+  changedAt: string;
 }
 
 export interface GiemsaServices {
@@ -43,7 +66,10 @@ export interface BiopsyServices {
   corteBlancoComunQuantity: number;
   giemsaPASMasson: boolean | number; // ✅ Puede ser boolean o number
   giemsaOptions: GiemsaServices;
-  giemsaPASMassonTotal?: number; // ✅ NUEVO CAMPO TEMPORAL para almacenar el total
+  giemsaPASMassonTotal?: number;
+  corteBlancoIHQCassettes?: number[];
+  corteBlancoComunCassettes?: number[];
+  giemsaCassettes?: number[];
 }
 
 export interface CassetteNumber {
@@ -96,6 +122,11 @@ export interface AdminRemito {
   hospital: string;
   biopsias: AdminBiopsia[];
   estado: 'pendiente' | 'facturado';
+  estadoEnvio?: 'borrador' | 'enviado' | 'recibido' | 'observado';
+  enviadoAt?: string;
+  recibidoAt?: string;
+  recibidoPor?: string;
+  observacionRecepcion?: string;
 }
 
 export interface AdminBiopsia {

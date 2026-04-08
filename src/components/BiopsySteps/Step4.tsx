@@ -69,7 +69,7 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
         justifyContent: 'center',
         gap: '16px',
         padding: '12px',
-        border: `3px solid ${value ? '#667eea' : '#E5E7EB'}`,
+        border: `3px solid ${value ? '#1e3a5f' : '#E5E7EB'}`,
         borderRadius: '16px',
         backgroundColor: 'white',
         transition: 'all 0.3s ease',
@@ -83,7 +83,7 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
           style={{
             width: '45px',
             height: '45px',
-            backgroundColor: numValue > min ? '#667eea' : '#e5e7eb',
+            backgroundColor: numValue > min ? '#1e3a5f' : '#e5e7eb',
             color: 'white',
             border: 'none',
             borderRadius: '12px',
@@ -123,7 +123,7 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
             border: 'none',
             borderRadius: '12px',
             backgroundColor: value ? '#f0f4ff' : '#f8fafc',
-            color: value ? '#667eea' : '#6b7280',
+            color: value ? '#1e3a5f' : '#6b7280',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
             minHeight: '50px',
@@ -150,7 +150,7 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
           style={{
             width: '45px',
             height: '45px',
-            backgroundColor: numValue < max ? '#667eea' : '#e5e7eb',
+            backgroundColor: numValue < max ? '#1e3a5f' : '#e5e7eb',
             color: 'white',
             border: 'none',
             borderRadius: '12px',
@@ -226,7 +226,7 @@ export const Step4: React.FC<Step4Props> = ({
     }}>
       {/* Header Compacto y Limpio */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 16px',
         flexShrink: 0,
@@ -324,7 +324,7 @@ export const Step4: React.FC<Step4Props> = ({
           padding: '0 16px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
             padding: '6px',
             borderRadius: '8px',
             boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
@@ -439,7 +439,7 @@ export const Step4: React.FC<Step4Props> = ({
                           <span style={{
                             fontSize: '18px',
                             fontWeight: 'bold',
-                            color: '#667eea',
+                            color: '#1e3a5f',
                             margin: '0 4px'
                           }}>
                             /
@@ -453,10 +453,10 @@ export const Step4: React.FC<Step4Props> = ({
                               padding: '8px 12px',
                               fontSize: '16px',
                               fontWeight: 'bold',
-                              border: '2px solid #667eea',
+                              border: '2px solid #1e3a5f',
                               borderRadius: '6px',
                               backgroundColor: defaultSuffix ? '#f0f4ff' : 'white',
-                              color: '#667eea',
+                              color: '#1e3a5f',
                               cursor: 'pointer',
                               textAlign: 'center',
                               transition: 'all 0.3s ease',
@@ -541,7 +541,7 @@ export const Step4: React.FC<Step4Props> = ({
                 fontWeight: 'bold',
                 fontSize: '20px',
                 background: isValid 
-                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  ? 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' 
                   : '#d1d5db',
                 color: 'white',
                 border: 'none',

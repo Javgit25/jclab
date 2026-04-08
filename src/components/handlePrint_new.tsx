@@ -417,34 +417,44 @@ export const generateProfessionalRemito = (entry: HistoryEntry, doctorInfo: Doct
             </thead>
             <tbody>
                 ${entry.biopsies?.map((biopsy, index) => {
-                  const servicios = [];
-                  if (biopsy.serviciosEspeciales?.giemsa) servicios.push('Giemsa');
-                  if (biopsy.serviciosEspeciales?.pas) servicios.push('PAS');
-                  if (biopsy.serviciosEspeciales?.masson) servicios.push('Masson');
-                  
-                  const isUrgent = biopsy.isUrgent;
-                  
-                  return `
+                  const servicios: string[] = [];
+                  const svc = biopsy.servicios || {} as any;
+                  if (svc.giemsaPASMasson) {
+                    const opts = svc.giemsaOptions || {} as any;
+                    if (opts.giemsa) servicios.push('Giemsa');
+                    if (opts.pas) servicios.push('PAS');
+                    if (opts.masson) servicios.push('Masson');
+                    if (servicios.length === 0) servicios.push('Giemsa/PAS/Masson');
+                  }
+                  if (svc.corteBlancoIHQ) servicios.push('Corte IHQ');
+                  if (svc.corteBlancoComun) servicios.push('Corte Común');
+                  if (svc.pap || svc.papUrgente) servicios.push('PAP');
+                  if (svc.citologia || svc.citologiaUrgente) servicios.push('Citología');
+
+                  const isUrgent = svc.cassetteUrgente || svc.papUrgente || svc.citologiaUrgente;
+                  const tipo = biopsy.type === 'PQ' ? 'PQ' : 'BX';
+
+                  return \`
                     <tr>
-                        <td><span class="biopsy-num">${index + 1}</span></td>
-                        <td class="tissue-cell">${biopsy.tissueType || 'No especificado'}</td>
-                        <td><span class="quantity">${biopsy.cassettes || 0}</span></td>
-                        <td><span class="quantity">${biopsy.papQuantity || 0}</span></td>
-                        <td><span class="quantity">${biopsy.citologiaQuantity || 0}</span></td>
+                        <td><span class="biopsy-num">\${index + 1}</span></td>
+                        <td class="tissue-cell">\${biopsy.tissueType || 'No especificado'} <span style="font-size:9pt;color:#6b7280;">(\${tipo})</span></td>
+                        <td><span class="quantity">\${biopsy.cassettes || 0}</span></td>
+                        <td><span class="quantity">\${biopsy.papQuantity || 0}</span></td>
+                        <td><span class="quantity">\${biopsy.citologiaQuantity || 0}</span></td>
                         <td>
-                            ${servicios.length > 0 
-                              ? servicios.map(s => `<span class="service-tag">${s}</span>`).join(' ')
+                            \${servicios.length > 0
+                              ? servicios.map(s => \`<span class="service-tag">\${s}</span>\`).join(' ')
                               : '<span style="color: #6b7280; font-style: italic;">Sin servicios</span>'
                             }
                         </td>
                         <td>
-                            ${isUrgent 
+                            \${isUrgent
                               ? '<span class="priority-urgent">🚨 URGENTE</span>'
                               : '<span class="priority-normal">✓ NORMAL</span>'
                             }
                         </td>
                     </tr>
-                  `;
+                  \`;
                 }).join('') || '<tr><td colspan="7" style="text-align: center; color: #6b7280; font-style: italic; padding: 20px;">No hay biopsias registradas</td></tr>'}
             </tbody>
         </table>

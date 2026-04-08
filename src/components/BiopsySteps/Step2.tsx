@@ -139,7 +139,7 @@ export const Step2: React.FC<Step2Props> = ({
     }}>
       {/* Header Compacto y Limpio */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 20px',
         flexShrink: 0,
@@ -252,7 +252,7 @@ export const Step2: React.FC<Step2Props> = ({
                 marginBottom: '24px'
               }}>
                 <div style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
                   padding: '10px',
                   borderRadius: '12px',
                   boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
@@ -275,9 +275,9 @@ export const Step2: React.FC<Step2Props> = ({
                   fontSize: '24px',
                   fontWeight: 'bold',
                   borderRadius: '16px',
-                  border: tissueType ? '3px solid #667eea' : '3px solid #d1d5db',
+                  border: tissueType ? '3px solid #1e3a5f' : '3px solid #d1d5db',
                   backgroundColor: tissueType ? '#f0f4ff' : 'white',
-                  color: tissueType ? '#667eea' : '#6b7280',
+                  color: tissueType ? '#1e3a5f' : '#6b7280',
                   cursor: 'pointer',
                   transition: 'all 0.3s',
                   outline: 'none',
@@ -290,7 +290,7 @@ export const Step2: React.FC<Step2Props> = ({
                 }}
                 onMouseOver={(e) => {
                   if (!tissueType) {
-                    e.currentTarget.style.borderColor = '#667eea';
+                    e.currentTarget.style.borderColor = '#1e3a5f';
                     e.currentTarget.style.backgroundColor = '#f8fafc';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.15)';
@@ -313,7 +313,7 @@ export const Step2: React.FC<Step2Props> = ({
                 <div style={{
                   marginTop: '16px',
                   backgroundColor: 'white',
-                  border: '2px solid #667eea',
+                  border: '2px solid #1e3a5f',
                   borderRadius: '12px',
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
                   maxHeight: '200px',
@@ -325,7 +325,7 @@ export const Step2: React.FC<Step2Props> = ({
                     backgroundColor: '#f0f4ff',
                     borderBottom: '1px solid #e5e7eb',
                     fontSize: '14px',
-                    color: '#667eea',
+                    color: '#1e3a5f',
                     fontWeight: '600'
                   }}>
                     💡 {autoCompleteOptions.length} sugerencia{autoCompleteOptions.length !== 1 ? 's' : ''} encontrada{autoCompleteOptions.length !== 1 ? 's' : ''}
@@ -398,9 +398,9 @@ export const Step2: React.FC<Step2Props> = ({
                     style={{
                       padding: '16px 12px',
                       borderRadius: '12px',
-                      border: `2px solid ${tissueType === tissue ? '#667eea' : '#e5e7eb'}`,
+                      border: `2px solid ${tissueType === tissue ? '#1e3a5f' : '#e5e7eb'}`,
                       backgroundColor: tissueType === tissue ? '#f0f4ff' : 'white',
-                      color: tissueType === tissue ? '#667eea' : '#374151',
+                      color: tissueType === tissue ? '#1e3a5f' : '#374151',
                       textAlign: 'center',
                       fontWeight: tissueType === tissue ? '600' : '500',
                       cursor: 'pointer',
@@ -414,7 +414,7 @@ export const Step2: React.FC<Step2Props> = ({
                     }}
                     onMouseOver={(e) => {
                       if (tissueType !== tissue) {
-                        e.currentTarget.style.borderColor = '#667eea';
+                        e.currentTarget.style.borderColor = '#1e3a5f';
                         e.currentTarget.style.backgroundColor = '#f8fafc';
                         e.currentTarget.style.transform = 'translateY(-1px)';
                       }
@@ -462,13 +462,13 @@ export const Step2: React.FC<Step2Props> = ({
                         <div style={{
                           width: '4px',
                           height: '20px',
-                          backgroundColor: '#667eea',
+                          backgroundColor: '#1e3a5f',
                           borderRadius: '2px'
                         }}></div>
                         <h4 style={{
                           fontSize: '16px',
                           fontWeight: '700',
-                          color: '#667eea',
+                          color: '#1e3a5f',
                           margin: 0,
                           textTransform: 'uppercase',
                           letterSpacing: '0.5px'
@@ -488,9 +488,9 @@ export const Step2: React.FC<Step2Props> = ({
                             style={{
                               padding: '16px 12px',
                               borderRadius: '12px',
-                              border: `3px solid ${endoscopiaSubTypes.includes(item.value) ? '#667eea' : '#e5e7eb'}`,
+                              border: `3px solid ${endoscopiaSubTypes.includes(item.value) ? '#1e3a5f' : '#e5e7eb'}`,
                               backgroundColor: endoscopiaSubTypes.includes(item.value) ? '#f0f4ff' : 'white',
-                              color: endoscopiaSubTypes.includes(item.value) ? '#667eea' : '#374151',
+                              color: endoscopiaSubTypes.includes(item.value) ? '#1e3a5f' : '#374151',
                               textAlign: 'center',
                               fontWeight: endoscopiaSubTypes.includes(item.value) ? '700' : '600',
                               cursor: 'pointer',
@@ -510,7 +510,7 @@ export const Step2: React.FC<Step2Props> = ({
                             }}
                             onMouseOver={(e) => {
                               if (!endoscopiaSubTypes.includes(item.value)) {
-                                e.currentTarget.style.borderColor = '#667eea';
+                                e.currentTarget.style.borderColor = '#1e3a5f';
                                 e.currentTarget.style.backgroundColor = '#f8fafc';
                                 e.currentTarget.style.transform = 'translateY(-2px) scale(1.02)';
                                 e.currentTarget.style.boxShadow = '0 8px 25px rgba(102, 126, 234, 0.2)';
@@ -571,7 +571,7 @@ export const Step2: React.FC<Step2Props> = ({
                       padding: '16px',
                       background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)',
                       borderRadius: '12px',
-                      border: '2px solid #667eea',
+                      border: '2px solid #1e3a5f',
                       boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)'
                     }}>
                       <div style={{
@@ -596,7 +596,7 @@ export const Step2: React.FC<Step2Props> = ({
                         </div>
                         <span style={{
                           fontSize: '16px',
-                          color: '#667eea',
+                          color: '#1e3a5f',
                           fontWeight: '700'
                         }}>
                           {endoscopiaSubTypes.length} Subtipo{endoscopiaSubTypes.length !== 1 ? 's' : ''} Seleccionado{endoscopiaSubTypes.length !== 1 ? 's' : ''}
@@ -678,9 +678,9 @@ export const Step2: React.FC<Step2Props> = ({
                       width: '48px',
                       height: '48px',
                       borderRadius: '12px',
-                      border: '2px solid #667eea',
+                      border: '2px solid #1e3a5f',
                       backgroundColor: 'white',
-                      color: '#667eea',
+                      color: '#1e3a5f',
                       fontSize: '24px',
                       fontWeight: 'bold',
                       cursor: 'pointer',
@@ -690,12 +690,12 @@ export const Step2: React.FC<Step2Props> = ({
                       justifyContent: 'center'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.backgroundColor = 'white';
-                      e.currentTarget.style.color = '#667eea';
+                      e.currentTarget.style.color = '#1e3a5f';
                     }}
                   >
                     −
@@ -711,14 +711,14 @@ export const Step2: React.FC<Step2Props> = ({
                       minWidth: '120px',
                       height: '48px',
                       backgroundColor: 'white',
-                      border: '2px solid #667eea',
+                      border: '2px solid #1e3a5f',
                       borderRadius: '12px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       fontSize: '20px',
                       fontWeight: 'bold',
-                      color: '#667eea',
+                      color: '#1e3a5f',
                       cursor: 'pointer',
                       transition: 'all 0.2s'
                     }}
@@ -728,7 +728,7 @@ export const Step2: React.FC<Step2Props> = ({
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.backgroundColor = 'white';
-                      e.currentTarget.style.borderColor = '#667eea';
+                      e.currentTarget.style.borderColor = '#1e3a5f';
                     }}
                   >
                     {tissueType === 'PAP' ? papQuantity : citologiaQuantity}
@@ -747,9 +747,9 @@ export const Step2: React.FC<Step2Props> = ({
                       width: '48px',
                       height: '48px',
                       borderRadius: '12px',
-                      border: '2px solid #667eea',
+                      border: '2px solid #1e3a5f',
                       backgroundColor: 'white',
-                      color: '#667eea',
+                      color: '#1e3a5f',
                       fontSize: '24px',
                       fontWeight: 'bold',
                       cursor: 'pointer',
@@ -759,12 +759,12 @@ export const Step2: React.FC<Step2Props> = ({
                       justifyContent: 'center'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.backgroundColor = 'white';
-                      e.currentTarget.style.color = '#667eea';
+                      e.currentTarget.style.color = '#1e3a5f';
                     }}
                   >
                     +
@@ -782,15 +782,15 @@ export const Step2: React.FC<Step2Props> = ({
                   padding: '12px',
                   backgroundColor: 'white',
                   borderRadius: '12px',
-                  border: `2px solid ${(tissueType === 'PAP' ? papUrgente : citologiaUrgente) ? '#667eea' : '#e5e7eb'}`,
+                  border: `2px solid ${(tissueType === 'PAP' ? papUrgente : citologiaUrgente) ? '#1e3a5f' : '#e5e7eb'}`,
                   transition: 'all 0.2s'
                 }}
                 onMouseOver={(e) => {
-                  e.currentTarget.style.borderColor = '#667eea';
+                  e.currentTarget.style.borderColor = '#1e3a5f';
                 }}
                 onMouseOut={(e) => {
                   const isChecked = tissueType === 'PAP' ? papUrgente : citologiaUrgente;
-                  e.currentTarget.style.borderColor = isChecked ? '#667eea' : '#e5e7eb';
+                  e.currentTarget.style.borderColor = isChecked ? '#1e3a5f' : '#e5e7eb';
                 }}
                 >
                   <input
@@ -806,7 +806,7 @@ export const Step2: React.FC<Step2Props> = ({
                     style={{
                       width: '20px',
                       height: '20px',
-                      accentColor: '#667eea'
+                      accentColor: '#1e3a5f'
                     }}
                   />
                   <span style={{
@@ -829,7 +829,7 @@ export const Step2: React.FC<Step2Props> = ({
               }}>
                 <p style={{
                   fontSize: '12px',
-                  color: '#667eea',
+                  color: '#1e3a5f',
                   margin: 0,
                   textAlign: 'center',
                   fontWeight: '500'
@@ -859,7 +859,7 @@ export const Step2: React.FC<Step2Props> = ({
                 fontWeight: 'bold',
                 fontSize: '20px',
                 background: isStepValid() 
-                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  ? 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' 
                   : '#d1d5db',
                 color: 'white',
                 border: 'none',

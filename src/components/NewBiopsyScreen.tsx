@@ -278,26 +278,48 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     }));
   }, []);
 
+  const normalizeForSearch = (text: string) => {
+    return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  };
+
   const updateAutoComplete = useCallback((value: string) => {
     if (!value || value.length < 2) {
       setAutoCompleteOptions([]);
       return;
     }
 
+    // Incluir tejidos del admin config
+    let adminTissues: string[] = [];
+    try {
+      const ac = JSON.parse(localStorage.getItem('adminConfig') || '{}');
+      adminTissues = ac.tiposTejido || [];
+    } catch {}
+
     const allTissues = [
       ...tissueTypes,
-      ...frequentTissues
+      ...frequentTissues,
+      ...adminTissues
     ];
 
-    const uniqueTissues = [...new Set(allTissues)];
+    // Deduplicar ignorando tildes y mayúsculas, siempre capitalizar
+    const seen = new Map<string, string>();
+    allTissues.forEach(t => {
+      const norm = normalizeForSearch(t);
+      if (!seen.has(norm)) {
+        // Capitalizar primera letra
+        const cap = t.trim().charAt(0).toUpperCase() + t.trim().slice(1);
+        seen.set(norm, cap);
+      }
+    });
+    const uniqueTissues = Array.from(seen.values());
+
+    const valueNorm = normalizeForSearch(value);
     const filtered = uniqueTissues
-      .filter(tissue => 
-        tissue.toLowerCase().includes(value.toLowerCase())
-      )
+      .filter(tissue => normalizeForSearch(tissue).includes(valueNorm))
       .slice(0, 8)
       .sort((a, b) => {
-        const aStarts = a.toLowerCase().startsWith(value.toLowerCase());
-        const bStarts = b.toLowerCase().startsWith(value.toLowerCase());
+        const aStarts = normalizeForSearch(a).startsWith(valueNorm);
+        const bStarts = normalizeForSearch(b).startsWith(valueNorm);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
         return a.localeCompare(b);
@@ -412,18 +434,10 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       updatedServicios.giemsaPASMasson = 0 as any;
     }
 
-    const finalCassettes = biopsyForm.cassettesNumbers.map((cassette, index) => {
-      if (index === 0) {
-        return cassette.base;
-      } else {
-        return `${cassette.base}/${cassette.suffix || index}`;
-      }
-    });
-    
     const finalBiopsy = {
       ...biopsyForm,
       servicios: updatedServicios,
-      cassettesNumbers: finalCassettes as any,
+      cassettesNumbers: biopsyForm.cassettesNumbers,
       timestamp: new Date().toISOString(),
       date: new Date().toDateString()
     };
@@ -661,10 +675,18 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           <Step6
             servicios={biopsyForm.servicios}
             tissueType={biopsyForm.tissueType}
+            cassettesCount={parseInt(biopsyForm.cassettes) || 0}
+            cassettesNumbers={biopsyForm.cassettesNumbers || []}
             onServicioChange={handleServicioChange}
             onGiemsaOptionChange={handleGiemsaOptionChange}
-            onGiemsaTotalChange={handleGiemsaTotalChange} // ✅ NUEVA PROP AGREGADA
+            onGiemsaTotalChange={handleGiemsaTotalChange}
             onCorteBlancoQuantityChange={handleCorteBlancoQuantityChange}
+            onCassetteSelectionChange={(service, cassettes) => {
+              setBiopsyForm(prev => ({
+                ...prev,
+                servicios: { ...prev.servicios, [service]: cassettes } as any
+              }));
+            }}
             onNext={nextStep}
             onPrev={prevStep}
           />
@@ -682,6 +704,48 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
       </div>
+      {/* Botón flotante "Finalizar Remito" - visible en todo momento si hay biopsias cargadas */}
+      {todayBiopsies.length > 0 && currentStep !== 7 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '16px',
+          left: '16px',
+          zIndex: 40,
+          pointerEvents: 'none'
+        }}>
+          <button
+            onClick={() => {
+              const confirmed = window.confirm(
+                `¿Desea finalizar el remito con ${todayBiopsies.length} paciente(s) cargado(s)?\n\nSe guardarán todos los pacientes ya cargados.`
+              );
+              if (confirmed) onFinishDailyReport();
+            }}
+            style={{
+              pointerEvents: 'auto',
+              float: 'right',
+              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '16px',
+              padding: '16px 28px',
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: 'pointer',
+              boxShadow: '0 8px 30px rgba(220, 38, 38, 0.5), 0 0 0 3px rgba(255,255,255,0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'all 0.3s',
+              touchAction: 'manipulation'
+            }}
+          >
+            <span style={{ fontSize: '20px' }}>📋</span>
+            Finalizar Remito ({todayBiopsies.length})
+          </button>
+        </div>
+      )}
+
       {virtualKeyboard.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
           <div className="w-full">

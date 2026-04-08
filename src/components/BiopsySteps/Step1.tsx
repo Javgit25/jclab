@@ -84,7 +84,7 @@ export const Step1: React.FC<Step1Props> = ({
     }}>
       {/* Header Compacto y Limpio */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         color: 'white',
         padding: '12px 20px',
         flexShrink: 0,
@@ -172,7 +172,7 @@ export const Step1: React.FC<Step1Props> = ({
 
       {/* Dashboard Principal - Restaurado y Mejorado */}
       <div style={{
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
         margin: '16px',
         borderRadius: '16px',
         padding: '20px',
@@ -292,7 +292,7 @@ export const Step1: React.FC<Step1Props> = ({
               marginBottom: '32px'
             }}>
               <div style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
                 padding: '10px',
                 borderRadius: '12px',
                 boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
@@ -317,9 +317,9 @@ export const Step1: React.FC<Step1Props> = ({
                   fontSize: '24px',
                   fontWeight: 'bold',
                   borderRadius: '16px',
-                  border: biopsyNumber ? '3px solid #667eea' : '3px solid #d1d5db',
+                  border: biopsyNumber ? '3px solid #1e3a5f' : '3px solid #d1d5db',
                   backgroundColor: biopsyNumber ? '#f0f4ff' : 'white',
-                  color: biopsyNumber ? '#667eea' : '#6b7280',
+                  color: biopsyNumber ? '#1e3a5f' : '#6b7280',
                   cursor: 'pointer',
                   transition: 'all 0.3s',
                   outline: 'none',
@@ -331,7 +331,7 @@ export const Step1: React.FC<Step1Props> = ({
                 }}
                 onMouseOver={(e) => {
                   if (!biopsyNumber) {
-                    e.currentTarget.style.borderColor = '#667eea';
+                    e.currentTarget.style.borderColor = '#1e3a5f';
                     e.currentTarget.style.backgroundColor = '#f8fafc';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.15)';
@@ -425,7 +425,7 @@ export const Step1: React.FC<Step1Props> = ({
                 fontWeight: 'bold',
                 fontSize: '20px',
                 background: canProceed 
-                  ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+                  ? 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' 
                   : '#d1d5db',
                 color: 'white',
                 border: 'none',
@@ -485,7 +485,7 @@ export const Step1: React.FC<Step1Props> = ({
             alignItems: 'center',
             padding: '12px 16px',
             borderBottom: '1px solid #e5e7eb',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
             borderRadius: '16px 16px 0 0',
             color: 'white'
           }}>
@@ -565,7 +565,7 @@ export const Step1: React.FC<Step1Props> = ({
                 fontWeight: '500',
                 border: 'none',
                 cursor: 'pointer',
-                backgroundColor: keyboardMode === 'numeric' ? '#667eea' : 'white',
+                backgroundColor: keyboardMode === 'numeric' ? '#1e3a5f' : 'white',
                 color: keyboardMode === 'numeric' ? 'white' : '#6b7280'
               }}
             >
@@ -581,7 +581,7 @@ export const Step1: React.FC<Step1Props> = ({
                 fontWeight: '500',
                 border: 'none',
                 cursor: 'pointer',
-                backgroundColor: keyboardMode === 'letters' ? '#667eea' : 'white',
+                backgroundColor: keyboardMode === 'letters' ? '#1e3a5f' : 'white',
                 color: keyboardMode === 'letters' ? 'white' : '#6b7280'
               }}
             >
@@ -613,7 +613,7 @@ export const Step1: React.FC<Step1Props> = ({
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
@@ -636,7 +636,7 @@ export const Step1: React.FC<Step1Props> = ({
                   onClick={() => addToNumber('-')}
                   style={{
                     height: '48px',
-                    backgroundColor: '#667eea',
+                    backgroundColor: '#1e3a5f',
                     color: 'white',
                     borderRadius: '8px',
                     fontWeight: 'bold',
@@ -649,7 +649,7 @@ export const Step1: React.FC<Step1Props> = ({
                     e.currentTarget.style.backgroundColor = '#5a67d8';
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '#667eea';
+                    e.currentTarget.style.backgroundColor = '#1e3a5f';
                   }}
                 >
                   −
@@ -667,7 +667,7 @@ export const Step1: React.FC<Step1Props> = ({
                     transition: 'all 0.2s'
                   }}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#667eea';
+                    e.currentTarget.style.backgroundColor = '#1e3a5f';
                     e.currentTarget.style.color = 'white';
                   }}
                   onMouseOut={(e) => {
@@ -681,7 +681,7 @@ export const Step1: React.FC<Step1Props> = ({
                   onClick={() => addToNumber('/')}
                   style={{
                     height: '48px',
-                    backgroundColor: '#667eea',
+                    backgroundColor: '#1e3a5f',
                     color: 'white',
                     borderRadius: '8px',
                     fontWeight: 'bold',
@@ -694,7 +694,7 @@ export const Step1: React.FC<Step1Props> = ({
                     e.currentTarget.style.backgroundColor = '#5a67d8';
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '#667eea';
+                    e.currentTarget.style.backgroundColor = '#1e3a5f';
                   }}
                 >
                   ∕
@@ -812,7 +812,7 @@ export const Step1: React.FC<Step1Props> = ({
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
@@ -846,7 +846,7 @@ export const Step1: React.FC<Step1Props> = ({
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
@@ -880,7 +880,7 @@ export const Step1: React.FC<Step1Props> = ({
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
@@ -913,7 +913,7 @@ export const Step1: React.FC<Step1Props> = ({
                       transition: 'all 0.2s'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#667eea';
+                      e.currentTarget.style.backgroundColor = '#1e3a5f';
                       e.currentTarget.style.color = 'white';
                     }}
                     onMouseOut={(e) => {
