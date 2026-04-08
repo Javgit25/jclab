@@ -705,7 +705,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         )}
       </div>
       {/* Botón flotante "Finalizar Remito" - visible en todo momento si hay biopsias cargadas */}
-      {todayBiopsies.length > 0 && currentStep !== 7 && (
+      {todayBiopsies.length > 0 && currentStep !== 7 && currentStep !== 4 && currentStep !== 5 && currentStep !== 6 && (
         <button
           onClick={() => {
             const confirmed = window.confirm(

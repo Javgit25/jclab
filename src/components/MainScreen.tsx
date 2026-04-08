@@ -1167,6 +1167,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               allBiopsies.push({
                 ...biopsy,
                 date: entry.date,
+                timestamp: entry.timestamp || biopsy.timestamp,
                 remitoId: entry.id
               });
             });
@@ -1182,6 +1183,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               allBiopsies.push({
                 ...biopsy,
                 date: entry.date,
+                timestamp: entry.timestamp || biopsy.timestamp,
                 remitoId: entry.id
               });
             });
@@ -1229,9 +1231,18 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           }
         }
         
-        // Filtro por fecha (normalizar a YYYY-MM-DD)
+        // Filtro por fecha
         if (searchFilters.dateFrom || searchFilters.dateTo) {
-          const biopsyDate = (biopsy.date || biopsy.timestamp || '').substring(0, 10);
+          // entry.date puede ser "Tue Apr 08 2026" (toDateString) o ISO, normalizar
+          let biopsyDate = '';
+          if (biopsy.timestamp) {
+            biopsyDate = biopsy.timestamp.substring(0, 10);
+          } else if (biopsy.date) {
+            const d = new Date(biopsy.date);
+            if (!isNaN(d.getTime())) {
+              biopsyDate = d.toISOString().substring(0, 10);
+            }
+          }
           if (!biopsyDate) return false;
           if (searchFilters.dateFrom && biopsyDate < searchFilters.dateFrom) return false;
           if (searchFilters.dateTo && biopsyDate > searchFilters.dateTo) return false;

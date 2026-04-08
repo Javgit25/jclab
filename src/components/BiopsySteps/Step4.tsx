@@ -50,30 +50,29 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: '20px' }}>
+    <div style={{ marginBottom: '10px' }}>
       <label style={{
         display: 'block',
-        fontSize: '18px',
+        fontSize: '14px',
         fontWeight: '700',
         color: '#374151',
-        marginBottom: '12px',
+        marginBottom: '6px',
         textAlign: 'center'
       }}>
         {label}
       </label>
-      
+
       {/* Controles táctiles */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '16px',
-        padding: '12px',
-        border: `3px solid ${value ? '#1e3a5f' : '#E5E7EB'}`,
-        borderRadius: '16px',
+        gap: '10px',
+        padding: '8px',
+        border: `2px solid ${value ? '#1e3a5f' : '#E5E7EB'}`,
+        borderRadius: '12px',
         backgroundColor: 'white',
-        transition: 'all 0.3s ease',
-        boxShadow: value ? '0 4px 16px rgba(102, 126, 234, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.1)'
+        transition: 'all 0.3s ease'
       }}>
         
         {/* Botón - */}
@@ -81,8 +80,8 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
           onClick={decrement}
           disabled={numValue <= min}
           style={{
-            width: '45px',
-            height: '45px',
+            width: '38px',
+            height: '38px',
             backgroundColor: numValue > min ? '#1e3a5f' : '#e5e7eb',
             color: 'white',
             border: 'none',
@@ -116,17 +115,17 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
           style={{
             flex: 1,
             maxWidth: '80px',
-            padding: '12px',
-            fontSize: '24px',
+            padding: '8px',
+            fontSize: '20px',
             fontWeight: 'bold',
             textAlign: 'center',
             border: 'none',
-            borderRadius: '12px',
+            borderRadius: '8px',
             backgroundColor: value ? '#f0f4ff' : '#f8fafc',
             color: value ? '#1e3a5f' : '#6b7280',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
-            minHeight: '50px',
+            minHeight: '38px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -148,8 +147,8 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
           onClick={increment}
           disabled={numValue >= max}
           style={{
-            width: '45px',
-            height: '45px',
+            width: '38px',
+            height: '38px',
             backgroundColor: numValue < max ? '#1e3a5f' : '#e5e7eb',
             color: 'white',
             border: 'none',
@@ -181,15 +180,15 @@ const TouchNumericInput: React.FC<TouchNumericInputProps> = ({
       {/* Confirmación de valor */}
       {value && parseInt(value) > 0 && (
         <div style={{
-          marginTop: '8px',
-          padding: '8px 12px',
+          marginTop: '4px',
+          padding: '4px 8px',
           backgroundColor: '#f0fdf4',
           border: '1px solid #22c55e',
-          borderRadius: '8px',
+          borderRadius: '6px',
           textAlign: 'center',
           color: '#065f46',
           fontWeight: '600',
-          fontSize: '14px'
+          fontSize: '12px'
         }}>
           ✓ {value} {label.toLowerCase()}{parseInt(value) !== 1 ? 's' : ''}
         </div>
