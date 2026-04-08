@@ -380,26 +380,26 @@ export const Step4: React.FC<Step4Props> = ({
 
             {/* Cassettes individuales - Solo si no es PAP o Citología Y hay 2 o más cassettes */}
             {!isPapOrCitologia && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
-              <div style={{ marginBottom: '20px' }}>
+              <div style={{ marginBottom: '12px' }}>
                 <h3 style={{
-                  fontSize: '18px',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   color: '#374151',
-                  marginBottom: '16px',
+                  marginBottom: '8px',
                   textAlign: 'center'
                 }}>
-                  🏷️ Numeración de Cassettes
+                  🏷️ Numeración de SUBs
                 </h3>
                 <div style={{
                   backgroundColor: '#f9fafb',
-                  borderRadius: '12px',
-                  padding: '16px',
+                  borderRadius: '8px',
+                  padding: '8px',
                   border: '2px solid #e5e7eb'
                 }}>
                   <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                    gap: '12px'
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: '6px'
                   }}>
                     {/* Mostrar solo los cassettes adicionales (desde index 1) */}
                     {cassettesNumbers.slice(1).map((cassette, index) => {
@@ -408,12 +408,12 @@ export const Step4: React.FC<Step4Props> = ({
                       return (
                         <div key={realIndex} style={{
                           backgroundColor: 'white',
-                          padding: '16px',
-                          borderRadius: '8px',
+                          padding: '8px',
+                          borderRadius: '6px',
                           border: '1px solid #d1d5db',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}>
                           {/* Número base (no modificable) */}
                           <div style={{
@@ -422,12 +422,12 @@ export const Step4: React.FC<Step4Props> = ({
                             gap: '4px'
                           }}>
                             <span style={{
-                              fontSize: '16px',
+                              fontSize: '13px',
                               fontWeight: 'bold',
                               color: '#374151',
                               backgroundColor: '#f3f4f6',
-                              padding: '6px 10px',
-                              borderRadius: '6px',
+                              padding: '4px 8px',
+                              borderRadius: '4px',
                               border: '1px solid #d1d5db'
                             }}>
                               {cassette.base}

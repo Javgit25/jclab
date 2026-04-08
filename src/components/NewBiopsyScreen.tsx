@@ -715,7 +715,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           }}
           style={{
             position: 'fixed',
-            bottom: '16px',
+            bottom: '80px',
             right: '16px',
             zIndex: 40,
             background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',

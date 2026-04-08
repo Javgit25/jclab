@@ -594,7 +594,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Detalle de Estudios
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', flex: 1 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: '6px', flex: 1 }}>
                 {[
                   { label: 'BX', val: financialData.totalBX, badge: '#1e40af' },
                   { label: 'PQ', val: financialData.totalPQ || 0, badge: '#0369a1' },
@@ -603,14 +603,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 ].map((item, i) => (
                   <div key={i} style={{
                     backgroundColor: item.badge, border: 'none',
-                    borderRadius: '10px', padding: '8px 4px',
+                    borderRadius: '10px', padding: '8px',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                    boxSizing: 'border-box', textAlign: 'center', minWidth: 0
+                    boxSizing: 'border-box', textAlign: 'center', aspectRatio: '1'
                   }}>
-                    <div style={{ fontSize: '16px', fontWeight: '800', color: 'white', marginBottom: '4px' }}>{item.label}</div>
+                    <div style={{ fontSize: '18px', fontWeight: '800', color: 'white', marginBottom: '4px' }}>{item.label}</div>
                     <div style={{
                       backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '6px',
-                      padding: '3px 10px', fontSize: '16px', fontWeight: '700', color: 'white'
+                      padding: '3px 12px', fontSize: '16px', fontWeight: '700', color: 'white'
                     }}>{item.val}</div>
                   </div>
                 ))}
@@ -1229,12 +1229,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           }
         }
         
-        // Filtro por fecha
-        if (searchFilters.dateFrom && biopsy.date < searchFilters.dateFrom) {
-          return false;
-        }
-        if (searchFilters.dateTo && biopsy.date > searchFilters.dateTo) {
-          return false;
+        // Filtro por fecha (normalizar a YYYY-MM-DD)
+        if (searchFilters.dateFrom || searchFilters.dateTo) {
+          const biopsyDate = (biopsy.date || biopsy.timestamp || '').substring(0, 10);
+          if (!biopsyDate) return false;
+          if (searchFilters.dateFrom && biopsyDate < searchFilters.dateFrom) return false;
+          if (searchFilters.dateTo && biopsyDate > searchFilters.dateTo) return false;
         }
         
         // Filtro por servicios especiales (solo urgentes y servicios adicionales, NO PAP/Citología comunes)
@@ -1453,11 +1453,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </div>
           {/* Controles - derecha */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', zIndex: 1 }}>
-            <ConnectionStatus
-              isOnline={isOnline}
-              backupStatus={backupStatus}
-              syncQueueLength={syncQueueLength}
-            />
             <button
               onClick={() => { if (showNotifications) { closeNotifications(); } else { loadNotifications(); setShowNotifications(true); } }}
               style={{
@@ -1532,9 +1527,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               )}
             </div>
           </div>
-          <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
-            {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ConnectionStatus isOnline={isOnline} backupStatus={backupStatus} syncQueueLength={syncQueueLength} />
+            <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', margin: 0 }}>
+              {new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </p>
+          </div>
         </div>
       </div>
 

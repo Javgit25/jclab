@@ -225,6 +225,9 @@ export const Step7: React.FC<Step7Props> = ({
             </button>
           </div>
         </div>
+        <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '6px', textAlign: 'center' }}>
+          <span style={{ color: '#86efac' }}>Guardar</span> = sigue cargando pacientes · <span style={{ color: '#fcd34d' }}>Finalizar</span> = cierra el remito
+        </div>
       </div>
 
       {/* Título principal fuera del box - MISMA METODOLOGÍA */}
