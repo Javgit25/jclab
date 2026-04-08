@@ -142,12 +142,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     if (!labCode.trim()) {
       newErrors.labCode = 'Ingresá el código del laboratorio';
     } else {
-      // Verificar que el código exista (primero Supabase, fallback localStorage)
+      // Verificar que el código exista - siempre consulta Supabase
       try {
-        let labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
-        // Si localStorage está vacío, intentar cargar desde Supabase
+        let labs: any[] = [];
+        try { labs = await db.getLabs(); } catch {}
         if (labs.length === 0) {
-          try { labs = await db.getLabs(); } catch {}
+          labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
         }
         const labExists = labs.some((l: any) => l.labCode === labCode.trim().toUpperCase() && l.estado !== 'suspendido');
         if (!labExists) newErrors.labCode = 'Código no válido o laboratorio suspendido';

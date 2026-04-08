@@ -382,8 +382,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       return;
     }
     try {
-      let labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
-      if (labs.length === 0) { try { labs = await db.getLabs(); } catch {} }
+      let labs: any[] = [];
+      try { labs = await db.getLabs(); } catch {}
+      if (labs.length === 0) { labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]'); }
       const lab = labs.find((l: any) => l.labCode === code);
       if (!lab) {
         alert('Código de laboratorio no válido');
