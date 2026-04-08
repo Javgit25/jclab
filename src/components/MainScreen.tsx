@@ -71,6 +71,25 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida);
     if (listoNotif && !listoAlert) {
       setListoAlert(listoNotif);
+      // Reproducir sonido de notificación
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const playTone = (freq: number, start: number, dur: number) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = freq;
+          osc.type = 'sine';
+          gain.gain.setValueAtTime(0.3, ctx.currentTime + start);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + dur);
+          osc.start(ctx.currentTime + start);
+          osc.stop(ctx.currentTime + start + dur);
+        };
+        playTone(523, 0, 0.15);    // Do
+        playTone(659, 0.15, 0.15); // Mi
+        playTone(784, 0.3, 0.3);   // Sol (más largo)
+      } catch {}
     }
   }, [notificationsData]);
 
@@ -1293,10 +1312,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   // Funciones para el teclado virtual
   const handleKeyPress = (key: string) => {
     if (activeField === 'search-query') {
-      if (key === 'BACKSPACE') {
+      const k = key.toLowerCase();
+      if (k === 'backspace') {
         setSearchFilters(prev => ({ ...prev, query: prev.query.slice(0, -1) }));
-      } else if (key === 'SPACE') {
+      } else if (k === 'space') {
         setSearchFilters(prev => ({ ...prev, query: prev.query + ' ' }));
+      } else if (k === 'clear') {
+        setSearchFilters(prev => ({ ...prev, query: '' }));
+      } else if (k === 'shift') {
+        // ignorar
       } else {
         setSearchFilters(prev => ({ ...prev, query: prev.query + key }));
       }

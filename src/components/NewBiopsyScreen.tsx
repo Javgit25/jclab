@@ -593,35 +593,6 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
 
   return (
     <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Botón Finalizar - esquina superior derecha, absoluto, no ocupa espacio */}
-      {todayBiopsies.length > 0 && currentStep !== 7 && (
-        <button
-          onClick={() => {
-            if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?\n\nSe guardarán todos los pacientes ya cargados.`))
-              onFinishDailyReport();
-          }}
-          style={{
-            position: 'absolute',
-            top: '14px',
-            right: '14px',
-            zIndex: 50,
-            background: '#dc2626',
-            color: 'white',
-            border: '2px solid rgba(255,255,255,0.4)',
-            borderRadius: '10px',
-            padding: '6px 12px',
-            fontSize: '11px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
-        >
-          📋 Finalizar ({todayBiopsies.length})
-        </button>
-      )}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {currentStep === 1 && (
           <Step1

@@ -714,27 +714,16 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           </div>
         </div>
 
-        {/* Contenido del remito - renderizado directo sin iframe */}
-        <div style={{
-          flex: 1, overflow: 'auto', backgroundColor: 'white', padding: '16px'
-        }}>
-          <div
-            dangerouslySetInnerHTML={{
-              __html: (() => {
-                if (!showRemito.entry) return '';
-                const fullHtml = generateRemitoHTML(showRemito.entry);
-                // Extraer CSS y body del HTML completo
-                const cssMatch = fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/);
-                const bodyStart = fullHtml.indexOf('<body');
-                const bodyOpenEnd = bodyStart >= 0 ? fullHtml.indexOf('>', bodyStart) + 1 : -1;
-                const bodyEnd = fullHtml.lastIndexOf('</body>');
-                const css = cssMatch ? cssMatch[1] : '';
-                const body = (bodyOpenEnd > 0 && bodyEnd > bodyOpenEnd) ? fullHtml.substring(bodyOpenEnd, bodyEnd) : fullHtml;
-                // Envolver en un scope para que los estilos no afecten al resto
-                return `<div class="remito-scope"><style>.remito-scope { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; line-height: 1.3; color: #1a202c; font-size: 10pt; } .remito-scope * { box-sizing: border-box; } ${css.replace(/body/g, '.remito-scope').replace(/@page[^}]+}/g, '').replace(/@media print[^}]+{[^}]+}/g, '')}</style>${body}</div>`;
-              })()
-            }}
-          />
+        {/* Contenido del remito - iframe aislado */}
+        <div style={{ flex: 1, overflow: 'hidden', backgroundColor: 'white' }}>
+          {showRemito.entry && (
+            <iframe
+              srcDoc={generateRemitoHTML(showRemito.entry)}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+              title="Remito"
+              sandbox="allow-same-origin"
+            />
+          )}
         </div>
 
         <style>{`
