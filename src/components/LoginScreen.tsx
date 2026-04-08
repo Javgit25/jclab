@@ -218,13 +218,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
       <div className="bg-white rounded-xl shadow-2xl p-3 w-full max-w-md h-fit max-h-[95vh] overflow-y-auto">
         {/* Logo - Grande y prominente */}
         <div className="text-center mb-2">
-          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 border-2 border-blue-200 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-1 border-2 border-blue-200 shadow-sm">
             <img
               src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_final.svg`}
               alt="BiopsyTracker Logo"
               className="w-full mx-auto"
               style={{
-                maxHeight: mode === 'email' ? '200px' : '120px',
+                maxHeight: mode === 'email' ? '240px' : '140px',
                 transition: 'max-height 0.3s ease',
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
               }}
