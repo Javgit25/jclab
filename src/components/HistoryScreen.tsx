@@ -612,110 +612,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     showPrintDialog(remitoContent);
   };
 
-  // Si está mostrando el remito, renderizar la vista completa del remito
-  if (showRemito.isOpen) {
-    if (!showRemito.entry) {
-      return (
-        <div style={{ position: 'fixed', inset: 0, background: 'white', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '16px' }}>
-          <p style={{ fontSize: '18px', color: '#dc2626' }}>Error: No se encontraron datos del remito</p>
-          <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '12px 24px', background: '#1e40af', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', cursor: 'pointer' }}>Volver</button>
-        </div>
-      );
-    }
-    const re = showRemito.entry;
-    const doc = re.doctorInfo || {} as any;
-    const bios = re.biopsies || [];
-    return (
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'white', zIndex: 9999, overflow: 'auto' }}>
-        <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
-          {/* Botones */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
-            <h2 style={{ margin: 0, fontSize: '18px' }}>Remito #{(re.id || '').slice(-8).toUpperCase()}</h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={handlePrintRemito} style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#1d4ed8', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
-              <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #ccc', background: 'white', cursor: 'pointer' }}>Cerrar</button>
-            </div>
-          </div>
-
-          {/* Header remito */}
-          <div style={{ background: '#2d3748', color: 'white', padding: '12px', borderRadius: '6px', marginBottom: '16px', textAlign: 'center' }}>
-            <div style={{ fontSize: '16pt', fontWeight: 700 }}>BIOPSY TRACKER</div>
-            <div style={{ fontSize: '9pt', opacity: 0.8 }}>Sistema de Gestión de Muestras Médicas</div>
-          </div>
-
-          {/* Info */}
-          <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-            <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
-              <div style={{ fontWeight: 700, marginBottom: '6px', textDecoration: 'underline' }}>DATOS DEL MÉDICO</div>
-              <div style={{ fontSize: '10pt' }}>Nombre: {doc.name || 'N/A'}</div>
-              <div style={{ fontSize: '10pt' }}>Email: {doc.email || 'N/A'}</div>
-              <div style={{ fontSize: '10pt' }}>Hospital: {doc.hospital || 'N/A'}</div>
-            </div>
-            <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
-              <div style={{ fontWeight: 700, marginBottom: '6px', textDecoration: 'underline' }}>DATOS DEL REMITO</div>
-              <div style={{ fontSize: '10pt' }}>Muestras: {bios.length}</div>
-              <div style={{ fontSize: '10pt' }}>Fecha: {(() => { try { return new Date(re.timestamp || re.date).toLocaleDateString('es-AR'); } catch { return String(re.date || ''); } })()}</div>
-            </div>
-          </div>
-
-          {/* Tabla */}
-          <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-            <thead>
-              <tr style={{ background: '#2d3748', color: 'white' }}>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'left' }}>#</th>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'left' }}>N° Pac.</th>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'left' }}>Tejido</th>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'left' }}>Tipo</th>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'center' }}>Cass.</th>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'center' }}>Trozos</th>
-                <th style={{ padding: '6px', border: '1px solid #4a5568', textAlign: 'left' }}>Servicios</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bios.map((b: any, i: number) => (
-                <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontWeight: 700 }}>{i + 1}</td>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.number || b.numero || '-'}</td>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.tissueType || b.tejido || '-'}</td>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.type || b.tipo || 'BX'}</td>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.cassettes || 0}</td>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.pieces || b.trozos || '-'}</td>
-                  <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontSize: '9px' }}>{(() => {
-                    const s: string[] = [];
-                    const sv = b.servicios || {};
-                    if (sv.cassetteUrgente) s.push('Urgente');
-                    if (sv.pap) s.push('PAP');
-                    if (sv.papUrgente) s.push('PAP Urg.');
-                    if (sv.citologia) s.push('Cito');
-                    if (sv.citologiaUrgente) s.push('Cito Urg.');
-                    if (sv.corteBlancoIHQ) s.push('IHQ');
-                    if (sv.corteBlancoComun) s.push('CB');
-                    if (sv.giemsaPASMasson) s.push('Giemsa/PAS/Masson');
-                    return s.length > 0 ? s.join(', ') : 'Normal';
-                  })()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Firmas */}
-          <div style={{ display: 'flex', gap: '40px', marginTop: '30px' }}>
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ borderBottom: '1px solid #333', height: '40px', marginBottom: '8px' }} />
-              <div style={{ fontWeight: 600 }}>Firma del Médico</div>
-              <div style={{ fontSize: '9pt' }}>Dr. {doc.name || ''}</div>
-            </div>
-            <div style={{ flex: 1, textAlign: 'center' }}>
-              <div style={{ borderBottom: '1px solid #333', height: '40px', marginBottom: '8px' }} />
-              <div style={{ fontWeight: 600 }}>Recibido por Laboratorio</div>
-              <div style={{ fontSize: '9pt' }}>Fecha: ____________</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const entries = historyEntries || [];
   const sortedEntries = [...entries].sort((a, b) => {
     const tA = new Date(a.timestamp || a.date).getTime() || 0;
@@ -1300,6 +1196,90 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* OVERLAY: Vista del remito */}
+      {showRemito.isOpen && showRemito.entry && (() => {
+        const re = showRemito.entry;
+        const doc = re.doctorInfo || {} as any;
+        const bios = re.biopsies || [];
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'white', zIndex: 9999, overflow: 'auto' }}>
+            <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
+                <h2 style={{ margin: 0, fontSize: '18px' }}>Remito #{(re.id || '').slice(-8).toUpperCase()}</h2>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={handlePrintRemito} style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#1d4ed8', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
+                  <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #ccc', background: 'white', cursor: 'pointer' }}>Cerrar</button>
+                </div>
+              </div>
+              <div style={{ background: '#2d3748', color: 'white', padding: '12px', borderRadius: '6px', marginBottom: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: '16pt', fontWeight: 700 }}>BIOPSY TRACKER</div>
+                <div style={{ fontSize: '9pt', opacity: 0.8 }}>Sistema de Gestión de Muestras Médicas</div>
+              </div>
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+                <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
+                  <div style={{ fontWeight: 700, marginBottom: '6px', textDecoration: 'underline' }}>DATOS DEL MÉDICO</div>
+                  <div>Nombre: {doc.name || 'N/A'}</div>
+                  <div>Email: {doc.email || 'N/A'}</div>
+                  <div>Hospital: {doc.hospital || 'N/A'}</div>
+                </div>
+                <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
+                  <div style={{ fontWeight: 700, marginBottom: '6px', textDecoration: 'underline' }}>DATOS DEL REMITO</div>
+                  <div>Muestras: {bios.length}</div>
+                  <div>Fecha: {(() => { try { return new Date(re.timestamp || re.date).toLocaleDateString('es-AR'); } catch { return String(re.date || ''); } })()}</div>
+                </div>
+              </div>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
+                <thead>
+                  <tr style={{ background: '#2d3748', color: 'white' }}>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>#</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>N° Pac.</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Tejido</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Tipo</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Cass.</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Trozos</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Servicios</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bios.map((b: any, i: number) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontWeight: 700 }}>{i + 1}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.number || '-'}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.tissueType || '-'}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.type || 'BX'}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.cassettes || 0}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.pieces || '-'}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontSize: '9px' }}>{(() => {
+                        const s: string[] = [];
+                        const sv = b.servicios || {};
+                        if (sv.cassetteUrgente) s.push('Urgente');
+                        if (sv.pap) s.push('PAP');
+                        if (sv.corteBlancoIHQ) s.push('IHQ');
+                        if (sv.corteBlancoComun) s.push('CB');
+                        if (sv.giemsaPASMasson) s.push('Giemsa/PAS/Masson');
+                        return s.length > 0 ? s.join(', ') : 'Normal';
+                      })()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{ display: 'flex', gap: '40px', marginTop: '30px' }}>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ borderBottom: '1px solid #333', height: '40px', marginBottom: '8px' }} />
+                  <div style={{ fontWeight: 600 }}>Firma del Médico</div>
+                  <div style={{ fontSize: '9pt' }}>Dr. {doc.name || ''}</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ borderBottom: '1px solid #333', height: '40px', marginBottom: '8px' }} />
+                  <div style={{ fontWeight: 600 }}>Recibido por Laboratorio</div>
+                  <div style={{ fontSize: '9pt' }}>Fecha: ____________</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
