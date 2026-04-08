@@ -592,8 +592,42 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   }, [currentStep, biopsyForm.tissueType, isPapOrCitologia]);
 
   return (
-    <div className="h-screen bg-gray-50">
-      <div className="h-full w-full">
+    <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Banner Finalizar Remito - fijo arriba */}
+      {todayBiopsies.length > 0 && currentStep !== 7 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          zIndex: 40
+        }}>
+          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>
+            📋 {todayBiopsies.length} paciente{todayBiopsies.length !== 1 ? 's' : ''} cargado{todayBiopsies.length !== 1 ? 's' : ''}
+          </span>
+          <button
+            onClick={() => {
+              if (window.confirm(`¿Desea finalizar el remito con ${todayBiopsies.length} paciente(s) cargado(s)?\n\nSe guardarán todos los pacientes ya cargados.`))
+                onFinishDailyReport();
+            }}
+            style={{
+              background: 'white',
+              color: '#dc2626',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '6px 16px',
+              fontSize: '13px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            Finalizar Remito
+          </button>
+        </div>
+      )}
+      <div style={{ flex: 1, overflow: 'hidden' }}>
         {currentStep === 1 && (
           <Step1
             biopsyNumber={biopsyForm.number}
@@ -704,38 +738,6 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
       </div>
-      {/* Botón flotante "Finalizar Remito" - visible en todo momento si hay biopsias cargadas */}
-      {todayBiopsies.length > 0 && currentStep !== 7 && currentStep !== 4 && currentStep !== 5 && currentStep !== 6 && (
-        <button
-          onClick={() => {
-            const confirmed = window.confirm(
-              `¿Desea finalizar el remito con ${todayBiopsies.length} paciente(s) cargado(s)?\n\nSe guardarán todos los pacientes ya cargados.`
-            );
-            if (confirmed) onFinishDailyReport();
-          }}
-          style={{
-            position: 'fixed',
-            bottom: '80px',
-            right: '16px',
-            zIndex: 40,
-            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '14px',
-            padding: '12px 20px',
-            fontSize: '14px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            boxShadow: '0 6px 20px rgba(220, 38, 38, 0.5), 0 0 0 2px rgba(255,255,255,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            touchAction: 'manipulation'
-          }}
-        >
-          📋 Finalizar ({todayBiopsies.length})
-        </button>
-      )}
 
       {virtualKeyboard.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
