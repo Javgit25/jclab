@@ -375,14 +375,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     document.body.removeChild(link);
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const code = loginForm.labCode.trim().toUpperCase();
     if (!code) {
       alert('Ingrese el código del laboratorio');
       return;
     }
     try {
-      const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+      let labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+      if (labs.length === 0) { try { labs = await db.getLabs(); } catch {} }
       const lab = labs.find((l: any) => l.labCode === code);
       if (!lab) {
         alert('Código de laboratorio no válido');
