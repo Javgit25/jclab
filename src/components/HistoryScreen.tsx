@@ -614,99 +614,49 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 
   // Si está mostrando el remito, renderizar la vista completa del remito
   if (showRemito.isOpen && showRemito.entry) {
+    const remitoEntry = showRemito.entry;
+    const remitoDoctor = remitoEntry.doctorInfo;
     return (
       <div style={{
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100%',
-        height: '100%',
+        right: 0,
+        bottom: 0,
         background: 'white',
         zIndex: 1000,
-        overflow: 'auto'
+        display: 'flex',
+        flexDirection: 'column'
       }}>
         {/* Header con botones */}
         <div style={{
-          position: 'sticky',
-          top: 0,
           background: 'white',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '16px',
+          borderBottom: '2px solid #e2e8f0',
+          padding: '12px 16px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          zIndex: 1001
+          flexShrink: 0
         }}>
-          <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '600' }}>
-            Remito #{showRemito.entry.id.slice(-8).toUpperCase()}
+          <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
+            Remito #{remitoEntry.id?.slice(-8).toUpperCase()}
           </h2>
-          
-          {/* Status de impresión */}
-          {printStatus.message && (
-            <div style={{
-              padding: '8px 12px',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '500',
-              background: printStatus.type === 'success' ? '#dcfce7' : printStatus.type === 'error' ? '#fee2e2' : '#f3f4f6',
-              color: printStatus.type === 'success' ? '#16a34a' : printStatus.type === 'error' ? '#dc2626' : '#374151',
-              border: `1px solid ${printStatus.type === 'success' ? '#bbf7d0' : printStatus.type === 'error' ? '#fecaca' : '#d1d5db'}`
-            }}>
-              {printStatus.isLoading && '⏳ '}
-              {printStatus.message}
-            </div>
-          )}
-          
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={handlePrintRemito}
-              disabled={printStatus.isLoading}
               style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                background: printStatus.isLoading 
-                  ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)' 
-                  : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                color: 'white',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: printStatus.isLoading ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
+                padding: '8px 14px', borderRadius: '6px', border: 'none',
+                background: '#1d4ed8', color: 'white', fontSize: '13px',
+                fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px'
               }}
             >
-              {printStatus.isLoading ? (
-                <>
-                  <div style={{
-                    width: '16px',
-                    height: '16px',
-                    border: '2px solid transparent',
-                    borderTop: '2px solid white',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite'
-                  }} />
-                  Imprimiendo...
-                </>
-              ) : (
-                <>
-                  <Printer size={16} />
-                  Imprimir
-                </>
-              )}
+              <Printer size={14} /> Imprimir
             </button>
             <button
               onClick={() => setShowRemito({ isOpen: false, entry: null })}
               style={{
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: '1px solid #d1d5db',
-                background: 'white',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer'
+                padding: '8px 14px', borderRadius: '6px', border: '1px solid #d1d5db',
+                background: 'white', color: '#374151', fontSize: '13px', fontWeight: '500', cursor: 'pointer'
               }}
             >
               Cerrar
@@ -714,11 +664,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           </div>
         </div>
 
-        {/* Contenido del remito - renderizado directo React */}
-        <div style={{ flex: 1, overflow: 'auto', backgroundColor: 'white', padding: '16px' }}>
-          {showRemito.entry && (() => {
-            const entry = showRemito.entry!;
-            const doctor = entry.doctorInfo;
+        {/* Contenido del remito */}
+        <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+          <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '10pt', color: '#1a202c', lineHeight: 1.3, maxWidth: '800px', margin: '0 auto' }}>
+            {(() => { const entry = remitoEntry; const doctor = remitoDoctor;
             return (
               <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '10pt', color: '#1a202c', lineHeight: 1.3 }}>
                 {/* Header */}
@@ -815,6 +764,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               </div>
             );
           })()}
+          </div>
         </div>
 
         <style>{`
