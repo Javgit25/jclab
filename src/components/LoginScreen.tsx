@@ -339,95 +339,100 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
 
         {/* Paso 2b: Registro */}
         {mode === 'register' && (
-          <div className="space-y-2">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-center">
-              <UserPlus size={16} className="inline mr-1 text-green-600" />
-              <span className="text-sm font-medium text-green-800">Nuevo registro</span>
-              <div className="text-xs text-green-600">{email}</div>
+          <div className="space-y-1.5">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-1.5 text-center">
+              <UserPlus size={14} className="inline mr-1 text-green-600" />
+              <span className="text-xs font-medium text-green-800">Nuevo registro</span>
+              <span className="text-xs text-green-600 ml-1">({email})</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Nombre <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Nombre *</label>
                 <input type="text" value={firstName}
                   onChange={(e) => { const v = e.target.value; setFirstName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); if (errors.firstName) setErrors(prev => ({...prev, firstName: ''})); }}
                   onFocus={() => openKeyboard('firstName', firstName)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('firstName')} placeholder="Nombre"
+                  style={{ padding: '6px 10px' }}
                 />
-                {errors.firstName && <div className="text-red-600 text-xs mt-0.5">{errors.firstName}</div>}
+                {errors.firstName && <div className="text-red-600 text-xs">{errors.firstName}</div>}
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Apellido <span className="text-red-500">*</span></label>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Apellido *</label>
                 <input type="text" value={lastName}
                   onChange={(e) => { const v = e.target.value; setLastName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); if (errors.lastName) setErrors(prev => ({...prev, lastName: ''})); }}
                   onFocus={() => openKeyboard('lastName', lastName)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('lastName')} placeholder="Apellido"
+                  style={{ padding: '6px 10px' }}
                 />
-                {errors.lastName && <div className="text-red-600 text-xs mt-0.5">{errors.lastName}</div>}
+                {errors.lastName && <div className="text-red-600 text-xs">{errors.lastName}</div>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1.5">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Hospital <span className="text-gray-400">(opc.)</span></label>
+                <input type="text" value={hospitalName}
+                  onChange={(e) => { const v = e.target.value; setHospitalName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); }}
+                  onFocus={() => openKeyboard('hospitalName', hospitalName)} inputMode="none" readOnly
+                  onKeyPress={handleKeyPressNative}
+                  className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                  placeholder="Hospital o clínica"
+                  style={{ padding: '6px 10px' }}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Cód. laboratorio *</label>
+                <input type="text" value={labCode}
+                  onChange={(e) => setLabCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  onFocus={() => openKeyboard('labCode', labCode)} inputMode="none" readOnly
+                  onKeyPress={handleKeyPressNative}
+                  className={inputClass('labCode')}
+                  placeholder="A1B2C3"
+                  maxLength={6}
+                  style={{ padding: '6px 10px', textTransform: 'uppercase', letterSpacing: '2px', fontFamily: 'monospace', fontWeight: '700' }}
+                />
+                {errors.labCode && <div className="text-red-600 text-xs">{errors.labCode}</div>}
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Hospital <span className="text-gray-400">(opcional)</span></label>
-              <input type="text" value={hospitalName}
-                onChange={(e) => { const v = e.target.value; setHospitalName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); }}
-                onFocus={() => openKeyboard('hospitalName', hospitalName)} inputMode="none" readOnly
-                onKeyPress={handleKeyPressNative}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                placeholder="Hospital o clínica"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Código de laboratorio <span className="text-red-500">*</span></label>
-              <input type="text" value={labCode}
-                onChange={(e) => setLabCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                onFocus={() => openKeyboard('labCode', labCode)} inputMode="none" readOnly
-                onKeyPress={handleKeyPressNative}
-                className={inputClass('labCode')}
-                placeholder="Ej: A1B2C3"
-                maxLength={6}
-                style={{ textTransform: 'uppercase', letterSpacing: '2px', fontFamily: 'monospace', fontWeight: '700' }}
-              />
-              {errors.labCode && <div className="text-red-600 text-xs mt-0.5">{errors.labCode}</div>}
-              <p className="text-xs text-gray-400 mt-1">Código proporcionado por el laboratorio</p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">WhatsApp <span className="text-gray-400">(sin 54 9)</span></label>
+              <label className="block text-xs font-medium text-gray-700 mb-0.5">WhatsApp <span className="text-gray-400">(sin 54 9)</span></label>
               <input type="tel" value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
                 onFocus={() => openKeyboard('whatsapp', whatsapp)} inputMode="none" readOnly
                 onKeyPress={handleKeyPressNative}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="Ej: 1155667788"
+                style={{ padding: '6px 10px' }}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                <Lock size={12} className="inline mr-1" /> Contraseña <span className="text-red-500">*</span>
-              </label>
-              <input type={showPassword ? 'text' : 'password'} value={password}
-                onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors(prev => ({...prev, password: ''})); }}
-                onFocus={() => openKeyboard('password', password)} inputMode="none" readOnly
-                onKeyPress={handleKeyPressNative}
-                className={inputClass('password')} placeholder="Mínimo 4 caracteres"
-              />
-              {errors.password && <div className="text-red-600 text-xs mt-0.5">{errors.password}</div>}
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Confirmar contraseña <span className="text-red-500">*</span></label>
-              <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) setErrors(prev => ({...prev, confirmPassword: ''})); }}
-                onFocus={() => openKeyboard('confirmPassword', confirmPassword)} inputMode="none" readOnly
-                onKeyPress={handleKeyPressNative}
-                className={inputClass('confirmPassword')} placeholder="Repita la contraseña"
-              />
-              {errors.confirmPassword && <div className="text-red-600 text-xs mt-0.5">{errors.confirmPassword}</div>}
+            <div className="grid grid-cols-2 gap-1.5">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Contraseña *</label>
+                <input type={showPassword ? 'text' : 'password'} value={password}
+                  onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors(prev => ({...prev, password: ''})); }}
+                  onFocus={() => openKeyboard('password', password)} inputMode="none" readOnly
+                  onKeyPress={handleKeyPressNative}
+                  className={inputClass('password')} placeholder="Mín. 4 caract."
+                  style={{ padding: '6px 10px' }}
+                />
+                {errors.password && <div className="text-red-600 text-xs">{errors.password}</div>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-0.5">Confirmar *</label>
+                <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
+                  onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) setErrors(prev => ({...prev, confirmPassword: ''})); }}
+                  onFocus={() => openKeyboard('confirmPassword', confirmPassword)} inputMode="none" readOnly
+                  onKeyPress={handleKeyPressNative}
+                  className={inputClass('confirmPassword')} placeholder="Repetir"
+                  style={{ padding: '6px 10px' }}
+                />
+                {errors.confirmPassword && <div className="text-red-600 text-xs">{errors.confirmPassword}</div>}
+              </div>
             </div>
 
             <label className="flex items-center gap-1 cursor-pointer">
@@ -436,14 +441,14 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
             </label>
 
             <button onClick={handleRegister} disabled={isSubmitting}
-              className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 ${
+              className={`w-full font-medium py-2.5 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 ${
                 !isSubmitting ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
               {isSubmitting ? (
                 <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /><span className="text-sm">Registrando...</span></>
               ) : (
-                <><UserPlus size={18} /><span className="text-sm">Registrarse e Ingresar</span></>
+                <><UserPlus size={16} /><span className="text-sm">Registrarse e Ingresar</span></>
               )}
             </button>
 
