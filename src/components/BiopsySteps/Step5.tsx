@@ -323,43 +323,39 @@ export const Step5: React.FC<Step5Props> = ({
               disabled={!isValid}
               style={{
                 width: '100%',
-                padding: '20px 24px',
-                borderRadius: '16px',
+                padding: '16px',
+                borderRadius: '12px',
                 fontWeight: 'bold',
-                fontSize: '20px',
-                background: isValid 
-                  ? 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)' 
-                  : '#d1d5db',
+                fontSize: '18px',
+                backgroundColor: isValid ? '#16a34a' : '#d1d5db',
                 color: 'white',
                 border: 'none',
                 cursor: isValid ? 'pointer' : 'not-allowed',
-                boxShadow: isValid ? '0 8px 24px rgba(102, 126, 234, 0.3)' : 'none',
+                boxShadow: isValid ? '0 4px 12px rgba(22, 163, 74, 0.3)' : 'none',
                 transition: 'all 0.3s',
                 outline: 'none',
-                minHeight: '70px'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
               }}
               onMouseOver={(e) => {
                 if (isValid) {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 12px 32px rgba(102, 126, 234, 0.4)';
+                  e.currentTarget.style.backgroundColor = '#15803d';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(22, 163, 74, 0.4)';
                 }
               }}
               onMouseOut={(e) => {
                 if (isValid) {
+                  e.currentTarget.style.backgroundColor = '#16a34a';
                   e.currentTarget.style.transform = 'translateY(0px)';
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(102, 126, 234, 0.3)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(22, 163, 74, 0.3)';
                 }
               }}
             >
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '12px'
-              }}>
-                <span>Continuar a Servicios</span>
-                <ArrowRight style={{ height: '24px', width: '24px' }} />
-              </div>
+              Continuar
+              <ArrowRight style={{ width: '20px', height: '20px' }} />
             </button>
           </div>
         </div>

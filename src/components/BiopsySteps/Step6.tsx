@@ -888,43 +888,6 @@ export const Step6: React.FC<Step6Props> = ({
             </div>
           </div>
 
-          {/* Información adicional */}
-          <div style={{
-            background: '#F0F9FF',
-            padding: '12px',
-            borderRadius: '10px',
-            border: '1px solid #BAE6FD',
-            marginTop: '16px'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'flex-start',
-              gap: '10px'
-            }}>
-              <TestTube size={16} style={{ color: '#0369A1', marginTop: '2px' }} />
-              <div style={{ flex: '1', fontSize: '11px' }}>
-                <div style={{
-                  fontWeight: '600',
-                  color: '#0369A1',
-                  marginBottom: '4px'
-                }}>
-                  💰 Información de facturación:
-                </div>
-                <div style={{
-                  color: '#0C4A6E',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '2px',
-                  lineHeight: '1.3'
-                }}>
-                  <div>• <strong>Servicios básicos:</strong> Cargo fijo</div>
-                  <div>• <strong>Cortes en blanco:</strong> Por unidad</div>
-                  <div>• <strong>Tinciones especiales:</strong> Por técnica</div>
-                  <div>• <strong>Urgentes:</strong> 24 horas</div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Validación: si hay servicios con 2+ cassettes, deben seleccionar a cuáles */}
           {(() => {

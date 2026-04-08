@@ -318,20 +318,13 @@ export const Step4: React.FC<Step4Props> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '10px',
-          marginBottom: '16px',
+          gap: '8px',
+          marginBottom: '8px',
           padding: '0 16px'
         }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
-            padding: '6px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
-          }}>
-            <Package style={{ height: '16px', width: '16px', color: 'white' }} />
-          </div>
+          <Package style={{ height: '16px', width: '16px', color: '#1e3a5f' }} />
           <h2 style={{
-            fontSize: '28px',
+            fontSize: '18px',
             fontWeight: 'bold',
             color: '#1f2937',
             margin: 0
