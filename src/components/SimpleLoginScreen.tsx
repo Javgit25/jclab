@@ -41,7 +41,7 @@ const SimpleLoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin })
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
         <img 
-          src="/assets/biopsytracker_logo_final.svg" 
+          src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_final.svg`} 
           alt="BiopsyTracker Logo" 
           style={{
             width: '100%',

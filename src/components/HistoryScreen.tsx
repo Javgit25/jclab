@@ -361,7 +361,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     <!-- Header con logo y título -->
     <div class="header">
         <div style="flex: 0 0 auto; margin-right: 12px;">
-            <img src="/assets/biopsytracker_logo_final.svg" alt="Logo" style="height: 40px; filter: brightness(0) invert(1);" />
+            <img src="${window.location.pathname.replace(/\/[^/]*$/, '/') + 'assets/biopsytracker_logo_final.svg'}" alt="Logo" style="height: 40px; filter: brightness(0) invert(1);" />
         </div>
         <div class="header-content">
             <h1 class="app-name">BIOPSY TRACKER</h1>

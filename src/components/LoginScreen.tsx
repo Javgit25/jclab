@@ -220,7 +220,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
         <div className="text-center mb-2">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-3 border-2 border-blue-200 shadow-sm">
             <img
-              src="/assets/biopsytracker_logo_final.svg"
+              src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_final.svg`}
               alt="BiopsyTracker Logo"
               className="w-full mx-auto"
               style={{

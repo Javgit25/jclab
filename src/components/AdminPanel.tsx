@@ -1033,7 +1033,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <div className="text-center mb-1">
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-3 border-2 border-blue-200 shadow-sm">
               <img 
-                src="/assets/biopsytracker_logo_final.svg" 
+                src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_final.svg`} 
                 alt="BiopsyTracker Logo" 
                 className="w-full h-56 mx-auto"
                 style={{
