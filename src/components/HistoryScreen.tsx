@@ -714,16 +714,107 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           </div>
         </div>
 
-        {/* Contenido del remito - iframe aislado */}
-        <div style={{ flex: 1, overflow: 'hidden', backgroundColor: 'white' }}>
-          {showRemito.entry && (
-            <iframe
-              srcDoc={generateRemitoHTML(showRemito.entry)}
-              style={{ width: '100%', height: '100%', border: 'none' }}
-              title="Remito"
-              sandbox="allow-same-origin"
-            />
-          )}
+        {/* Contenido del remito - renderizado directo React */}
+        <div style={{ flex: 1, overflow: 'auto', backgroundColor: 'white', padding: '16px' }}>
+          {showRemito.entry && (() => {
+            const entry = showRemito.entry!;
+            const doctor = entry.doctorInfo;
+            return (
+              <div style={{ fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif', fontSize: '10pt', color: '#1a202c', lineHeight: 1.3 }}>
+                {/* Header */}
+                <div style={{ background: 'linear-gradient(135deg, #2d3748 0%, #4a5568 100%)', color: 'white', padding: '12px', borderRadius: '6px', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ textAlign: 'center', flex: 1 }}>
+                    <div style={{ fontSize: '14pt', fontWeight: 700, marginBottom: '2px' }}>BIOPSY TRACKER</div>
+                    <div style={{ fontSize: '8pt', opacity: 0.85 }}>Sistema de Gestión de Muestras Médicas</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.1)', padding: '6px 12px', borderRadius: '4px' }}>
+                    <div style={{ fontSize: '10pt', fontWeight: 600 }}>REMITO</div>
+                    <div style={{ fontSize: '8pt' }}>N° {entry.id?.slice(-8)}</div>
+                  </div>
+                </div>
+
+                {/* Info médico y remito */}
+                <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                  <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
+                    <div style={{ fontWeight: 700, fontSize: '10pt', marginBottom: '8px', textDecoration: 'underline' }}>DATOS DEL MÉDICO</div>
+                    <div style={{ fontSize: '9pt', marginBottom: '4px' }}><strong>Nombre:</strong> {doctor.name}</div>
+                    <div style={{ fontSize: '9pt', marginBottom: '4px' }}><strong>Email:</strong> {doctor.email}</div>
+                    <div style={{ fontSize: '9pt' }}><strong>Hospital:</strong> {doctor.hospital}</div>
+                  </div>
+                  <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
+                    <div style={{ fontWeight: 700, fontSize: '10pt', marginBottom: '8px', textDecoration: 'underline' }}>DATOS DEL REMITO</div>
+                    <div style={{ fontSize: '9pt', marginBottom: '4px' }}><strong>Muestras:</strong> {entry.biopsies.length}</div>
+                    <div style={{ fontSize: '9pt', marginBottom: '4px' }}><strong>Fecha:</strong> {(() => { try { return new Date(entry.timestamp || entry.date).toLocaleDateString('es-AR'); } catch { return entry.date; } })()}</div>
+                    <div style={{ fontSize: '9pt' }}><strong>ID:</strong> {entry.id?.slice(-12)}</div>
+                  </div>
+                </div>
+
+                {/* Tabla de biopsias */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '8pt' }}>
+                  <thead>
+                    <tr style={{ background: '#2d3748', color: 'white' }}>
+                      <th style={{ padding: '8px 4px', textAlign: 'left', border: '1px solid #4a5568', width: '6%' }}>#</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'left', border: '1px solid #4a5568', width: '15%' }}>Cassette</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'left', border: '1px solid #4a5568', width: '18%' }}>Tejido</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'left', border: '1px solid #4a5568', width: '8%' }}>Tipo</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'center', border: '1px solid #4a5568', width: '8%' }}>Cass.</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'center', border: '1px solid #4a5568', width: '8%' }}>Trozos</th>
+                      <th style={{ padding: '8px 4px', textAlign: 'left', border: '1px solid #4a5568' }}>Servicios</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entry.biopsies.map((biopsy, index) => {
+                      const services: string[] = [];
+                      if (biopsy.servicios?.cassetteUrgente) services.push('Urgente');
+                      if (biopsy.servicios?.pap) services.push('PAP');
+                      if (biopsy.servicios?.papUrgente) services.push('PAP Urg.');
+                      if (biopsy.servicios?.citologia) services.push('Citología');
+                      if (biopsy.servicios?.citologiaUrgente) services.push('Cito Urg.');
+                      if (biopsy.servicios?.corteBlancoIHQ) services.push(`IHQ(${biopsy.servicios.corteBlancoIHQQuantity || 1})`);
+                      if (biopsy.servicios?.corteBlancoComun) services.push(`CB(${biopsy.servicios.corteBlancoComunQuantity || 1})`);
+                      if (biopsy.servicios?.giemsaPASMasson) services.push(`Giemsa/PAS/Masson`);
+                      const cassNums = biopsy.cassettesNumbers?.map(c => `${c.base}/${c.suffix}`).join(', ') || biopsy.number || '-';
+                      return (
+                        <tr key={index} style={{ background: index % 2 === 0 ? 'white' : '#f8fafc' }}>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0', fontWeight: 700 }}>{index + 1}</td>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0', fontWeight: 600 }}>{cassNums}</td>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0' }}>{biopsy.tissueType}</td>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0' }}>{biopsy.type || 'BX'}</td>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{biopsy.cassettes}</td>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{biopsy.pieces || '-'}</td>
+                          <td style={{ padding: '6px 4px', border: '1px solid #e2e8f0', fontSize: '7pt' }}>{services.length > 0 ? services.join(' · ') : 'Normal'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Observaciones */}
+                {entry.biopsies.some(b => b.observations) && (
+                  <div style={{ marginBottom: '20px', padding: '10px', background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: '6px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '9pt', marginBottom: '4px' }}>Observaciones:</div>
+                    {entry.biopsies.filter(b => b.observations).map((b, i) => (
+                      <div key={i} style={{ fontSize: '8pt', marginBottom: '2px' }}>• <strong>#{b.number}:</strong> {b.observations}</div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Firmas */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px', gap: '40px' }}>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ borderBottom: '1px solid #2d3748', height: '40px', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '9pt', fontWeight: 600 }}>Firma del Médico</div>
+                    <div style={{ fontSize: '8pt' }}>Dr. {doctor.name}</div>
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ borderBottom: '1px solid #2d3748', height: '40px', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '9pt', fontWeight: 600 }}>Recibido por Laboratorio</div>
+                    <div style={{ fontSize: '8pt' }}>Fecha: ____________</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         <style>{`
