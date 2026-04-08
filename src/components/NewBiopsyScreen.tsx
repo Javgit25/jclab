@@ -592,7 +592,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   }, [currentStep, biopsyForm.tissueType, isPapOrCitologia]);
 
   return (
-    <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Botón Finalizar - esquina superior derecha, absoluto, no ocupa espacio */}
       {todayBiopsies.length > 0 && currentStep !== 7 && (
         <button
