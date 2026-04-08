@@ -593,39 +593,34 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
 
   return (
     <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Banner Finalizar Remito - fijo arriba */}
+      {/* Botón Finalizar - esquina superior derecha, absoluto, no ocupa espacio */}
       {todayBiopsies.length > 0 && currentStep !== 7 && (
-        <div style={{
-          background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
-          padding: '8px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexShrink: 0,
-          zIndex: 40
-        }}>
-          <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '12px', fontWeight: '500' }}>
-            📋 {todayBiopsies.length} paciente{todayBiopsies.length !== 1 ? 's' : ''} cargado{todayBiopsies.length !== 1 ? 's' : ''}
-          </span>
-          <button
-            onClick={() => {
-              if (window.confirm(`¿Desea finalizar el remito con ${todayBiopsies.length} paciente(s) cargado(s)?\n\nSe guardarán todos los pacientes ya cargados.`))
-                onFinishDailyReport();
-            }}
-            style={{
-              background: 'white',
-              color: '#dc2626',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '6px 16px',
-              fontSize: '13px',
-              fontWeight: '700',
-              cursor: 'pointer'
-            }}
-          >
-            Finalizar Remito
-          </button>
-        </div>
+        <button
+          onClick={() => {
+            if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?\n\nSe guardarán todos los pacientes ya cargados.`))
+              onFinishDailyReport();
+          }}
+          style={{
+            position: 'absolute',
+            top: '14px',
+            right: '14px',
+            zIndex: 50,
+            background: '#dc2626',
+            color: 'white',
+            border: '2px solid rgba(255,255,255,0.4)',
+            borderRadius: '10px',
+            padding: '6px 12px',
+            fontSize: '11px',
+            fontWeight: '700',
+            cursor: 'pointer',
+            boxShadow: '0 4px 12px rgba(220, 38, 38, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}
+        >
+          📋 Finalizar ({todayBiopsies.length})
+        </button>
       )}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {currentStep === 1 && (
