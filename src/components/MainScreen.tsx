@@ -1808,7 +1808,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           }}>
             <div style={{ fontSize: '42px', marginBottom: '10px' }}>📝</div>
             <div style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px' }}>
-              Remito Modificado
+              Remito modificado por el Laboratorio
             </div>
             <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.5', marginBottom: '18px', whiteSpace: 'pre-line', textAlign: 'left', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', padding: '12px' }}>
               {modifAlert.mensaje}
@@ -1882,7 +1882,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                       {!n.leida && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1e40af', flexShrink: 0 }} />}
-                      <span style={{ fontWeight: '600', color: n.tipo === 'listo' || n.tipo === 'parcial' ? '#059669' : '#1e40af', fontSize: '12px' }}>{n.tipo === 'listo' ? '✅ Listo para retirar' : n.tipo === 'parcial' ? '🟢 Material listo (parcial)' : 'Remito modificado'}</span>
+                      <span style={{ fontWeight: '600', color: n.tipo === 'listo' || n.tipo === 'parcial' ? '#059669' : '#1e40af', fontSize: '12px' }}>{n.tipo === 'listo' ? '✅ Listo para retirar' : n.tipo === 'parcial' ? '🟢 Material listo (parcial)' : '📝 Remito modificado por el Laboratorio'}</span>
                     </div>
                     <div style={{ color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '11px' }}>{n.mensaje || n.message || 'Se realizaron cambios en un remito'}</div>
                     <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>

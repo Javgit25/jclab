@@ -815,16 +815,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
                         const remitoNotifs = allNotifs
                           .filter((n: any) => {
+                            if (n.tipo === 'listo' || n.tipo === 'parcial') return false;
                             if (n.remitoId === entry.id) return true;
-                            if (n.medicoEmail === doctorInfo.email && n.remitoId) {
+                            const entryRN2 = (entry as any).remitoNumber;
+                            if (entryRN2 && n.remitoId) {
                               const ar = adminRemitos.find((r: any) => r.id === n.remitoId);
-                              if (ar) {
-                                const arTs = ar.timestamp || ar.fecha;
-                                if (arTs === entryTimestamp2) return true;
-                                const sameD = new Date(ar.fecha).toDateString() === new Date(entry.date).toDateString();
-                                const sameC = ar.biopsias?.length === entryBiopsyCount2;
-                                if (sameD && sameC) return true;
-                              }
+                              if (ar && (ar as any).remitoNumber === entryRN2) return true;
                             }
                             return false;
                           })
