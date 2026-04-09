@@ -1836,8 +1836,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               const origBiopsia = (snapBiopsias || [])[index];
                               const minCass = Number(origBiopsia?.cassettes) || 0;
 
+                              const isPapCito = biopsia.tejido === 'PAP' || biopsia.tejido === 'Citología';
                               return (
-                              <tr key={index} className="border-b border-gray-100">
+                              <tr key={index} className={`border-b border-gray-100 ${isPapCito ? 'bg-gray-50/50' : ''}`}>
                                 <td className="py-2 px-3 font-bold text-blue-600 text-xs">#{biopsia.numero}</td>
                                 <td className="py-2 px-3 text-xs">{biopsia.tejido}</td>
                                 <td className="py-2 px-3">
@@ -1846,15 +1847,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   }`}>{biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? 'CITO' : 'BX'}</span>
                                 </td>
                                 <td className="py-2 px-3 text-center">
-                                  <input type="number" value={biopsia.cassettes} min={minCass}
-                                    className="w-16 text-center border border-gray-200 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500"
-                                    onChange={(e) => {
-                                      const val = Math.max(Number(e.target.value), minCass);
-                                      const updated = [...editingBiopsias];
-                                      updated[index] = { ...updated[index], cassettes: val };
-                                      setEditingBiopsias(updated);
-                                    }}
-                                  />
+                                  {isPapCito ? (
+                                    <span className="text-xs text-gray-500">{biopsia.tejido === 'PAP' ? (biopsia.papQuantity || biopsia.cassettes) : (biopsia.citologiaQuantity || biopsia.cassettes)} vidrios</span>
+                                  ) : (
+                                    <input type="number" value={biopsia.cassettes} min={minCass}
+                                      className="w-16 text-center border border-gray-200 rounded px-2 py-1 text-xs focus:ring-2 focus:ring-blue-500"
+                                      onChange={(e) => {
+                                        const val = Math.max(Number(e.target.value), minCass);
+                                        const updated = [...editingBiopsias];
+                                        updated[index] = { ...updated[index], cassettes: val };
+                                        setEditingBiopsias(updated);
+                                      }}
+                                    />
+                                  )}
                                 </td>
                                 {/* Servicios del médico (solo lectura) */}
                                 <td className="py-2 px-3">
@@ -1868,8 +1873,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     {(biopsia.citologiaQuantity || 0) > 0 && <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700">Cito: {biopsia.citologiaQuantity}</span>}
                                   </div>
                                 </td>
-                                {/* Servicios adicionales editables por el lab */}
+                                {/* Servicios adicionales editables por el lab - NO para PAP/Cito */}
                                 <td className="py-2 px-3">
+                                {isPapCito ? (
+                                  <span className="text-xs text-gray-400 italic">No editable</span>
+                                ) : (
                                   <div className="flex flex-col gap-2">
                                     {/* Corte IHQ */}
                                     <div className="border border-gray-100 rounded p-1.5">
@@ -1952,6 +1960,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       )}
                                     </div>
                                   </div>
+                                )}
                                 </td>
                                 <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">${calcularTotalBiopsia(biopsia).toLocaleString()}</td>
                               </tr>
