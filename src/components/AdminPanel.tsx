@@ -1373,6 +1373,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">N° Rem.</th>
                       <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">Médico</th>
                       <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">Fecha</th>
                       <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Pac.</th>
@@ -1451,6 +1452,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <tr className={`border-b border-gray-50 cursor-pointer ${isListo ? 'bg-green-50/40' : hasUrgent ? 'bg-red-50/40' : ''}`}
                           onClick={() => { const next = new Set(expandedUrgents); if (next.has(remito.id)) next.delete(remito.id); else next.add(remito.id); setExpandedUrgents(next); }}>
                           <td className="py-2 px-3">
+                            <span className="font-mono text-xs font-bold text-blue-700">#{(remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()}</span>
+                          </td>
+                          <td className="py-2 px-3">
                             <div className="font-semibold text-gray-900 text-xs">Dr/a. {remito.medico}</div>
                           </td>
                           <td className="py-2 px-3 text-xs text-gray-500">{new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</td>
@@ -1491,7 +1495,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </tr>
                         {/* Panel expandido con biopsias filtradas según tab */}
                         {isExpanded && (
-                          <tr><td colSpan={7} className="p-0">
+                          <tr><td colSpan={8} className="p-0">
                             <div className="bg-gray-50 border-y border-gray-200 px-4 py-2">
                               <div className="grid gap-1">
                                 {remito.biopsias.map((b, bi) => {
@@ -1534,42 +1538,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </table>
               </div>
 
-              {/* Top médicos */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Top Médicos (por remitos)</h4>
-                  <div className="space-y-2">
-                    {[...medicos].sort((a, b) => remitos.filter(r => r.medico === b).length - remitos.filter(r => r.medico === a).length).slice(0, 5).map((m, i) => {
-                      const count = remitos.filter(r => r.medico === m).length;
-                      const total = remitos.filter(r => r.medico === m).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
-                      return (
-                        <div key={m} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold ${i === 0 ? 'bg-yellow-500' : i === 1 ? 'bg-gray-400' : i === 2 ? 'bg-orange-400' : 'bg-blue-400'}`}>{i + 1}</span>
-                            <span className="text-xs font-medium text-gray-900">{m}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-gray-700">{count} rem.</span>
-                            <span className="text-xs text-gray-400 ml-2">${total.toLocaleString()}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
+              {/* Botón imprimir remitos para técnicos */}
+              <div className="flex gap-2 mt-3">
+                <button onClick={() => {
+                  const remitosToPrint = filteredRemitos.filter(r => !(r as any).estadoEnvio || (r as any).estadoEnvio !== 'listo');
+                  if (remitosToPrint.length === 0) { alert('No hay remitos pendientes para imprimir'); return; }
+                  const html = remitosToPrint.map(r => {
+                    const nro = (r as any).remitoNumber || r.id.slice(-6).toUpperCase();
+                    const fecha = new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
+                    return `<div style="border:1px solid #ccc;padding:8px;margin-bottom:8px;border-radius:4px;font-size:9pt;font-family:Arial;">
+                      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                        <b>#${nro}</b><span>${fecha}</span><span>Dr/a. ${r.medico}</span>
+                      </div>
+                      <table style="width:100%;border-collapse:collapse;font-size:8pt;">
+                        <tr style="background:#eee;"><th style="padding:2px 4px;border:1px solid #ccc;text-align:left">N°</th><th style="padding:2px 4px;border:1px solid #ccc;">Material</th><th style="padding:2px 4px;border:1px solid #ccc;">Tipo</th><th style="padding:2px 4px;border:1px solid #ccc;">Cass</th><th style="padding:2px 4px;border:1px solid #ccc;">Servicios</th></tr>
+                        ${r.biopsias.map((b: any, i: number) => {
+                          const sv = b.servicios || {};
+                          const svc: string[] = [];
+                          if (sv.cassetteUrgente) svc.push('URG');
+                          if (sv.corteBlancoIHQ) svc.push('IHQ');
+                          if (sv.corteBlanco) svc.push('CB');
+                          if (sv.giemsaPASMasson) svc.push('G/P/M');
+                          return `<tr><td style="padding:2px 4px;border:1px solid #eee;">${b.numero||i+1}</td><td style="padding:2px 4px;border:1px solid #eee;">${b.tejido||'-'}</td><td style="padding:2px 4px;border:1px solid #eee;">${b.tejido==='PAP'?'PAP':b.tejido==='Citología'?'Cito':b.tipo||'BX'}</td><td style="padding:2px 4px;border:1px solid #eee;text-align:center">${b.cassettes||0}</td><td style="padding:2px 4px;border:1px solid #eee;font-size:7pt">${svc.join(',')||'-'}</td></tr>`;
+                        }).join('')}
+                      </table>
+                    </div>`;
+                  }).join('');
+                  const orig = document.body.innerHTML;
+                  document.body.innerHTML = `<div style="padding:8px">${html}</div>`;
+                  window.print();
+                  document.body.innerHTML = orig;
+                  window.location.reload();
+                }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
+                  🖨 Imprimir pendientes
+                </button>
+              </div>
+
+              {/* Eficiencia del laboratorio - separado */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
+                <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Eficiencia del laboratorio</h4>
+                <div className="flex items-center gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-700">{tiempoPromedio > 24 ? Math.round(tiempoPromedio / 24) + ' días' : tiempoPromedio + ' hs'}</div>
+                    <div className="text-xs text-gray-500">Tiempo promedio</div>
                   </div>
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <h4 className="text-xs font-bold text-gray-500 uppercase mb-3">Eficiencia del laboratorio</h4>
-                  <div className="space-y-3">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold text-blue-700">{tiempoPromedio > 24 ? Math.round(tiempoPromedio / 24) + ' días' : tiempoPromedio + ' hs'}</div>
-                      <div className="text-xs text-gray-500">Tiempo promedio de procesamiento</div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-green-50 rounded-lg p-2 text-center">
+                  <div className="flex-1">
+                    <div className="flex gap-3 mb-2">
+                      <div className="bg-green-50 rounded-lg p-2 text-center flex-1">
                         <div className="text-lg font-bold text-green-700">{listos.length}</div>
                         <div className="text-xs text-green-600">Completados</div>
                       </div>
-                      <div className="bg-yellow-50 rounded-lg p-2 text-center">
+                      <div className="bg-yellow-50 rounded-lg p-2 text-center flex-1">
                         <div className="text-lg font-bold text-yellow-700">{enProceso.length}</div>
                         <div className="text-xs text-yellow-600">Pendientes</div>
                       </div>
@@ -1577,7 +1596,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div className="bg-green-500 h-2 rounded-full" style={{ width: `${remitos.length > 0 ? (listos.length / remitos.length) * 100 : 0}%` }}></div>
                     </div>
-                    <div className="text-xs text-center text-gray-500">{remitos.length > 0 ? Math.round((listos.length / remitos.length) * 100) : 0}% procesados</div>
+                    <div className="text-xs text-center text-gray-500 mt-1">{remitos.length > 0 ? Math.round((listos.length / remitos.length) * 100) : 0}% procesados</div>
                   </div>
                 </div>
               </div>

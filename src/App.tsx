@@ -515,9 +515,11 @@ function App() {
     
     // Generar ID único con timestamp
     const uniqueId = `${doctorKey}_${today}_${Date.now()}`;
-    
+    const remitoNumber = Date.now().toString(36).toUpperCase().slice(-6);
+
     const remito = {
       id: uniqueId,
+      remitoNumber,
       date: today,
       biopsies: updatedBiopsies,
       doctorInfo: { ...doctorInfo },
