@@ -170,8 +170,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             // Convertir cada entrada del historial a formato AdminRemito
             Object.values(parsedHistory).forEach((entry: any) => {
               if (entry && entry.biopsies && entry.doctorInfo) {
-                const adminRemito: AdminRemito = {
+                const adminRemito: any = {
                   id: entry.id || `hist-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  remitoNumber: entry.remitoNumber || null,
                   medico: entry.doctorInfo.name || 'Médico no especificado',
                   email: entry.doctorInfo.email || 'email@ejemplo.com',
                   fecha: entry.date || entry.timestamp || new Date().toISOString(),
@@ -1564,18 +1565,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </table>
                     </div>`;
                   }).join('');
-                  const iframe = document.createElement('iframe');
-                  iframe.style.position = 'fixed';
-                  iframe.style.top = '-10000px';
-                  document.body.appendChild(iframe);
-                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-                  if (!iframeDoc) return;
-                  iframeDoc.open();
-                  iframeDoc.write(`<html><head><style>body{font-family:Arial,sans-serif;padding:8px;font-size:9pt;}</style></head><body>${html}</body></html>`);
-                  iframeDoc.close();
-                  iframe.contentWindow?.focus();
-                  iframe.contentWindow?.print();
-                  setTimeout(() => document.body.removeChild(iframe), 1000);
+                  // Crear div temporal para imprimir
+                  let printDiv = document.getElementById('admin-print-area');
+                  if (printDiv) printDiv.remove();
+                  printDiv = document.createElement('div');
+                  printDiv.id = 'admin-print-area';
+                  printDiv.style.fontFamily = 'Arial, sans-serif';
+                  printDiv.style.fontSize = '9pt';
+                  printDiv.style.padding = '8px';
+                  printDiv.innerHTML = html;
+                  document.body.appendChild(printDiv);
+                  window.print();
+                  setTimeout(() => printDiv?.remove(), 500);
                 }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
                   🖨 Imprimir pendientes
                 </button>
