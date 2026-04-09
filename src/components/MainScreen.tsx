@@ -1830,7 +1830,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     </div>
                     <div style={{ color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '11px' }}>{n.mensaje || n.message || 'Se realizaron cambios en un remito'}</div>
                     <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
-                      {new Date(n.fecha || n.date || Date.now()).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(n.fecha || n.date || Date.now()).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' })}
                     </div>
                   </div>
                 ))
