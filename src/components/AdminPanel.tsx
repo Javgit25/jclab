@@ -1581,12 +1581,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   const htmlParts = remitosToPrint.map(r => {
                     const nro = (r as any).remitoNumber || r.id.slice(-6).toUpperCase();
                     const fecha = new Date((r as any).timestamp || r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
-                    return `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;border-radius:6px;font-size:9pt;font-family:Arial;text-align:center;">
-                      <div style="display:flex;justify-content:space-between;margin-bottom:6px;text-align:left;">
-                        <b style="font-size:11pt;">#${nro}</b><span>${fecha}</span><span>Dr/a. ${r.medico}</span>
+                    return `<div style="border:1px solid #ddd;margin-bottom:12px;font-size:9pt;font-family:Arial;">
+                      <div style="background:#f5f5f5;padding:6px 10px;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;">
+                        <span style="font-size:15pt;font-weight:800;">Dr/a. ${r.medico}</span>
+                        <span style="color:#666;font-size:10pt;">#${nro}</span>
+                        <span style="color:#999;font-size:9pt;margin-left:auto;">${fecha}</span>
                       </div>
-                      <table style="width:100%;border-collapse:collapse;font-size:8pt;margin:0 auto;">
-                        <tr style="background:#eee;"><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">N°</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Material</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Tipo</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Cant.</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Servicios</th></tr>
+                      <table style="width:100%;border-collapse:collapse;font-size:8pt;">
+                        <colgroup><col style="width:12%"><col style="width:28%"><col style="width:12%"><col style="width:12%"><col style="width:36%"></colgroup>
+                        <tr style="background:#333;color:white;"><th style="padding:4px 6px;text-align:left">N°</th><th style="padding:4px 6px;text-align:left">Material</th><th style="padding:4px 6px;text-align:center">Tipo</th><th style="padding:4px 6px;text-align:center">Cant.</th><th style="padding:4px 6px;text-align:left">Servicios</th></tr>
                         ${r.biopsias.map((b: any, i: number) => {
                           const sv = b.servicios || {};
                           const svc: string[] = [];
@@ -1597,7 +1600,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
                           const cant = isPAP ? (b.papQuantity || 1) + ' vid' : isCito ? (b.citologiaQuantity || 1) + ' vid' : (b.cassettes || 0);
-                          return `<tr><td style="padding:3px 6px;border:1px solid #eee;text-align:center">${b.numero||i+1}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center">${b.tejido||'-'}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center;font-weight:bold">${cant}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center;font-size:7pt">${svc.join(', ')||'-'}</td></tr>`;
+                          return `<tr style="border-bottom:1px solid #eee;"><td style="padding:4px 6px;">${b.numero||i+1}</td><td style="padding:4px 6px;">${b.tejido||'-'}</td><td style="padding:4px 6px;text-align:center">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</td><td style="padding:4px 6px;text-align:center;font-weight:bold">${cant}</td><td style="padding:4px 6px;font-size:7pt">${svc.join(', ')||'-'}</td></tr>`;
                         }).join('')}
                       </table>
                     </div>`;
