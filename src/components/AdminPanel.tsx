@@ -1832,7 +1832,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 }
                               }
 
-                              const minCass = Number((originalBiopsiaSnapshot || [])[index]?.cassettes) || 0;
+                              const snapBiopsias = originalBiopsiaSnapshot || (() => { try { return JSON.parse(localStorage.getItem('_editSnapshot') || '[]'); } catch { return []; } })();
+                              const origBiopsia = (snapBiopsias || [])[index];
+                              const minCass = Number(origBiopsia?.cassettes) || 0;
 
                               return (
                               <tr key={index} className="border-b border-gray-100">
@@ -2001,7 +2003,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               const currCito = Number(curr.citologiaQuantity) || 0;
                               if (origCass !== currCass) {
                                 const diff = currCass - origCass;
-                                cambiosPaciente.push(`Cassettes: ${origCass} → ${currCass} (${diff > 0 ? '+' : ''}${diff})`);
+                                const cassLabel = (curr.tejido === 'PAP' || curr.tejido === 'Citología') ? 'Cantidad' : 'Cassettes';
+                                cambiosPaciente.push(`${cassLabel}: ${origCass} → ${currCass} (${diff > 0 ? '+' : ''}${diff})`);
                               }
                               if (origPap !== currPap) {
                                 const diff = currPap - origPap;
@@ -2013,7 +2016,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               }
                               if (cambiosPaciente.length > 0) {
                                 const tipo = curr.tipo === 'PQ' ? 'PQ' : curr.tejido === 'PAP' ? 'PAP' : curr.tejido === 'Citología' ? 'Citología' : 'BX';
-                                cambiosDetalle.push(`Paciente ${idx + 1} – N° ${curr.numero || 'S/N'}\nMaterial: ${curr.tejido || '-'} (${tipo})\n${cambiosPaciente.join('\n')}`);
+                                cambiosDetalle.push(`Paciente N° ${curr.numero || 'S/N'}\nMaterial: ${curr.tejido || '-'} (${tipo})\n${cambiosPaciente.join('\n')}`);
                               }
                             });
 
