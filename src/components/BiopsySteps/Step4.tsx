@@ -13,6 +13,8 @@ interface Step4Props {
   onNext: () => void;
   onPrev: () => void;
   onOpenVirtualKeyboard: (type: 'numeric' | 'full', field: string, currentValue?: string) => void;
+  onFinishRemito?: () => void;
+  todayBiopsiesCount?: number;
 }
 
 // Componente TouchNumericInput optimizado para tablet
@@ -207,7 +209,9 @@ export const Step4: React.FC<Step4Props> = ({
   onUpdateCassetteSuffix,
   onNext,
   onPrev,
-  onOpenVirtualKeyboard
+  onOpenVirtualKeyboard,
+  onFinishRemito,
+  todayBiopsiesCount
 }) => {
   // Determinar si es PAP o Citología para manejo especial
   const isPapOrCitologia = tissueType === 'PAP' || tissueType === 'Citología';
@@ -280,34 +284,46 @@ export const Step4: React.FC<Step4Props> = ({
               }}>Indique la cantidad de {materialType.toLowerCase()}</p>
             </div>
           </div>
-          <button
-            onClick={onPrev}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '13px',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.3s',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-            }}
-            onMouseOver={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-            }}
-            onMouseOut={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-              e.currentTarget.style.transform = 'translateY(0px)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
-            }}
-          >
-            ← Anterior
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {onFinishRemito && todayBiopsiesCount && todayBiopsiesCount > 0 && (
+              <button onClick={onFinishRemito} style={{
+                background: '#dc2626', color: 'white', border: 'none',
+                borderRadius: '8px', padding: '6px 12px', fontSize: '10px',
+                fontWeight: '700', cursor: 'pointer', display: 'flex',
+                alignItems: 'center', gap: '3px', whiteSpace: 'nowrap'
+              }}>
+                📋 Finalizar ({todayBiopsiesCount})
+              </button>
+            )}
+            <button
+              onClick={onPrev}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                backdropFilter: 'blur(10px)',
+                transition: 'all 0.3s',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}
+              onMouseOver={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+              }}
+              onMouseOut={(e) => {
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
+                e.currentTarget.style.transform = 'translateY(0px)';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+              }}
+            >
+              ← Anterior
+            </button>
+          </div>
         </div>
       </div>
 

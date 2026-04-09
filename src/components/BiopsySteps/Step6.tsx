@@ -15,6 +15,8 @@ interface Step6Props {
   onNext: () => void;
   onPrev: () => void;
   tissueType?: string;
+  onFinishRemito?: () => void;
+  todayBiopsiesCount?: number;
 }
 
 export const Step6: React.FC<Step6Props> = ({
@@ -27,7 +29,9 @@ export const Step6: React.FC<Step6Props> = ({
   onCorteBlancoQuantityChange,
   onCassetteSelectionChange,
   onNext,
-  onPrev
+  onPrev,
+  onFinishRemito,
+  todayBiopsiesCount
 }) => {
   // Estado para cassettes seleccionados por servicio
   const [selectedCassettesIHQ, setSelectedCassettesIHQ] = useState<number[]>([]);
@@ -336,24 +340,36 @@ export const Step6: React.FC<Step6Props> = ({
               }}>Seleccione los servicios requeridos</p>
             </div>
           </div>
-          <button
-            onClick={onPrev}
-            style={{
-              background: 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              padding: '8px 16px',
-              borderRadius: '10px',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '13px',
-              backdropFilter: 'blur(10px)',
-              transition: 'all 0.2s',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-            }}
-          >
-            ← Anterior
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {onFinishRemito && todayBiopsiesCount && todayBiopsiesCount > 0 && (
+              <button onClick={onFinishRemito} style={{
+                background: '#dc2626', color: 'white', border: 'none',
+                borderRadius: '8px', padding: '6px 12px', fontSize: '10px',
+                fontWeight: '700', cursor: 'pointer', display: 'flex',
+                alignItems: 'center', gap: '3px', whiteSpace: 'nowrap'
+              }}>
+                📋 Finalizar ({todayBiopsiesCount})
+              </button>
+            )}
+            <button
+              onClick={onPrev}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                color: 'white',
+                padding: '8px 16px',
+                borderRadius: '10px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '13px',
+                backdropFilter: 'blur(10px)',
+                transition: 'all 0.2s',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}
+            >
+              ← Anterior
+            </button>
+          </div>
         </div>
       </div>
 

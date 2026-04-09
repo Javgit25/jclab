@@ -593,35 +593,6 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
 
   return (
     <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
-      {/* Botón Finalizar Remito - solo visible si hay pacientes y no estamos en Step 7 */}
-      {todayBiopsies.length > 0 && currentStep !== 7 && (
-        <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 50 }}>
-          <button
-            onClick={() => {
-              if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?\n\nSe guardarán todos los pacientes ya cargados.\nEsta acción no se puede deshacer.`))
-                onFinishDailyReport();
-            }}
-            style={{
-              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              padding: '6px 16px',
-              fontSize: '11px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(220, 38, 38, 0.4)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              whiteSpace: 'nowrap',
-              opacity: 0.9
-            }}
-          >
-            📋 Finalizar ({todayBiopsies.length})
-          </button>
-        </div>
-      )}
       <div style={{ flex: 1, overflow: 'hidden' }}>
         {currentStep === 1 && (
           <Step1
@@ -654,6 +625,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onCitologiaUrgenteChange={handleCitologiaUrgenteChange}
             onNext={nextStep}
             onPrev={prevStep}
+            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
+            todayBiopsiesCount={todayBiopsies.length}
             onUpdateFrequentTissues={onUpdateFrequentTissues}
             onOpenVirtualKeyboard={openVirtualKeyboard}
             onCloseVirtualKeyboard={closeVirtualKeyboard}
@@ -670,6 +643,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onTypeChange={(value) => handleBiopsyChange('type', value)}
             onNext={nextStep}
             onPrev={prevStep}
+            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
+            todayBiopsiesCount={todayBiopsies.length}
           />
         )}
         
@@ -686,9 +661,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onNext={nextStep}
             onPrev={prevStep}
             onOpenVirtualKeyboard={openVirtualKeyboard}
+            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
+            todayBiopsiesCount={todayBiopsies.length}
           />
         )}
-        
+
         {/* ✅ STEP 5 - NO SE MUESTRA PARA PAP/CITOLOGÍA */}
         {currentStep === 5 && !isPapOrCitologia() && (
           <Step5
@@ -696,6 +673,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onDeclassifyChange={(value) => handleBiopsyChange('declassify', value)}
             onNext={nextStep}
             onPrev={prevStep}
+            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
+            todayBiopsiesCount={todayBiopsies.length}
           />
         )}
         
@@ -718,9 +697,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             }}
             onNext={nextStep}
             onPrev={prevStep}
+            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
+            todayBiopsiesCount={todayBiopsies.length}
           />
         )}
-        
+
         {/* ✅ STEP 7 - SE MUESTRA PARA TODOS */}
         {currentStep === 7 && (
           <Step7
