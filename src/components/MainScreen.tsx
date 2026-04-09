@@ -65,15 +65,39 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     }).catch(() => {});
   };
 
-  // Cargar al montar y polling cada 15 segundos
+  // Cargar al montar + Supabase Realtime + polling fallback
   useState(() => { loadNotifications(); });
   React.useEffect(() => {
+    // Realtime: escuchar nuevas notificaciones en tiempo real
+    let channel: any = null;
+    try {
+      const { supabase } = require('../lib/supabase');
+      channel = supabase.channel('doctor-notifications')
+        .on('postgres_changes', {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'doctor_notifications',
+          filter: `medico_email=eq.${doctorInfo.email.toLowerCase().trim()}`
+        }, () => {
+          // Nueva notificación recibida, recargar
+          db.getNotifications(doctorInfo.email).then((remote: any[]) => {
+            if (remote && remote.length > 0) setNotificationsData(remote);
+          }).catch(() => {});
+        })
+        .subscribe();
+    } catch {}
+
+    // Polling como fallback cada 30 segundos
     const interval = setInterval(() => {
       db.getNotifications(doctorInfo.email).then((remote: any[]) => {
         if (remote && remote.length > 0) setNotificationsData(remote);
       }).catch(() => {});
-    }, 15000);
-    return () => clearInterval(interval);
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+      if (channel) { try { channel.unsubscribe(); } catch {} }
+    };
   }, [doctorInfo.email]);
 
   const unreadCount = notificationsData.filter(n => !n.leida).length;
