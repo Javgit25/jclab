@@ -1818,7 +1818,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   Sin notificaciones
                 </div>
               ) : (
-                notificationsData.slice().sort((a: any, b: any) => new Date(b.fecha || 0).getTime() - new Date(a.fecha || 0).getTime()).map((n: any, i: number) => (
+                notificationsData.slice().sort((a: any, b: any) => new Date(b.fecha || b.date || 0).getTime() - new Date(a.fecha || a.date || 0).getTime()).map((n: any, i: number) => (
                   <div key={n.id || i} style={{
                     padding: '12px 16px', borderBottom: '1px solid #f3f4f6',
                     fontSize: '12px', color: '#374151',
