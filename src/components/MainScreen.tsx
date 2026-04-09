@@ -1747,14 +1747,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             </div>
             <button
               onClick={() => {
-                // Marcar como leída
+                // Marcar TODAS las de listo/parcial como leídas
                 try {
                   const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                  const updated = all.map((n: any) => n.id === listoAlert.id ? { ...n, leida: true } : n);
+                  const updated = all.map((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida ? { ...n, leida: true } : n);
                   localStorage.setItem('doctorNotifications', JSON.stringify(updated));
-                  loadNotifications();
-                  // Sync to Supabase
-                  db.markNotificationRead(listoAlert.id).catch(() => {});
+                  // Sync todas a Supabase
+                  all.filter((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida).forEach((n: any) => {
+                    db.markNotificationRead(n.id).catch(() => {});
+                  });
+                  setNotificationsData(updated.filter((n: any) => n.medicoEmail === doctorInfo.email));
                 } catch {}
                 setListoAlert(null);
               }}
