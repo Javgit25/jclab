@@ -602,6 +602,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onBiopsyNumberChange={(value) => handleBiopsyChange('number', value)}
             onNext={nextStep}
             onFinishDailyReport={onGoBackToMainScreen}
+            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
           />
         )}
         

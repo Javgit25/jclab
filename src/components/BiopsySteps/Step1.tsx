@@ -8,6 +8,7 @@ interface Step1Props {
   onBiopsyNumberChange: (value: string) => void;
   onNext: () => void;
   onFinishDailyReport: () => void;
+  onFinishRemito?: () => void;
 }
 
 export const Step1: React.FC<Step1Props> = ({
@@ -16,7 +17,8 @@ export const Step1: React.FC<Step1Props> = ({
   todayBiopsies,
   onBiopsyNumberChange,
   onNext,
-  onFinishDailyReport
+  onFinishDailyReport,
+  onFinishRemito
 }) => {
   const [smartSuggestion, setSmartSuggestion] = useState<string>('');
   const [showKeyboard, setShowKeyboard] = useState(false);
@@ -140,8 +142,8 @@ export const Step1: React.FC<Step1Props> = ({
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {todayBiopsiesCount > 0 && (
-            <button onClick={() => { if (window.confirm(`¿Finalizar remito con ${todayBiopsiesCount} paciente(s)?`)) onFinishDailyReport(); }} style={{
+          {onFinishRemito && todayBiopsiesCount > 0 && (
+            <button onClick={onFinishRemito} style={{
               background: '#dc2626', color: 'white', border: 'none',
               borderRadius: '8px', padding: '6px 12px', fontSize: '10px',
               fontWeight: '700', cursor: 'pointer', display: 'flex',
