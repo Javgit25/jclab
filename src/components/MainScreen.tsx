@@ -65,8 +65,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     }).catch(() => {});
   };
 
-  // Cargar al montar y periódicamente
+  // Cargar al montar y polling cada 15 segundos
   useState(() => { loadNotifications(); });
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      db.getNotifications(doctorInfo.email).then((remote: any[]) => {
+        if (remote && remote.length > 0) setNotificationsData(remote);
+      }).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [doctorInfo.email]);
 
   const unreadCount = notificationsData.filter(n => !n.leida).length;
 

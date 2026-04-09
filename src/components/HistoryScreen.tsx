@@ -1234,10 +1234,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   <tr style={{ background: '#2d3748', color: 'white' }}>
                     <th style={{ padding: '6px', border: '1px solid #4a5568' }}>#</th>
                     <th style={{ padding: '6px', border: '1px solid #4a5568' }}>N° Pac.</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Tejido</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Material</th>
                     <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Tipo</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Cass.</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Trozos</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Cant.</th>
+                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Det.</th>
                     <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Servicios</th>
                   </tr>
                 </thead>
@@ -1247,9 +1247,9 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontWeight: 700 }}>{i + 1}</td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.number || '-'}</td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.tissueType || '-'}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.type || 'BX'}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.cassettes || 0}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.pieces || '-'}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.tissueType === 'PAP' ? 'PAP' : b.tissueType === 'Citología' ? 'Cito' : b.type === 'PQ' ? 'PQ' : 'BX'}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.tissueType === 'PAP' ? (b.papQuantity || 1) : b.tissueType === 'Citología' ? (b.citologiaQuantity || 1) : (b.cassettes || 0)}</td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.tissueType === 'PAP' || b.tissueType === 'Citología' ? 'Vidrios' : (b.pieces || '-')}</td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontSize: '9px' }}>{(() => {
                         const s: string[] = [];
                         const sv = b.servicios || {};
