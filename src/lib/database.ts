@@ -195,6 +195,7 @@ export const db = {
           biopsias: r.biopsias,
           modificadoPorAdmin: r.modificado_por_admin,
           modificadoAt: r.modificado_at,
+          remitoNumber: r.remito_number,
           esServicioAdicional: r.es_servicio_adicional,
           remitoOriginalId: r.remito_original_id,
           remitoOriginalFecha: r.remito_original_fecha,
@@ -230,6 +231,7 @@ export const db = {
         biopsias: remito.biopsias,
         modificado_por_admin: remito.modificadoPorAdmin,
         modificado_at: remito.modificadoAt,
+        remito_number: remito.remitoNumber,
         es_servicio_adicional: remito.esServicioAdicional,
         remito_original_id: remito.remitoOriginalId,
         remito_original_fecha: remito.remitoOriginalFecha,
@@ -257,6 +259,7 @@ export const db = {
         data.forEach(h => {
           history[h.id] = {
             id: h.id,
+            remitoNumber: h.remito_number,
             date: h.date,
             timestamp: h.timestamp,
             biopsies: h.biopsies,
@@ -285,6 +288,7 @@ export const db = {
     try {
       await supabase.from('doctor_history').upsert({
         id: entry.id,
+        remito_number: entry.remitoNumber,
         doctor_email: doctorEmail.toLowerCase().trim(),
         lab_code: labCode,
         date: entry.date,
