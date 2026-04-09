@@ -1017,13 +1017,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 if ((biopsia.papQuantity || 0) > 0) svcs.push('<span class="badge badge-pap">PAP &times;' + biopsia.papQuantity + '</span>');
                 if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
 
+                // Calcular diferencia si fue editado por el lab
+                const origCass = (biopsia as any)._originalCassettes;
+                const currCass = Number(biopsia.cassettes) || 0;
+                const diff = origCass !== undefined && origCass !== null && currCass > origCass ? currCass - origCass : 0;
+                const cantLabel = tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
+                  : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
+                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px">(+' + diff + ')</span>' : String(currCass);
+
                 return '<tr>' +
                   '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + '</td>' +
                   '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
                   '<td><strong>' + biopsia.numero + '</strong></td>' +
                   '<td>' + biopsia.tejido + '</td>' +
                   '<td><span class="badge ' + bc + '">' + tipo + '</span></td>' +
-                  '<td>' + (tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.' : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.' : biopsia.cassettes) + '</td>' +
+                  '<td>' + cantLabel + '</td>' +
                   '<td class="servicios-cell">' + (svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
                   '<td class="subtotal">$' + calcularTotalBiopsia(biopsia).toLocaleString() + '</td>' +
                   '</tr>';
@@ -1572,21 +1580,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   const labNombre = labConfig.nombre || 'Laboratorio';
                   const htmlParts = remitosToPrint.map(r => {
                     const nro = (r as any).remitoNumber || r.id.slice(-6).toUpperCase();
-                    const fecha = new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
-                    return `<div style="border:1px solid #ccc;padding:8px;margin-bottom:8px;border-radius:4px;font-size:9pt;font-family:Arial;">
-                      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                        <b>#${nro}</b><span>${fecha}</span><span>Dr/a. ${r.medico}</span>
+                    const fecha = new Date((r as any).timestamp || r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
+                    return `<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;border-radius:6px;font-size:9pt;font-family:Arial;text-align:center;">
+                      <div style="display:flex;justify-content:space-between;margin-bottom:6px;text-align:left;">
+                        <b style="font-size:11pt;">#${nro}</b><span>${fecha}</span><span>Dr/a. ${r.medico}</span>
                       </div>
-                      <table style="width:100%;border-collapse:collapse;font-size:8pt;">
-                        <tr style="background:#eee;"><th style="padding:2px 4px;border:1px solid #ccc;text-align:left">N°</th><th style="padding:2px 4px;border:1px solid #ccc;">Material</th><th style="padding:2px 4px;border:1px solid #ccc;">Tipo</th><th style="padding:2px 4px;border:1px solid #ccc;">Cass</th><th style="padding:2px 4px;border:1px solid #ccc;">Servicios</th></tr>
+                      <table style="width:100%;border-collapse:collapse;font-size:8pt;margin:0 auto;">
+                        <tr style="background:#eee;"><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">N°</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Material</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Tipo</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Cant.</th><th style="padding:3px 6px;border:1px solid #ccc;text-align:center">Servicios</th></tr>
                         ${r.biopsias.map((b: any, i: number) => {
                           const sv = b.servicios || {};
                           const svc: string[] = [];
                           if (sv.cassetteUrgente) svc.push('URG');
-                          if (sv.corteBlancoIHQ) svc.push('IHQ');
-                          if (sv.corteBlanco) svc.push('CB');
+                          if (sv.corteBlancoIHQ) svc.push('IHQ(' + (sv.corteBlancoIHQ || 1) + ')');
+                          if (sv.corteBlanco) svc.push('CB(' + (sv.corteBlanco || 1) + ')');
                           if (sv.giemsaPASMasson) svc.push('G/P/M');
-                          return `<tr><td style="padding:2px 4px;border:1px solid #eee;">${b.numero||i+1}</td><td style="padding:2px 4px;border:1px solid #eee;">${b.tejido||'-'}</td><td style="padding:2px 4px;border:1px solid #eee;">${b.tejido==='PAP'?'PAP':b.tejido==='Citología'?'Cito':b.tipo||'BX'}</td><td style="padding:2px 4px;border:1px solid #eee;text-align:center">${b.cassettes||0}</td><td style="padding:2px 4px;border:1px solid #eee;font-size:7pt">${svc.join(',')||'-'}</td></tr>`;
+                          const isPAP = b.tejido === 'PAP';
+                          const isCito = b.tejido === 'Citología';
+                          const cant = isPAP ? (b.papQuantity || 1) + ' vid' : isCito ? (b.citologiaQuantity || 1) + ' vid' : (b.cassettes || 0);
+                          return `<tr><td style="padding:3px 6px;border:1px solid #eee;text-align:center">${b.numero||i+1}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center">${b.tejido||'-'}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center;font-weight:bold">${cant}</td><td style="padding:3px 6px;border:1px solid #eee;text-align:center;font-size:7pt">${svc.join(', ')||'-'}</td></tr>`;
                         }).join('')}
                       </table>
                     </div>`;
@@ -2119,9 +2130,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 alert(`✅ Se creó un "Servicio Adicional" en el mes actual.\nEl remito original de ${mesOriginal} no fue modificado.\nLos nuevos servicios se facturarán este mes.`);
                               }
                             } else {
-                              // MISMO MES: editar el remito normalmente
+                              // MISMO MES: editar el remito normalmente - guardar original para comparación
+                              const biopsWithOrig = editingBiopsias.map((eb: any, idx: number) => {
+                                const orig = origBiopsias[idx];
+                                if (orig && Number(eb.cassettes) !== Number(orig.cassettes) && eb._originalCassettes === undefined) {
+                                  return { ...eb, _originalCassettes: Number(orig.cassettes) || 0 };
+                                }
+                                return eb;
+                              });
                               const updatedRemitos = remitos.map(r => {
-                                if (r.id === remito.id) return { ...r, biopsias: editingBiopsias, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() } as any;
+                                if (r.id === remito.id) return { ...r, biopsias: biopsWithOrig, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() } as any;
                                 return r;
                               });
                               setRemitos(updatedRemitos);
