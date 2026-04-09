@@ -1569,7 +1569,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 <button onClick={() => {
                   const remitosToPrint = filteredRemitos.filter(r => !(r as any).estadoEnvio || (r as any).estadoEnvio !== 'listo');
                   if (remitosToPrint.length === 0) { alert('No hay remitos pendientes para imprimir'); return; }
-                  const html = remitosToPrint.map(r => {
+                  const labNombre = labConfig.nombre || 'Laboratorio';
+                  const htmlParts = remitosToPrint.map(r => {
                     const nro = (r as any).remitoNumber || r.id.slice(-6).toUpperCase();
                     const fecha = new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' });
                     return `<div style="border:1px solid #ccc;padding:8px;margin-bottom:8px;border-radius:4px;font-size:9pt;font-family:Arial;">
@@ -1590,6 +1591,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </table>
                     </div>`;
                   }).join('');
+                  const html = `<h2 style="text-align:center;font-size:14pt;margin-bottom:12px;font-family:Arial;">Remitos pendientes por entregar — ${labNombre}</h2>` + htmlParts;
                   // Crear div temporal para imprimir
                   let printDiv = document.getElementById('admin-print-area');
                   if (printDiv) printDiv.remove();
