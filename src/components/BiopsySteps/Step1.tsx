@@ -139,6 +139,17 @@ export const Step1: React.FC<Step1Props> = ({
               }}>Identificación del Espécimen</p>
             </div>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {todayBiopsiesCount > 0 && (
+            <button onClick={() => { if (window.confirm(`¿Finalizar remito con ${todayBiopsiesCount} paciente(s)?`)) onFinishDailyReport(); }} style={{
+              background: '#dc2626', color: 'white', border: 'none',
+              borderRadius: '8px', padding: '6px 12px', fontSize: '10px',
+              fontWeight: '700', cursor: 'pointer', display: 'flex',
+              alignItems: 'center', gap: '3px', whiteSpace: 'nowrap'
+            }}>
+              📋 Finalizar ({todayBiopsiesCount})
+            </button>
+          )}
           <button
             onClick={onFinishDailyReport}
             style={{
@@ -167,6 +178,7 @@ export const Step1: React.FC<Step1Props> = ({
           >
             ← Inicio
           </button>
+          </div>
         </div>
       </div>
 
