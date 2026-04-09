@@ -1603,36 +1603,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   const remitosToPrint = filteredRemitos.filter(r => !(r as any).estadoEnvio || (r as any).estadoEnvio !== 'listo');
                   if (remitosToPrint.length === 0) { alert('No hay remitos pendientes para imprimir'); return; }
                   const labNombre = labConfig.nombre || 'Laboratorio';
-                  const htmlParts = remitosToPrint.map(r => {
+                  const totalPacientes = remitosToPrint.reduce((s: number, r: any) => s + r.biopsias.length, 0);
+                  const htmlParts = remitosToPrint.map((r: any, ri: number) => {
                     const nro = (r as any).remitoNumber || r.id.slice(-6).toUpperCase();
-                    const fecha = new Date((r as any).timestamp || r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' });
-                    return `<div style="border:1px solid #ddd;margin-bottom:12px;font-size:9pt;font-family:Arial;">
-                      <div style="background:#f5f5f5;padding:6px 10px;border-bottom:1px solid #ddd;display:flex;align-items:center;gap:12px;">
-                        <span style="font-size:15pt;font-weight:800;">Dr/a. ${r.medico}</span>
-                        <span style="color:#666;font-size:10pt;">#${nro}</span>
-                        <span style="color:#999;font-size:9pt;margin-left:auto;">${fecha}</span>
+                    const fecha = new Date((r as any).timestamp || r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+                    const hasUrgents = r.biopsias.some((b: any) => b.servicios?.cassetteUrgente || b.servicios?.papUrgente || b.servicios?.citologiaUrgente);
+                    return `
+                    <div style="border:2px solid #1a1a1a;margin-bottom:16px;font-family:'Segoe UI',Arial,sans-serif;page-break-inside:avoid;">
+                      <div style="background:#1a1a1a;color:white;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:baseline;gap:10px;">
+                          <span style="font-size:16pt;font-weight:800;letter-spacing:-0.3px;">Dr/a. ${r.medico}</span>
+                          <span style="font-size:10pt;opacity:0.6;">Remito #${nro}</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                          ${hasUrgents ? '<span style="background:#dc2626;color:white;padding:3px 10px;border-radius:4px;font-size:9pt;font-weight:700;">⚡ URGENTE</span>' : ''}
+                          <span style="font-size:9pt;opacity:0.7;">${fecha}</span>
+                          <span style="font-size:9pt;opacity:0.5;">${r.biopsias.length} pac.</span>
+                        </div>
                       </div>
-                      <table style="width:100%;border-collapse:collapse;font-size:8pt;">
-                        <colgroup><col style="width:12%"><col style="width:28%"><col style="width:12%"><col style="width:12%"><col style="width:36%"></colgroup>
-                        <tr style="background:#333;color:white;"><th style="padding:4px 6px;text-align:left">N°</th><th style="padding:4px 6px;text-align:left">Material</th><th style="padding:4px 6px;text-align:center">Tipo</th><th style="padding:4px 6px;text-align:center">Cant.</th><th style="padding:4px 6px;text-align:left">Servicios</th></tr>
+                      <table style="width:100%;border-collapse:collapse;">
+                        <colgroup><col style="width:10%"><col style="width:26%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:34%"></colgroup>
+                        <tr style="background:#f0f0f0;border-bottom:2px solid #1a1a1a;">
+                          <th style="padding:6px 8px;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">N°</th>
+                          <th style="padding:6px 8px;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Material</th>
+                          <th style="padding:6px 8px;text-align:center;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Tipo</th>
+                          <th style="padding:6px 8px;text-align:center;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Cant.</th>
+                          <th style="padding:6px 8px;text-align:center;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Trozos</th>
+                          <th style="padding:6px 8px;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Servicios</th>
+                        </tr>
                         ${r.biopsias.map((b: any, i: number) => {
                           const sv = b.servicios || {};
                           const svc: string[] = [];
                           const isUrgent = sv.cassetteUrgente || sv.papUrgente || sv.citologiaUrgente;
-                          if (isUrgent) svc.push('<b style="color:red">⚡ URGENTE</b>');
-                          if (sv.corteBlancoIHQ) svc.push('IHQ(' + (sv.corteBlancoIHQ || 1) + ')');
-                          if (sv.corteBlanco) svc.push('CB(' + (sv.corteBlanco || 1) + ')');
-                          if (sv.giemsaPASMasson) svc.push('G/P/M');
+                          if (isUrgent) svc.push('<b style="color:#dc2626;">⚡ URGENTE 24hs</b>');
+                          if (sv.corteBlancoIHQ) svc.push('Corte IHQ ×' + (sv.corteBlancoIHQ || 1));
+                          if (sv.corteBlanco) svc.push('Corte Blanco ×' + (sv.corteBlanco || 1));
+                          if (sv.giemsaPASMasson) {
+                            const opts = sv.giemsaOptions || {};
+                            const t: string[] = [];
+                            if (opts.giemsa) t.push('Giemsa');
+                            if (opts.pas) t.push('PAS');
+                            if (opts.masson) t.push('Masson');
+                            svc.push(t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson');
+                          }
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
-                          const cant = isPAP ? (b.papQuantity || 1) + ' vid' : isCito ? (b.citologiaQuantity || 1) + ' vid' : (b.cassettes || 0);
-                          const bg = isUrgent ? '#fff0f0' : i % 2 === 0 ? '#fff' : '#f5f5f5';
-                          return `<tr style="border-bottom:1px solid #ddd;background:${bg};font-weight:600;"><td style="padding:5px 6px;font-size:9pt;">${b.numero||i+1}</td><td style="padding:5px 6px;font-size:9pt;">${b.tejido||'-'}</td><td style="padding:5px 6px;text-align:center;font-size:9pt;">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</td><td style="padding:5px 6px;text-align:center;font-size:10pt;font-weight:800;">${cant}</td><td style="padding:5px 6px;font-size:7pt;">${svc.join(', ')||'-'}</td></tr>`;
+                          const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : (b.cassettes || 0);
+                          const trozos = isPAP || isCito ? '-' : (b.trozos || b.pieces || '-');
+                          const bg = isUrgent ? '#fff5f5' : i % 2 === 0 ? '#ffffff' : '#fafafa';
+                          const borderLeft = isUrgent ? 'border-left:4px solid #dc2626;' : '';
+                          return `<tr style="border-bottom:1px solid #e0e0e0;background:${bg};${borderLeft}">
+                            <td style="padding:7px 8px;font-size:10pt;font-weight:700;color:#1a1a1a;">${b.numero||i+1}</td>
+                            <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}</td>
+                            <td style="padding:7px 8px;text-align:center;font-size:9pt;"><span style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'};color:white;padding:2px 8px;border-radius:3px;font-weight:700;">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</span></td>
+                            <td style="padding:7px 8px;text-align:center;font-size:11pt;font-weight:800;color:#1a1a1a;">${cant}</td>
+                            <td style="padding:7px 8px;text-align:center;font-size:10pt;color:#555;">${trozos}</td>
+                            <td style="padding:7px 8px;font-size:8pt;color:#333;">${svc.length > 0 ? svc.join(' · ') : '<span style="color:#bbb">—</span>'}</td>
+                          </tr>`;
                         }).join('')}
                       </table>
                     </div>`;
                   }).join('');
-                  const html = `<h2 style="text-align:center;font-size:14pt;margin-bottom:12px;font-family:Arial;">Remitos pendientes por entregar — ${labNombre}</h2>` + htmlParts;
+                  const html = `
+                    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;">
+                      <div style="text-align:center;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #1a1a1a;">
+                        <div style="font-size:18pt;font-weight:800;color:#1a1a1a;letter-spacing:-0.5px;">${labNombre}</div>
+                        <div style="font-size:12pt;color:#555;margin-top:4px;">Remitos Pendientes por Entregar</div>
+                        <div style="font-size:9pt;color:#999;margin-top:4px;">${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })} · ${remitosToPrint.length} remito${remitosToPrint.length !== 1 ? 's' : ''} · ${totalPacientes} paciente${totalPacientes !== 1 ? 's' : ''}</div>
+                      </div>
+                      ${htmlParts}
+                    </div>`;
                   // Crear div temporal para imprimir
                   let printDiv = document.getElementById('admin-print-area');
                   if (printDiv) printDiv.remove();
