@@ -240,8 +240,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               return rDate === arDate && rEmail === arEmail && r.biopsias?.length === arCount;
             });
             if (duplicateIdx >= 0) {
-              // Reemplazar con adminRemito (más completo)
-              allRemitos[duplicateIdx] = ar;
+              // Reemplazar con adminRemito (más completo) pero preservar remitoNumber
+              const existingRemitoNumber = (allRemitos[duplicateIdx] as any).remitoNumber;
+              allRemitos[duplicateIdx] = { ...ar, remitoNumber: ar.remitoNumber || existingRemitoNumber };
             } else {
               allRemitos.push(ar);
             }
