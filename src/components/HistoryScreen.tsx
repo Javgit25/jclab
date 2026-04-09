@@ -1197,83 +1197,166 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         </div>
       )}
 
-      {/* OVERLAY: Vista del remito */}
+      {/* OVERLAY: Vista del remito profesional */}
       {showRemito.isOpen && showRemito.entry && (() => {
         const re = showRemito.entry;
         const doc = re.doctorInfo || {} as any;
         const bios = re.biopsies || [];
+        const labCfg = (() => { try { return JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch { return {}; } })();
+        const fechaRemito = (() => { try { return new Date(re.timestamp || re.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch { return String(re.date || ''); } })();
+        const totalBX = bios.filter((b: any) => b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.type !== 'PQ').length;
+        const totalPQ = bios.filter((b: any) => b.type === 'PQ').length;
+        const totalPAP = bios.reduce((s: number, b: any) => s + (b.papQuantity || 0), 0);
+        const totalCito = bios.reduce((s: number, b: any) => s + (b.citologiaQuantity || 0), 0);
+        const totalCassettes = bios.reduce((s: number, b: any) => s + (parseInt(b.cassettes) || 0), 0);
+
+        const handlePrintInline = () => {
+          const printArea = document.getElementById('remito-print-area');
+          if (!printArea) return;
+          const printContent = printArea.innerHTML;
+          const originalContent = document.body.innerHTML;
+          document.body.innerHTML = `<div style="padding:20px">${printContent}</div>`;
+          window.print();
+          document.body.innerHTML = originalContent;
+          window.location.reload();
+        };
+
         return (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'white', zIndex: 9999, overflow: 'auto' }}>
-            <div style={{ padding: '16px', maxWidth: '800px', margin: '0 auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px' }}>
-                <h2 style={{ margin: 0, fontSize: '18px' }}>Remito #{(re.id || '').slice(-8).toUpperCase()}</h2>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={handlePrintRemito} style={{ padding: '8px 14px', borderRadius: '6px', border: 'none', background: '#1d4ed8', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Imprimir</button>
-                  <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '8px 14px', borderRadius: '6px', border: '1px solid #ccc', background: 'white', cursor: 'pointer' }}>Cerrar</button>
-                </div>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#f1f5f9', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
+            {/* Barra de acciones (no se imprime) */}
+            <div style={{ background: '#1e293b', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>Remito #{(re.id || '').slice(-8).toUpperCase()}</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={handlePrintInline} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#3b82f6', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>🖨 Imprimir</button>
+                <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #475569', background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}>✕ Cerrar</button>
               </div>
-              <div style={{ background: '#2d3748', color: 'white', padding: '12px', borderRadius: '6px', marginBottom: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '16pt', fontWeight: 700 }}>BIOPSY TRACKER</div>
-                <div style={{ fontSize: '9pt', opacity: 0.8 }}>Sistema de Gestión de Muestras Médicas</div>
-              </div>
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
-                <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
-                  <div style={{ fontWeight: 700, marginBottom: '6px', textDecoration: 'underline' }}>DATOS DEL MÉDICO</div>
-                  <div>Nombre: {doc.name || 'N/A'}</div>
-                  <div>Email: {doc.email || 'N/A'}</div>
-                  <div>Hospital: {doc.hospital || 'N/A'}</div>
+            </div>
+
+            {/* Área imprimible */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+              <div id="remito-print-area" style={{ maxWidth: '800px', margin: '0 auto', background: 'white', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', padding: '32px', fontFamily: 'Georgia, serif', color: '#1a1a1a', fontSize: '11pt', lineHeight: 1.5 }}>
+
+                {/* Encabezado institucional */}
+                <div style={{ borderBottom: '3px solid #1e3a5f', paddingBottom: '16px', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '20pt', fontWeight: 700, color: '#1e3a5f', letterSpacing: '-0.5px' }}>{labCfg.nombre || 'Laboratorio de Anatomía Patológica'}</div>
+                      {(labCfg.direccion || labCfg.telefono || labCfg.email) && (
+                        <div style={{ fontSize: '9pt', color: '#64748b', marginTop: '4px' }}>
+                          {[labCfg.direccion, labCfg.telefono, labCfg.email].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '2px' }}>Remito</div>
+                      <div style={{ fontSize: '18pt', fontWeight: 700, color: '#1e3a5f' }}>#{(re.id || '').slice(-6).toUpperCase()}</div>
+                      <div style={{ fontSize: '9pt', color: '#64748b' }}>{fechaRemito}</div>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ flex: 1, border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px', background: '#f8fafc' }}>
-                  <div style={{ fontWeight: 700, marginBottom: '6px', textDecoration: 'underline' }}>DATOS DEL REMITO</div>
-                  <div>Muestras: {bios.length}</div>
-                  <div>Fecha: {(() => { try { return new Date(re.timestamp || re.date).toLocaleDateString('es-AR'); } catch { return String(re.date || ''); } })()}</div>
+
+                {/* Datos del médico */}
+                <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '8pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Médico Solicitante</div>
+                    <div style={{ fontSize: '13pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || 'N/A'}</div>
+                    <div style={{ fontSize: '10pt', color: '#475569' }}>{doc.email || ''}</div>
+                    {doc.hospital && <div style={{ fontSize: '10pt', color: '#475569' }}>{doc.hospital}</div>}
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '8pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Resumen</div>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                      {totalBX > 0 && <div style={{ background: '#1e40af', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>BX: {totalBX}</div>}
+                      {totalPQ > 0 && <div style={{ background: '#0369a1', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>PQ: {totalPQ}</div>}
+                      {totalPAP > 0 && <div style={{ background: '#4338ca', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>PAP: {totalPAP}</div>}
+                      {totalCito > 0 && <div style={{ background: '#475569', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>Cito: {totalCito}</div>}
+                    </div>
+                    <div style={{ fontSize: '9pt', color: '#64748b', marginTop: '4px' }}>{totalCassettes} cassette{totalCassettes !== 1 ? 's' : ''} total</div>
+                  </div>
                 </div>
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-                <thead>
-                  <tr style={{ background: '#2d3748', color: 'white' }}>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>#</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>N° Pac.</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Material</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Tipo</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Cant.</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Det.</th>
-                    <th style={{ padding: '6px', border: '1px solid #4a5568' }}>Servicios</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bios.map((b: any, i: number) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontWeight: 700 }}>{i + 1}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.number || '-'}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.tissueType || '-'}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>{b.tissueType === 'PAP' ? 'PAP' : b.tissueType === 'Citología' ? 'Cito' : b.type === 'PQ' ? 'PQ' : 'BX'}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.tissueType === 'PAP' ? (b.papQuantity || 1) : b.tissueType === 'Citología' ? (b.citologiaQuantity || 1) : (b.cassettes || 0)}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{b.tissueType === 'PAP' || b.tissueType === 'Citología' ? 'Vidrios' : (b.pieces || '-')}</td>
-                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', fontSize: '9px' }}>{(() => {
-                        const s: string[] = [];
-                        const sv = b.servicios || {};
-                        if (sv.cassetteUrgente) s.push('Urgente');
-                        if (sv.pap) s.push('PAP');
-                        if (sv.corteBlancoIHQ) s.push('IHQ');
-                        if (sv.corteBlancoComun) s.push('CB');
-                        if (sv.giemsaPASMasson) s.push('Giemsa/PAS/Masson');
-                        return s.length > 0 ? s.join(', ') : 'Normal';
-                      })()}</td>
+
+                {/* Tabla de estudios */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>N° Paciente</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Material</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tipo</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cant.</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trozos</th>
+                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Servicios</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ display: 'flex', gap: '40px', marginTop: '30px' }}>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ borderBottom: '1px solid #333', height: '40px', marginBottom: '8px' }} />
-                  <div style={{ fontWeight: 600 }}>Firma del Médico</div>
-                  <div style={{ fontSize: '9pt' }}>Dr. {doc.name || ''}</div>
+                  </thead>
+                  <tbody>
+                    {bios.map((b: any, i: number) => {
+                      const isPAP = b.tissueType === 'PAP';
+                      const isCito = b.tissueType === 'Citología';
+                      const tipo = isPAP ? 'PAP' : isCito ? 'Cito' : b.type === 'PQ' ? 'PQ' : 'BX';
+                      const sv = b.servicios || {};
+                      const services: string[] = [];
+                      if (sv.cassetteUrgente) services.push('⚡ Urgente 24hs');
+                      if (sv.pap) services.push('PAP');
+                      if (sv.papUrgente) services.push('PAP Urgente');
+                      if (sv.citologia) services.push('Citología');
+                      if (sv.citologiaUrgente) services.push('Cito Urgente');
+                      if (sv.corteBlancoIHQ) services.push(`Corte IHQ (${sv.corteBlancoIHQQuantity || 1})`);
+                      if (sv.corteBlancoComun) services.push(`Corte Blanco (${sv.corteBlancoComunQuantity || 1})`);
+                      if (sv.giemsaPASMasson) {
+                        const tecnicas: string[] = [];
+                        if (sv.giemsaOptions?.giemsa) tecnicas.push('Giemsa');
+                        if (sv.giemsaOptions?.pas) tecnicas.push('PAS');
+                        if (sv.giemsaOptions?.masson) tecnicas.push('Masson');
+                        services.push(tecnicas.length > 0 ? tecnicas.join(', ') : 'Giemsa/PAS/Masson');
+                      }
+                      const cassNums = b.cassettesNumbers?.map((c: any) => `${c.base}/${c.suffix}`).join(', ') || '';
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '8px', fontSize: '10pt', fontWeight: 600, color: '#64748b' }}>{i + 1}</td>
+                          <td style={{ padding: '8px', fontSize: '10pt' }}>
+                            <div style={{ fontWeight: 700 }}>{b.number || '-'}</div>
+                            {cassNums && <div style={{ fontSize: '8pt', color: '#94a3b8' }}>SUBs: {cassNums}</div>}
+                          </td>
+                          <td style={{ padding: '8px', fontSize: '10pt' }}>{b.tissueType || '-'}</td>
+                          <td style={{ padding: '8px', fontSize: '10pt', textAlign: 'center' }}>
+                            <span style={{ background: tipo === 'BX' ? '#1e40af' : tipo === 'PQ' ? '#0369a1' : tipo === 'PAP' ? '#4338ca' : '#475569', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '9pt', fontWeight: 700 }}>{tipo}</span>
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt', fontWeight: 600 }}>{isPAP ? (b.papQuantity || 1) : isCito ? (b.citologiaQuantity || 1) : (b.cassettes || 0)}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt' }}>{isPAP || isCito ? '-' : (b.pieces || '-')}</td>
+                          <td style={{ padding: '8px', fontSize: '9pt', color: '#475569' }}>{services.length > 0 ? services.join(', ') : '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {/* Observaciones */}
+                {bios.some((b: any) => b.observations) && (
+                  <div style={{ marginBottom: '24px', padding: '12px 16px', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '6px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '9pt', color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Observaciones</div>
+                    {bios.filter((b: any) => b.observations).map((b: any, i: number) => (
+                      <div key={i} style={{ fontSize: '10pt', marginBottom: '3px' }}>• <strong>#{b.number}:</strong> {b.observations}</div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Firmas */}
+                <div style={{ display: 'flex', gap: '60px', marginTop: '40px', paddingTop: '20px' }}>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ borderBottom: '2px solid #1e3a5f', height: '50px', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f' }}>Firma del Médico</div>
+                    <div style={{ fontSize: '9pt', color: '#64748b' }}>Dr/a. {doc.name || ''}</div>
+                  </div>
+                  <div style={{ flex: 1, textAlign: 'center' }}>
+                    <div style={{ borderBottom: '2px solid #1e3a5f', height: '50px', marginBottom: '8px' }} />
+                    <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f' }}>Recibido por Laboratorio</div>
+                    <div style={{ fontSize: '9pt', color: '#64748b' }}>Fecha: ____________</div>
+                  </div>
                 </div>
-                <div style={{ flex: 1, textAlign: 'center' }}>
-                  <div style={{ borderBottom: '1px solid #333', height: '40px', marginBottom: '8px' }} />
-                  <div style={{ fontWeight: 600 }}>Recibido por Laboratorio</div>
-                  <div style={{ fontSize: '9pt' }}>Fecha: ____________</div>
+
+                {/* Pie de página */}
+                <div style={{ marginTop: '30px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '8pt', color: '#94a3b8' }}>
+                  Documento generado por BiopsyTracker · {fechaRemito} · Remito #{(re.id || '').slice(-6).toUpperCase()}
                 </div>
               </div>
             </div>
