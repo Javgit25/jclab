@@ -65,38 +65,38 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     }).catch(() => {});
   };
 
-  // Cargar al montar + Supabase Realtime + polling fallback
+  // Cargar al montar + polling cada 10 segundos
   useState(() => { loadNotifications(); });
   React.useEffect(() => {
-    // Realtime: escuchar nuevas notificaciones en tiempo real
-    let channel: any = null;
-    try {
-      const { supabase } = require('../lib/supabase');
-      channel = supabase.channel('doctor-notifications')
-        .on('postgres_changes', {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'doctor_notifications',
-          filter: `medico_email=eq.${doctorInfo.email.toLowerCase().trim()}`
-        }, () => {
-          // Nueva notificación recibida, recargar
-          db.getNotifications(doctorInfo.email).then((remote: any[]) => {
-            if (remote && remote.length > 0) setNotificationsData(remote);
-          }).catch(() => {});
-        })
-        .subscribe();
-    } catch {}
-
-    // Polling como fallback cada 30 segundos
-    const interval = setInterval(() => {
+    const fetchNotifs = () => {
       db.getNotifications(doctorInfo.email).then((remote: any[]) => {
-        if (remote && remote.length > 0) setNotificationsData(remote);
+        if (remote && remote.length > 0) setNotificationsData(prev => {
+          // Solo actualizar si hay cambios (evitar re-renders innecesarios)
+          if (JSON.stringify(prev.map(n => n.id + n.leida)) !== JSON.stringify(remote.map(n => n.id + n.leida))) {
+            return remote;
+          }
+          return prev;
+        });
       }).catch(() => {});
-    }, 30000);
+    };
+
+    // Polling cada 10 segundos
+    const interval = setInterval(fetchNotifs, 10000);
+
+    // También recargar cuando la pantalla se activa (vuelve del sleep/background)
+    const handleVisibility = () => {
+      if (!document.hidden) fetchNotifs();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    // También recargar en cualquier toque de pantalla (para Fully Kiosk)
+    const handleTouch = () => fetchNotifs();
+    document.addEventListener('touchstart', handleTouch, { passive: true });
 
     return () => {
       clearInterval(interval);
-      if (channel) { try { channel.unsubscribe(); } catch {} }
+      document.removeEventListener('visibilitychange', handleVisibility);
+      document.removeEventListener('touchstart', handleTouch);
     };
   }, [doctorInfo.email]);
 
