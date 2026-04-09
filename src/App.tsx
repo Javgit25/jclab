@@ -310,6 +310,18 @@ function App() {
         existingTissues.push(capitalized);
         adminConfig.tiposTejido = existingTissues;
         localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
+        // Sincronizar con Supabase para que el admin lo vea
+        const labCode = (doctorInfo as any)?.labCode || '';
+        if (labCode) {
+          db.saveAdminConfig(labCode, adminConfig).catch(() => {});
+        } else {
+          // Intentar obtener labCode del doctor registrado
+          try {
+            const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+            const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+            if (doc?.labCode) db.saveAdminConfig(doc.labCode, adminConfig).catch(() => {});
+          } catch {}
+        }
       }
     } catch {}
   }, []);
