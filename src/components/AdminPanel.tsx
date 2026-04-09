@@ -1018,14 +1018,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
 
                 // Calcular diferencia si fue editado por el lab
-                const origCass = (biopsia as any)._originalCassettes;
                 const currCass = Number(biopsia.cassettes) || 0;
-                const diff = origCass !== undefined && origCass !== null && currCass > origCass ? currCass - origCass : 0;
+                let diff = 0;
+                if ((remito as any).modificadoPorAdmin && tipo !== 'PAP' && tipo !== 'CITO') {
+                  // Buscar cantidad original del historial del doctor
+                  const origCass = (biopsia as any)._originalCassettes;
+                  if (origCass !== undefined && origCass !== null && currCass > origCass) {
+                    diff = currCass - origCass;
+                  } else {
+                    // Buscar en el historial del doctor por remitoNumber
+                    try {
+                      const rn = (remito as any).remitoNumber;
+                      const email = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
+                      const histKey = `doctor_${email}_history`;
+                      const hist = JSON.parse(localStorage.getItem(histKey) || '{}');
+                      const origEntry = Object.values(hist).find((e: any) => e.remitoNumber === rn) as any;
+                      if (origEntry?.biopsies) {
+                        const origBiopsy = origEntry.biopsies.find((ob: any) => ob.number === biopsia.numero);
+                        if (origBiopsy) {
+                          const origC = Number(origBiopsy.cassettes) || 0;
+                          if (currCass > origC) diff = currCass - origC;
+                        }
+                      }
+                    } catch {}
+                  }
+                }
                 const cantLabel = tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
                   : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
-                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px">(+' + diff + ')</span>' : String(currCass);
+                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ' lab)</span>' : String(currCass);
 
-                return '<tr>' +
+                const rowStyle = diff > 0 ? 'background:#f0fdf4;' : '';
+                return '<tr style="' + rowStyle + '">' +
                   '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + '</td>' +
                   '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
                   '<td><strong>' + biopsia.numero + '</strong></td>' +
@@ -1600,7 +1623,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
                           const cant = isPAP ? (b.papQuantity || 1) + ' vid' : isCito ? (b.citologiaQuantity || 1) + ' vid' : (b.cassettes || 0);
-                          return `<tr style="border-bottom:1px solid #eee;"><td style="padding:4px 6px;">${b.numero||i+1}</td><td style="padding:4px 6px;">${b.tejido||'-'}</td><td style="padding:4px 6px;text-align:center">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</td><td style="padding:4px 6px;text-align:center;font-weight:bold">${cant}</td><td style="padding:4px 6px;font-size:7pt">${svc.join(', ')||'-'}</td></tr>`;
+                          const bg = i % 2 === 0 ? '#fff' : '#f5f5f5';
+                          return `<tr style="border-bottom:1px solid #ddd;background:${bg};font-weight:600;"><td style="padding:5px 6px;font-size:9pt;">${b.numero||i+1}</td><td style="padding:5px 6px;font-size:9pt;">${b.tejido||'-'}</td><td style="padding:5px 6px;text-align:center;font-size:9pt;">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</td><td style="padding:5px 6px;text-align:center;font-size:10pt;font-weight:800;">${cant}</td><td style="padding:5px 6px;font-size:7pt;">${svc.join(', ')||'-'}</td></tr>`;
                         }).join('')}
                       </table>
                     </div>`;
