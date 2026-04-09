@@ -40,6 +40,7 @@ export interface GiemsaServices {
 // ✅ TIPOS ADICIONALES PARA LA APP
 export interface HistoryEntry {
   id: string;
+  remitoNumber?: string;
   date: string;
   timestamp: string;
   biopsies: BiopsyForm[];

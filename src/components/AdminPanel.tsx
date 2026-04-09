@@ -151,17 +151,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   }, [currentLabCode]);
 
   const loadAdminData = () => {
-    // Cargar inmediatamente desde Supabase (no esperar polling)
+    // Cargar desde Supabase primero (fuente de verdad)
     if (currentLabCode) {
       db.getRemitos(currentLabCode).then((remote: any[]) => {
-        if (remote && remote.length > 0) {
+        if (remote && remote.length >= 0) {
           setRemitos(remote);
           const medicosUnicos = [...new Set(remote.map((r: any) => r.medico))];
           setMedicos(medicosUnicos);
+          // Si Supabase respondió, no necesitamos localStorage
+          return;
         }
+      }).catch(() => {
+        // Si Supabase falla, cargar de localStorage como fallback
+        loadFromLocalStorage();
+      });
+      // Cargar config
+      db.getAdminConfig(currentLabCode).then((cfg: any) => {
+        if (cfg && Object.keys(cfg).length > 0) setConfiguracion((prev: any) => ({ ...prev, ...cfg }));
       }).catch(() => {});
+      return;
     }
+    loadFromLocalStorage();
+  };
 
+  const loadFromLocalStorage = () => {
     try {
       let allRemitos: AdminRemito[] = [];
       

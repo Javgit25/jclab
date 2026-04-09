@@ -435,7 +435,7 @@ function App() {
           };
         }),
         estado: 'pendiente',
-        remitoNumber: (remito as any).remitoNumber,
+        remitoNumber: remito.remitoNumber,
         timestamp: remito.timestamp,
         doctorEmail: remito.doctorInfo.email
       };
@@ -470,8 +470,8 @@ function App() {
       alert('No hay biopsias cargadas para finalizar el remito.');
       return;
     }
-    
-    // Guardar en historial
+
+    // Guardar en historial (genera remitoNumber internamente)
     saveToHistory();
     
     // Agregar a cola de sincronización
