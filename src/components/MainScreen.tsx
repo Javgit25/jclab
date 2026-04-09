@@ -104,6 +104,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   // Detectar notificaciones de "listo para retirar" no leídas
   const [listoAlert, setListoAlert] = useState<any>(null);
+  const [modifAlert, setModifAlert] = useState<any>(null);
   const [shownAlertIds] = useState<Set<string>>(() => new Set());
   React.useEffect(() => {
     const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida && !shownAlertIds.has(n.id));
@@ -134,6 +135,18 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         playTone(659, 0.15, 0.15); // Mi
         playTone(784, 0.3, 0.3);   // Sol (más largo)
       } catch {}
+    }
+    // Detectar modificaciones no leídas
+    if (!listoNotif) {
+      const modifNotif = notificationsData.find(n => n.tipo === 'modificacion' && !n.leida && !shownAlertIds.has(n.id));
+      if (modifNotif && !modifAlert) {
+        shownAlertIds.add(modifNotif.id);
+        setModifAlert(modifNotif);
+        notificationsData.filter(n => n.tipo === 'modificacion' && !n.leida).forEach(n => {
+          shownAlertIds.add(n.id);
+          db.markNotificationRead(n.id).catch(() => {});
+        });
+      }
     }
   }, [notificationsData]);
 
@@ -1770,6 +1783,49 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               style={{
                 background: 'white', color: '#059669', border: 'none',
                 padding: '14px 40px', borderRadius: '12px', fontSize: '16px',
+                fontWeight: '700', cursor: 'pointer',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Alerta amarilla: Remito modificado */}
+      {modifAlert && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)',
+            borderRadius: '20px', padding: '28px', maxWidth: '380px', width: '100%',
+            textAlign: 'center', color: 'white',
+            boxShadow: '0 25px 60px rgba(217, 119, 6, 0.4)'
+          }}>
+            <div style={{ fontSize: '42px', marginBottom: '10px' }}>📝</div>
+            <div style={{ fontSize: '20px', fontWeight: '800', marginBottom: '8px' }}>
+              Remito Modificado
+            </div>
+            <div style={{ fontSize: '13px', opacity: 0.95, lineHeight: '1.5', marginBottom: '18px', whiteSpace: 'pre-line', textAlign: 'left', background: 'rgba(0,0,0,0.15)', borderRadius: '10px', padding: '12px' }}>
+              {modifAlert.mensaje}
+            </div>
+            <button
+              onClick={() => {
+                try {
+                  const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+                  const updated = all.map((n: any) => n.tipo === 'modificacion' && !n.leida ? { ...n, leida: true } : n);
+                  localStorage.setItem('doctorNotifications', JSON.stringify(updated));
+                  setNotificationsData(updated.filter((n: any) => n.medicoEmail === doctorInfo.email));
+                } catch {}
+                setModifAlert(null);
+              }}
+              style={{
+                background: 'white', color: '#d97706', border: 'none',
+                padding: '12px 36px', borderRadius: '12px', fontSize: '15px',
                 fontWeight: '700', cursor: 'pointer',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
               }}

@@ -354,7 +354,7 @@ function App() {
     const today = new Date().toDateString();
     
     // Generar número de remito único (6 dígitos)
-    const remitoNumber = String(Date.now()).slice(-6);
+    const remitoNumber = String(Date.now() % 1000000).padStart(6, '0');
     const uniqueId = `${doctorKey}_${today}_${remitoNumber}`;
 
     const newEntry = {
@@ -513,7 +513,7 @@ function App() {
     const today = new Date().toDateString();
     
     // Generar número de remito único (6 dígitos)
-    const remitoNumber = String(Date.now()).slice(-6);
+    const remitoNumber = String(Date.now() % 1000000).padStart(6, '0');
     const uniqueId = `${doctorKey}_${today}_${remitoNumber}`;
 
     const remito = {

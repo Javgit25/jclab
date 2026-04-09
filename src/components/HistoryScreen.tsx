@@ -730,23 +730,16 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               const isModified = (() => {
                 try {
                   const n = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                  const entryTimestamp = entry.timestamp || entry.date;
-                  const entryBiopsyCount = entry.biopsies.length;
+                  const entryRN = (entry as any).remitoNumber;
+                  // Solo matchear por remitoNumber o ID exacto, no por fecha/cantidad
                   return n.filter((x: any) => x.tipo !== 'listo' && x.tipo !== 'parcial').some((x: any) => {
                     if (x.remitoId === entry.id) return true;
-                    if (x.medicoEmail === doctorInfo.email && x.remitoId) {
+                    // Match por remitoNumber del admin remito
+                    if (entryRN && x.remitoId) {
                       try {
                         const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
                         const adminRemito = adminRemitos.find((r: any) => r.id === x.remitoId);
-                        if (adminRemito) {
-                          // Match por timestamp exacto O por fecha+hora+cantidad de biopsias
-                          const adminTimestamp = adminRemito.timestamp || adminRemito.fecha;
-                          if (adminTimestamp === entryTimestamp) return true;
-                          // Fallback: misma fecha + misma cantidad de biopsias
-                          const sameDate = new Date(adminRemito.fecha).toDateString() === new Date(entry.date).toDateString();
-                          const sameBiopsyCount = adminRemito.biopsias?.length === entryBiopsyCount;
-                          if (sameDate && sameBiopsyCount) return true;
-                        }
+                        if (adminRemito && (adminRemito as any).remitoNumber === entryRN) return true;
                       } catch {}
                     }
                     return false;
