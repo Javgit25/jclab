@@ -1213,12 +1213,18 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         const handlePrintInline = () => {
           const printArea = document.getElementById('remito-print-area');
           if (!printArea) return;
-          const printContent = printArea.innerHTML;
-          const originalContent = document.body.innerHTML;
-          document.body.innerHTML = `<div style="padding:20px">${printContent}</div>`;
-          window.print();
-          document.body.innerHTML = originalContent;
-          window.location.reload();
+          const iframe = document.createElement('iframe');
+          iframe.style.position = 'fixed';
+          iframe.style.top = '-10000px';
+          document.body.appendChild(iframe);
+          const doc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (!doc) return;
+          doc.open();
+          doc.write(`<html><head><style>body{font-family:Georgia,serif;padding:20px;}</style></head><body>${printArea.innerHTML}</body></html>`);
+          doc.close();
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => document.body.removeChild(iframe), 1000);
         };
 
         return (

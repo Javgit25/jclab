@@ -393,7 +393,7 @@ function App() {
       
       // Convertir el formato de remito a formato de administrador
       const adminRemito = {
-        id: `R${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // ID único
+        id: `R_${(remito as any).remitoNumber || Date.now().toString(36).toUpperCase().slice(-6)}_${Date.now()}`,
         medico: `${(remito.doctorInfo as any).firstName || ''} ${(remito.doctorInfo as any).lastName || ''}`,
         email: remito.doctorInfo.email || '',
         fecha: remito.date,

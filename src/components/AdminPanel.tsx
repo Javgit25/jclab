@@ -1564,11 +1564,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </table>
                     </div>`;
                   }).join('');
-                  const orig = document.body.innerHTML;
-                  document.body.innerHTML = `<div style="padding:8px">${html}</div>`;
-                  window.print();
-                  document.body.innerHTML = orig;
-                  window.location.reload();
+                  const iframe = document.createElement('iframe');
+                  iframe.style.position = 'fixed';
+                  iframe.style.top = '-10000px';
+                  document.body.appendChild(iframe);
+                  const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+                  if (!iframeDoc) return;
+                  iframeDoc.open();
+                  iframeDoc.write(`<html><head><style>body{font-family:Arial,sans-serif;padding:8px;font-size:9pt;}</style></head><body>${html}</body></html>`);
+                  iframeDoc.close();
+                  iframe.contentWindow?.focus();
+                  iframe.contentWindow?.print();
+                  setTimeout(() => document.body.removeChild(iframe), 1000);
                 }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
                   🖨 Imprimir pendientes
                 </button>
