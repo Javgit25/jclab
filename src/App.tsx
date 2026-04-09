@@ -311,17 +311,26 @@ function App() {
         adminConfig.tiposTejido = existingTissues;
         localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
         // Sincronizar con Supabase para que el admin lo vea
-        const labCode = (doctorInfo as any)?.labCode || '';
-        if (labCode) {
-          db.saveAdminConfig(labCode, adminConfig).catch(() => {});
-        } else {
-          // Intentar obtener labCode del doctor registrado
+        const findLabCode = async () => {
+          // 1. Intentar desde doctorInfo
+          if ((doctorInfo as any)?.labCode) return (doctorInfo as any).labCode;
+          // 2. Intentar desde localStorage
           try {
             const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
             const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
-            if (doc?.labCode) db.saveAdminConfig(doc.labCode, adminConfig).catch(() => {});
+            if (doc?.labCode) return doc.labCode;
           } catch {}
-        }
+          // 3. Intentar desde Supabase
+          try {
+            const docs = await db.getDoctors();
+            const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+            if (doc?.labCode) return doc.labCode;
+          } catch {}
+          return '';
+        };
+        findLabCode().then(code => {
+          if (code) db.saveAdminConfig(code, adminConfig).catch(() => {});
+        });
       }
     } catch {}
   }, []);
