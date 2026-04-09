@@ -210,8 +210,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     trozos: parseInt(biopsy.pieces) || 0,
                     desclasificar: biopsy.declassify || 'No',
                     servicios: {
-                      cassetteNormal: biopsy.servicios?.cassetteUrgente ? 0 : (parseInt(biopsy.cassettes) || 1),
-                      cassetteUrgente: biopsy.servicios?.cassetteUrgente ? (parseInt(biopsy.cassettes) || 1) : 0,
+                      cassetteNormal: biopsy.servicios?.cassetteUrgente ? 0 : (parseInt(biopsy.cassettes) || 0),
+                      cassetteUrgente: biopsy.servicios?.cassetteUrgente ? (parseInt(biopsy.cassettes) || 0) : 0,
                       profundizacion: 0, // No hay equivalente directo
                       pap: biopsy.servicios?.pap ? (biopsy.papQuantity || 1) : 0,
                       papUrgente: biopsy.servicios?.papUrgente ? (biopsy.papQuantity || 1) : 0,
@@ -977,13 +977,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <th>N° Estudio</th>
               <th>Material</th>
               <th>Tipo</th>
-              <th>Cassettes</th>
+              <th>Cant.</th>
               <th>Servicios / Detalle</th>
               <th style="text-align:right">Subtotal</th>
             </tr>
           </thead>
           <tbody>
-            ${remitosDelMedico.map(remito =>
+            ${[...remitosDelMedico].sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime()).map(remito =>
               remito.biopsias.map((biopsia: any) => {
                 const tipo = biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? 'CITO' : 'BX';
                 const bc = tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : tipo === 'CITO' ? 'badge-cito' : 'badge-bx';
@@ -1019,11 +1019,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
                 return '<tr>' +
                   '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + '</td>' +
-                  '<td>' + new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) + '</td>' +
+                  '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
                   '<td><strong>' + biopsia.numero + '</strong></td>' +
                   '<td>' + biopsia.tejido + '</td>' +
                   '<td><span class="badge ' + bc + '">' + tipo + '</span></td>' +
-                  '<td>' + (tipo === 'PAP' || tipo === 'CITO' ? '-' : biopsia.cassettes) + '</td>' +
+                  '<td>' + (tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.' : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.' : biopsia.cassettes) + '</td>' +
                   '<td class="servicios-cell">' + (svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
                   '<td class="subtotal">$' + calcularTotalBiopsia(biopsia).toLocaleString() + '</td>' +
                   '</tr>';
