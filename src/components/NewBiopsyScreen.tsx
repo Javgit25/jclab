@@ -595,7 +595,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
       {/* Botón Finalizar Remito - solo visible si hay pacientes y no estamos en Step 7 */}
       {todayBiopsies.length > 0 && currentStep !== 7 && (
-        <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', zIndex: 50 }}>
+        <div style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', zIndex: 50 }}>
           <button
             onClick={() => {
               if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?\n\nSe guardarán todos los pacientes ya cargados.\nEsta acción no se puede deshacer.`))
@@ -604,20 +604,21 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             style={{
               background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
               color: 'white',
-              border: '2px solid rgba(255,255,255,0.3)',
-              borderRadius: '24px',
-              padding: '10px 24px',
-              fontSize: '13px',
+              border: 'none',
+              borderRadius: '20px',
+              padding: '6px 16px',
+              fontSize: '11px',
               fontWeight: '700',
               cursor: 'pointer',
-              boxShadow: '0 4px 16px rgba(220, 38, 38, 0.4)',
+              boxShadow: '0 2px 10px rgba(220, 38, 38, 0.4)',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
-              whiteSpace: 'nowrap'
+              gap: '4px',
+              whiteSpace: 'nowrap',
+              opacity: 0.9
             }}
           >
-            📋 Finalizar Remito ({todayBiopsies.length})
+            📋 Finalizar ({todayBiopsies.length})
           </button>
         </div>
       )}
