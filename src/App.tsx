@@ -353,10 +353,9 @@ function App() {
     const currentHistory = JSON.parse(localStorage.getItem(historyKey) || '{}');
     const today = new Date().toDateString();
     
-    // Generar un ID único que incluya timestamp para evitar sobrescritura
-    const uniqueId = `${doctorKey}_${today}_${Date.now()}`;
-    // Número de remito corto y único (6 caracteres alfanuméricos)
-    const remitoNumber = Date.now().toString(36).toUpperCase().slice(-6);
+    // Generar número de remito único (6 dígitos)
+    const remitoNumber = String(Date.now()).slice(-6);
+    const uniqueId = `${doctorKey}_${today}_${remitoNumber}`;
 
     const newEntry = {
       id: uniqueId,
@@ -393,7 +392,7 @@ function App() {
       
       // Convertir el formato de remito a formato de administrador
       const adminRemito = {
-        id: `R_${(remito as any).remitoNumber || Date.now().toString(36).toUpperCase().slice(-6)}_${Date.now()}`,
+        id: `R_${(remito as any).remitoNumber}_${Date.now()}`,
         medico: `${(remito.doctorInfo as any).firstName || ''} ${(remito.doctorInfo as any).lastName || ''}`,
         email: remito.doctorInfo.email || '',
         fecha: remito.date,
@@ -436,7 +435,7 @@ function App() {
           };
         }),
         estado: 'pendiente',
-        remitoNumber: (remito as any).remitoNumber || remito.id.slice(-6).toUpperCase(),
+        remitoNumber: (remito as any).remitoNumber,
         timestamp: remito.timestamp,
         doctorEmail: remito.doctorInfo.email
       };
@@ -513,9 +512,9 @@ function App() {
     const currentHistory = JSON.parse(localStorage.getItem(historyKey) || '{}');
     const today = new Date().toDateString();
     
-    // Generar ID único con timestamp
-    const uniqueId = `${doctorKey}_${today}_${Date.now()}`;
-    const remitoNumber = Date.now().toString(36).toUpperCase().slice(-6);
+    // Generar número de remito único (6 dígitos)
+    const remitoNumber = String(Date.now()).slice(-6);
+    const uniqueId = `${doctorKey}_${today}_${remitoNumber}`;
 
     const remito = {
       id: uniqueId,

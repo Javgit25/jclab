@@ -151,6 +151,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   }, [currentLabCode]);
 
   const loadAdminData = () => {
+    // Cargar inmediatamente desde Supabase (no esperar polling)
+    if (currentLabCode) {
+      db.getRemitos(currentLabCode).then((remote: any[]) => {
+        if (remote && remote.length > 0) {
+          setRemitos(remote);
+          const medicosUnicos = [...new Set(remote.map((r: any) => r.medico))];
+          setMedicos(medicosUnicos);
+        }
+      }).catch(() => {});
+    }
+
     try {
       let allRemitos: AdminRemito[] = [];
       
