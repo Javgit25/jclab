@@ -774,7 +774,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ fontSize: '14px', fontWeight: '700', color: 'white' }}>
-                        Remito #{entry.id.slice(-6).toUpperCase()}
+                        Remito #{((entry as any).remitoNumber || entry.id.slice(-6).toUpperCase())}
                       </span>
                       {isModified && (
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#fbbf24', background: 'rgba(251,191,36,0.2)', padding: '2px 6px', borderRadius: '4px' }}>MODIFICADO</span>
@@ -1225,7 +1225,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#f1f5f9', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
             {/* Barra de acciones (no se imprime) */}
             <div style={{ background: '#1e293b', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>Remito #{(re.id || '').slice(-8).toUpperCase()}</span>
+              <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>Remito #{((re as any).remitoNumber || ((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase()))}</span>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={handlePrintInline} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#3b82f6', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>🖨 Imprimir</button>
                 <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #475569', background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}>✕ Cerrar</button>
@@ -1249,7 +1249,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '2px' }}>Remito</div>
-                      <div style={{ fontSize: '18pt', fontWeight: 700, color: '#1e3a5f' }}>#{(re.id || '').slice(-6).toUpperCase()}</div>
+                      <div style={{ fontSize: '18pt', fontWeight: 700, color: '#1e3a5f' }}>#{((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase())}</div>
                       <div style={{ fontSize: '9pt', color: '#64748b' }}>{fechaRemito}</div>
                     </div>
                   </div>
@@ -1356,7 +1356,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 
                 {/* Pie de página */}
                 <div style={{ marginTop: '30px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '8pt', color: '#94a3b8' }}>
-                  Documento generado por BiopsyTracker · {fechaRemito} · Remito #{(re.id || '').slice(-6).toUpperCase()}
+                  Documento generado por BiopsyTracker · {fechaRemito} · Remito #{((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase())}
                 </div>
               </div>
             </div>

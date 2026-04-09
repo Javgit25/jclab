@@ -2704,7 +2704,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                               padding: '3px 10px', borderRadius: '6px', cursor: 'pointer'
                             }}
                           >
-                            Ver remito #{(result.remitoId || '').slice(-5).toUpperCase()}
+                            Ver remito #{(result.remitoNumber || result.remitoId || '').slice(-6).toUpperCase()}
                           </button>
                         </div>
 
@@ -2832,7 +2832,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             {/* Header */}
             <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e40af 100%)', padding: '14px 18px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <div>
-                <div style={{ fontSize: '16px', fontWeight: '700' }}>Remito #{(viewingRemitoFromSearch.id || '').slice(-6).toUpperCase()}</div>
+                <div style={{ fontSize: '16px', fontWeight: '700' }}>Remito #{((viewingRemitoFromSearch as any).remitoNumber || (viewingRemitoFromSearch.id || '').slice(-6).toUpperCase())}</div>
                 <div style={{ fontSize: '12px', opacity: 0.8 }}>
                   {new Date(viewingRemitoFromSearch.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
                   {' · '}{(viewingRemitoFromSearch.biopsies || []).length} pacientes

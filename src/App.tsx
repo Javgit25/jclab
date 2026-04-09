@@ -355,9 +355,12 @@ function App() {
     
     // Generar un ID único que incluya timestamp para evitar sobrescritura
     const uniqueId = `${doctorKey}_${today}_${Date.now()}`;
-    
+    // Número de remito corto y único (6 caracteres alfanuméricos)
+    const remitoNumber = Date.now().toString(36).toUpperCase().slice(-6);
+
     const newEntry = {
       id: uniqueId,
+      remitoNumber,
       date: today,
       biopsies: [...todayBiopsies],
       doctorInfo: { ...doctorInfo },
@@ -433,8 +436,9 @@ function App() {
           };
         }),
         estado: 'pendiente',
-        timestamp: remito.timestamp, // Agregar timestamp para ordenamiento
-        doctorEmail: remito.doctorInfo.email // NUEVO: Agregar email para identificación
+        remitoNumber: (remito as any).remitoNumber || remito.id.slice(-6).toUpperCase(),
+        timestamp: remito.timestamp,
+        doctorEmail: remito.doctorInfo.email
       };
       
       // No verificar duplicados por médico/fecha, siempre agregar

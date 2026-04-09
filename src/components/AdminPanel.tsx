@@ -992,7 +992,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
 
                 return '<tr>' +
-                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remito.id.slice(-5).toUpperCase() + '</td>' +
+                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + '</td>' +
                   '<td>' + new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' }) + '</td>' +
                   '<td><strong>' + biopsia.numero + '</strong></td>' +
                   '<td>' + biopsia.tejido + '</td>' +
@@ -1422,7 +1422,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                           let newNotif: any;
                           if (todasAhoraListas) {
-                            newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
+                            newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
                             notifications.push(newNotif);
                           } else {
                             newNotif = { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Paciente #${biopsia.numero} (${tipoB} - ${biopsia.tejido}) está LISTO.\nProgreso del remito: ${nuevasListas.filter(Boolean).length}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' };
@@ -1440,7 +1440,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         localStorage.setItem('adminRemitos', JSON.stringify(updated));
                         db.saveRemitos(updated).catch(console.error);
                         const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                        const newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${remito.id.slice(-5).toUpperCase()} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
+                        const newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
                         notifications.push(newNotif);
                         localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
                         db.saveNotification(newNotif).catch(console.error);
@@ -1481,7 +1481,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               )}
                               {isListo && <span className="text-xs text-green-600 font-bold">✓ Completo</span>}
                               {whatsappNum && (
-                                <a href={`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(`Dr/a. ${remito.medico}, le informamos que ${isListo ? 'todo su material' : listasCount + ' de ' + totalBiopsias + ' estudios'} del remito #${remito.id.slice(-5).toUpperCase()} ${isListo ? 'está listo para ser retirado' : 'ya están listos'}.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`)}`}
+                                <a href={`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(`Dr/a. ${remito.medico}, le informamos que ${isListo ? 'todo su material' : listasCount + ' de ' + totalBiopsias + ' estudios'} del remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} ${isListo ? 'está listo para ser retirado' : 'ya están listos'}.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`)}`}
                                   target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
                                   className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">WA</a>
                               )}
@@ -1659,7 +1659,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     {[...remitosFiltrados].sort((a, b) => { const tA = new Date((a as any).timestamp || a.fecha).getTime(); const tB = new Date((b as any).timestamp || b.fecha).getTime(); return tB - tA; }).map(remito => (
                       <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${(remito as any).modificadoPorAdmin ? 'bg-amber-50/40' : ''}`}>
                         <td className="py-3 px-4">
-                          <div className="text-xs font-mono text-gray-400">#{remito.id.slice(-5).toUpperCase()}</div>
+                          <div className="text-xs font-mono text-gray-400">#{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</div>
                           {(remito as any).esServicioAdicional && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">Serv. Adicional</span>
                           )}
@@ -1727,7 +1727,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {/* Header */}
                       <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <div>
-                          <h3 className="text-lg font-bold text-gray-900">Editar Remito #{remito.id.slice(-5).toUpperCase()}</h3>
+                          <h3 className="text-lg font-bold text-gray-900">Editar Remito #{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</h3>
                           <p className="text-sm text-gray-500">Dr/a. {remito.medico} — {new Date(remito.fecha).toLocaleDateString('es-AR')}</p>
                         </div>
                         <button onClick={() => { setEditingBiopsias(null); setEditingRemito(null); }} className="text-gray-400 hover:text-gray-600 text-xl font-bold px-2">×</button>
