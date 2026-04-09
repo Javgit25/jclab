@@ -104,10 +104,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   // Detectar notificaciones de "listo para retirar" no leídas
   const [listoAlert, setListoAlert] = useState<any>(null);
+  const [shownAlertIds] = useState<Set<string>>(() => new Set());
   React.useEffect(() => {
-    const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida);
+    const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida && !shownAlertIds.has(n.id));
     if (listoNotif && !listoAlert) {
+      shownAlertIds.add(listoNotif.id);
       setListoAlert(listoNotif);
+      // Marcar TODAS las no leídas como leídas inmediatamente en Supabase
+      notificationsData.filter(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida).forEach(n => {
+        shownAlertIds.add(n.id);
+        db.markNotificationRead(n.id).catch(() => {});
+      });
       // Reproducir sonido de notificación
       try {
         const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();

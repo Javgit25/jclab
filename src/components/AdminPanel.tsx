@@ -136,6 +136,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   useEffect(() => {
     loadAdminData();
     generateNotifications();
+    // Polling: recargar remitos desde Supabase cada 30 segundos
+    if (!currentLabCode) return;
+    const interval = setInterval(() => {
+      db.getRemitos(currentLabCode).then((remote: any[]) => {
+        if (remote && remote.length > 0) {
+          setRemitos(remote);
+          const medicosUnicos = [...new Set(remote.map((r: any) => r.medico))];
+          setMedicos(medicosUnicos);
+        }
+      }).catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
   }, [currentLabCode]);
 
   const loadAdminData = () => {
