@@ -1578,8 +1578,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${esUrgente ? 'bg-red-600 text-white' : 'bg-blue-100 text-blue-700'}`}>{tipo}</span>
                                       <span className="text-xs font-semibold text-gray-800">#{b.numero}</span>
                                       <span className="text-xs text-gray-600">{b.tejido}</span>
-                                      {esPAP && <span className="text-xs text-gray-400">{b.papQuantity || 1} vid.</span>}
-                                      {esCito && <span className="text-xs text-gray-400">{b.citologiaQuantity || 1} vid.</span>}
+                                      {esPAP && <span className="text-xs font-semibold text-purple-600">{b.papQuantity || b.cassettes || 1} vid.</span>}
+                                      {esCito && <span className="text-xs font-semibold text-purple-600">{b.citologiaQuantity || b.cassettes || 1} vid.</span>}
                                       {cass > 0 && !esPAP && !esCito && <span className="text-xs text-gray-400">{cass} cass.</span>}
                                       {esUrgente && !estaLista && <span className="text-xs font-bold text-red-700 ml-auto">⚡ 24hs</span>}
                                       {estaLista && <span className="text-xs font-bold text-green-700 ml-auto">✓ Listo</span>}
