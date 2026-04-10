@@ -15,6 +15,8 @@ interface Step2Props {
   onPapUrgenteChange?: (urgente: boolean) => void;
   onCitologiaQuantityChange?: (quantity: number) => void;
   onCitologiaUrgenteChange?: (urgente: boolean) => void;
+  citologiaSubType?: string;
+  onCitologiaSubTypeChange?: (subType: string) => void;
   onNext: () => void;
   onPrev: () => void;
   onFinishRemito?: () => void;
@@ -41,6 +43,8 @@ export const Step2: React.FC<Step2Props> = ({
   onPapUrgenteChange,
   onCitologiaQuantityChange,
   onCitologiaUrgenteChange,
+  citologiaSubType = '',
+  onCitologiaSubTypeChange,
   onNext,
   onPrev,
   onFinishRemito,
@@ -87,7 +91,7 @@ export const Step2: React.FC<Step2Props> = ({
       return papQuantity > 0;
     }
     if (tissueType === 'Citología') {
-      return citologiaQuantity > 0;
+      return citologiaSubType !== '' && citologiaQuantity > 0;
     }
     
     return true;
@@ -450,30 +454,58 @@ export const Step2: React.FC<Step2Props> = ({
           {/* Configuración específica para PAP y Citología */}
           {(tissueType === 'PAP' || tissueType === 'Citología') && (
             <div style={{
-              marginTop: '24px',
-              padding: '20px',
+              marginTop: '16px',
+              padding: '16px',
               backgroundColor: tissueType === 'PAP' ? '#f0fdf4' : '#eff6ff',
               borderRadius: '16px',
               border: `2px solid ${tissueType === 'PAP' ? '#51CF66' : '#7C9BFF'}`,
               boxShadow: `0 8px 24px ${tissueType === 'PAP' ? 'rgba(81, 207, 102, 0.15)' : 'rgba(124, 155, 255, 0.15)'}`
             }}>
               <h3 style={{
-                fontSize: '18px',
+                fontSize: '16px',
                 fontWeight: 'bold',
                 color: tissueType === 'PAP' ? '#51CF66' : '#7C9BFF',
-                marginBottom: '16px',
+                marginBottom: '12px',
                 textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
                 background: `linear-gradient(135deg, ${tissueType === 'PAP' ? '#51CF66' : '#7C9BFF'} 0%, ${tissueType === 'PAP' ? '#22c55e' : '#4F76F6'} 100%)`,
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text'
               }}>
-                {tissueType === 'PAP' ? '🧪' : '🔬'} Configuración de {tissueType}
+                {tissueType === 'PAP' ? '🧪 Configuración de PAP' : '🔬 Configuración de Citología'}
               </h3>
+
+              {/* Submenú de Citología */}
+              {tissueType === 'Citología' && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '8px', textAlign: 'center' }}>
+                    Seleccione el tipo de Citología:
+                  </label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[
+                      { value: 'PAAF', label: 'PAAF', desc: 'Punción aspirativa', icon: '💉' },
+                      { value: 'Líquidos', label: 'Líquidos', desc: 'Orina, LCR, etc.', icon: '🧫' },
+                    ].map(opt => (
+                      <button key={opt.value} onClick={() => onCitologiaSubTypeChange?.(opt.value)}
+                        style={{
+                          flex: 1, padding: '12px 8px', borderRadius: '12px', cursor: 'pointer',
+                          border: citologiaSubType === opt.value ? '3px solid #4F76F6' : '2px solid #cbd5e1',
+                          background: citologiaSubType === opt.value ? '#dbeafe' : 'white',
+                          transition: 'all 0.2s', textAlign: 'center'
+                        }}>
+                        <div style={{ fontSize: '24px', marginBottom: '4px' }}>{opt.icon}</div>
+                        <div style={{ fontSize: '14px', fontWeight: '700', color: citologiaSubType === opt.value ? '#1e40af' : '#374151' }}>{opt.label}</div>
+                        <div style={{ fontSize: '10px', color: '#64748b' }}>{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                  {citologiaSubType && (
+                    <div style={{ marginTop: '8px', textAlign: 'center', fontSize: '11px', color: '#4F76F6', fontWeight: '600' }}>
+                      ✓ {citologiaSubType} seleccionado — Se cobra como 1 paciente
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Campo de Cantidad */}
               <div style={{ marginBottom: '16px' }}>

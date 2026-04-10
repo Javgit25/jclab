@@ -96,6 +96,7 @@ export interface BiopsyForm {
   papUrgente: boolean;        // Si PAP es urgente
   citologiaQuantity: number;  // Cantidad de vidrios de citología
   citologiaUrgente: boolean;  // Si citología es urgente
+  citologiaSubType?: string;  // Subtipo: 'PAAF' | 'Líquidos' | ''
 }
 
 export interface VirtualKeyboard {

@@ -1274,7 +1274,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     {bios.map((b: any, i: number) => {
                       const isPAP = b.tissueType === 'PAP';
                       const isCito = b.tissueType === 'Citología';
-                      const tipo = isPAP ? 'PAP' : isCito ? 'Cito' : b.type === 'PQ' ? 'PQ' : 'BX';
+                      const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : b.type === 'PQ' ? 'PQ' : 'BX';
                       const sv = b.servicios || {};
                       const services: string[] = [];
                       if (sv.cassetteUrgente) services.push('⚡ Urgente 24hs');

@@ -505,16 +505,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       }
     }
     
-    // Cálculo de Citología
+    // Cálculo de Citología — PAAF/Líquidos cobra 1 paciente, independiente de vidrios
     const citologiaCantidad = biopsia.citologiaQuantity || 0;
     const esCitologiaUrgente = (servicios.citologiaUrgente || 0) > 0;
+    const citoSubType = (biopsia as any).citologiaSubType || '';
     if (citologiaCantidad > 0) {
+      // PAAF y Líquidos = 1 × precio (independiente de vidrios)
+      // Sin subtipo (datos viejos) = cobra por vidrio como antes
+      const unidadesACobrar = (citoSubType === 'PAAF' || citoSubType === 'Líquidos') ? 1 : citologiaCantidad;
       if (esCitologiaUrgente) {
-        // TODAS las citologías son urgentes
-        total += citologiaCantidad * configuracion.precioCitologiaUrgente;
+        total += unidadesACobrar * configuracion.precioCitologiaUrgente;
       } else {
-        // TODAS las citologías son normales
-        total += citologiaCantidad * configuracion.precioCitologia;
+        total += unidadesACobrar * configuracion.precioCitologia;
       }
     }
     
@@ -985,8 +987,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <tbody>
             ${[...remitosDelMedico].sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime()).map(remito =>
               remito.biopsias.map((biopsia: any) => {
-                const tipo = biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? 'CITO' : 'BX';
-                const bc = tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : tipo === 'CITO' ? 'badge-cito' : 'badge-bx';
+                const citoSub = (biopsia as any).citologiaSubType || '';
+                const tipo = biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
+                const bc = tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
 
                 const svcs: string[] = [];
                 if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
@@ -1475,7 +1478,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         const biopsia = remito.biopsias[idx];
                         const esPAP = biopsia.tejido === 'PAP' || (biopsia.papQuantity || 0) > 0;
                         const esCito = biopsia.tejido === 'Citología' || (biopsia.citologiaQuantity || 0) > 0;
-                        const tipoB = esPAP ? 'PAP' : esCito ? 'Citología' : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
+                        const tipoB = esPAP ? 'PAP' : esCito ? ((biopsia as any).citologiaSubType || 'Citología') : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
                         if (valor) {
                           const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                           let newNotif: any;
@@ -1558,7 +1561,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 {remito.biopsias.map((b, bi) => {
                                   const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
                                   const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
-                                  const tipo = esPAP ? 'PAP' : esCito ? 'Citología' : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  const tipo = esPAP ? 'PAP' : esCito ? ((b as any).citologiaSubType || 'Citología') : b.tipo === 'PQ' ? 'PQ' : 'BX';
                                   const cass = parseInt(String(b.cassettes)) || 0;
                                   const esUrgente = biopsiaEsUrgente(b);
                                   const estaLista = biopsiaListas[bi] || false;
@@ -1648,6 +1651,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           }
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
+                          const citoLabel = isCito ? (b.citologiaSubType || 'Cito') : '';
                           const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : (b.cassettes || 0);
                           const trozos = isPAP || isCito ? '-' : (b.trozos || b.pieces || '-');
                           const bg = isUrgent ? '#fff5f5' : i % 2 === 0 ? '#ffffff' : '#fafafa';
@@ -1655,7 +1659,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           return `<tr style="border-bottom:1px solid #e0e0e0;background:${bg};${borderLeft}">
                             <td style="padding:7px 8px;font-size:10pt;font-weight:700;color:#1a1a1a;">${b.numero||i+1}</td>
                             <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}</td>
-                            <td style="padding:7px 8px;text-align:center;font-size:9pt;"><span style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'};color:white;padding:2px 8px;border-radius:3px;font-weight:700;">${isPAP?'PAP':isCito?'Cito':b.tipo||'BX'}</span></td>
+                            <td style="padding:7px 8px;text-align:center;font-size:9pt;"><span style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'};color:white;padding:2px 8px;border-radius:3px;font-weight:700;">${isPAP?'PAP':isCito?citoLabel:b.tipo||'BX'}</span></td>
                             <td style="padding:7px 8px;text-align:center;font-size:11pt;font-weight:800;color:#1a1a1a;">${cant}</td>
                             <td style="padding:7px 8px;text-align:center;font-size:10pt;color:#555;">${trozos}</td>
                             <td style="padding:7px 8px;font-size:8pt;color:#333;">${svc.length > 0 ? svc.join(' · ') : '<span style="color:#bbb">—</span>'}</td>
@@ -1925,7 +1929,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 <td className="py-2 px-3">
                                   <span className={`px-2 py-0.5 rounded text-xs font-bold ${
                                     biopsia.tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : biopsia.tejido === 'PAP' ? 'bg-pink-100 text-pink-700' : biopsia.tejido === 'Citología' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
-                                  }`}>{biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? 'CITO' : 'BX'}</span>
+                                  }`}>{biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? ((biopsia as any).citologiaSubType || 'CITO') : 'BX'}</span>
                                 </td>
                                 <td className="py-2 px-3 text-center">
                                   {isPapCito ? (
@@ -2423,7 +2427,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
                                     // Generar HTML compacto para email (< 50KB)
                                     const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
-                                      const tipo = b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
+                                      const tipo = b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
                                       return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
                                     })).join('');
 

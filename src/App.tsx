@@ -452,6 +452,7 @@ function App() {
             // ✅ NUEVOS CAMPOS AGREGADOS PARA MANEJAR CANTIDADES:
             papQuantity: biopsy.papQuantity || 0,
             citologiaQuantity: biopsy.citologiaQuantity || 0,
+            citologiaSubType: biopsy.citologiaSubType || '',
             cassettesNumbers: biopsy.cassettesNumbers || []
           };
         }),

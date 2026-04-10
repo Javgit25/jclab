@@ -168,6 +168,13 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     }));
   }, []);
 
+  const handleCitologiaSubTypeChange = useCallback((subType: string) => {
+    setBiopsyForm(prev => ({
+      ...prev,
+      citologiaSubType: subType
+    }));
+  }, []);
+
   // ✅ NUEVA FUNCIÓN: Manejar urgencia de Citología
   const handleCitologiaUrgenteChange = useCallback((urgente: boolean) => {
     setBiopsyForm(prev => ({
@@ -624,6 +631,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onPapUrgenteChange={handlePapUrgenteChange}
             onCitologiaQuantityChange={handleCitologiaQuantityChange}
             onCitologiaUrgenteChange={handleCitologiaUrgenteChange}
+            citologiaSubType={biopsyForm.citologiaSubType || ''}
+            onCitologiaSubTypeChange={handleCitologiaSubTypeChange}
             onNext={nextStep}
             onPrev={prevStep}
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
