@@ -426,20 +426,6 @@ export const Step4: React.FC<Step4Props> = ({
               </div>
             )}
 
-            {/* Checkbox Queda Material */}
-            {!isPapOrCitologia && cassettes && parseInt(cassettes) >= 1 && (
-              <div style={{ marginBottom: '8px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: quedaMaterial ? '#fef3c7' : '#f9fafb', border: `2px solid ${quedaMaterial ? '#f59e0b' : '#e5e7eb'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
-                  <input type="checkbox" checked={quedaMaterial} onChange={(e) => onQuedaMaterialChange?.(e.target.checked)}
-                    style={{ width: '20px', height: '20px', accentColor: '#f59e0b' }} />
-                  <div>
-                    <span style={{ fontSize: '13px', fontWeight: '700', color: quedaMaterial ? '#92400e' : '#374151' }}>Queda material</span>
-                    <span style={{ fontSize: '10px', color: '#64748b', marginLeft: '6px' }}>— No se colocó todo el material</span>
-                  </div>
-                </label>
-              </div>
-            )}
-
             {/* Cassettes individuales - Solo si no es PAP o Citología Y hay 2 o más cassettes */}
             {!isPapOrCitologia && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
               <div style={{ marginBottom: '12px' }}>
@@ -568,6 +554,20 @@ export const Step4: React.FC<Step4Props> = ({
               }}>
                 <span>📋 {materialType}: {cassettes}</span>
                 <span>Trozos: {pieces}</span>
+              </div>
+            )}
+
+            {/* Checkbox Queda Material — al final */}
+            {!isPapOrCitologia && cassettes && parseInt(cassettes) >= 1 && (
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: quedaMaterial ? '#fef3c7' : '#f9fafb', border: `2px solid ${quedaMaterial ? '#f59e0b' : '#e5e7eb'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={quedaMaterial} onChange={(e) => onQuedaMaterialChange?.(e.target.checked)}
+                    style={{ width: '20px', height: '20px', accentColor: '#f59e0b' }} />
+                  <div>
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: quedaMaterial ? '#92400e' : '#374151' }}>Queda material</span>
+                    <span style={{ fontSize: '10px', color: '#64748b', marginLeft: '6px' }}>— No se colocó todo el material</span>
+                  </div>
+                </label>
               </div>
             )}
           </div>
