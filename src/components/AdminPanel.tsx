@@ -3039,6 +3039,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     📅 Si hoy es día <strong>{(configuracion as any).diaRecordatorioDeuda || 15}</strong> o posterior y hay médicos con deuda pendiente, aparecerá el botón de recordatorio en la sección de <strong>Cobros</strong>.
                   </p>
                 </div>
+
+                {/* Vista previa del email */}
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-blue-600 hover:text-blue-800">
+                    👁 Ver vista previa del email completo
+                  </summary>
+                  <div className="mt-3 border border-gray-200 rounded-lg overflow-hidden">
+                    <div style={{ fontFamily: "Georgia, 'Times New Roman', serif", maxWidth: '100%', padding: '24px', color: '#1a1a1a', lineHeight: 1.7, fontSize: '13px', background: 'white' }}>
+                      <div style={{ borderBottom: '2px solid #1e3a5f', paddingBottom: '12px', marginBottom: '18px' }}>
+                        <h3 style={{ color: '#1e3a5f', margin: 0, fontSize: '16px' }}>Recordatorio de Saldo Pendiente</h3>
+                        <p style={{ color: '#64748b', fontSize: '11px', margin: '4px 0 0' }}>Ref: Servicios de [mes anterior]</p>
+                      </div>
+                      <p>Estimado/a <strong>Dr./Dra. [Nombre del médico]</strong>,</p>
+                      <p style={{ background: '#eff6ff', padding: '8px 12px', borderRadius: '6px', border: '1px dashed #3b82f6', color: '#1e40af', fontSize: '12px' }}>
+                        ✏️ {(configuracion as any).mensajeRecordatorioDeuda || 'Nos dirigimos a usted a fin de recordarle que, al día de la fecha, registra un saldo pendiente...'}
+                      </p>
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '14px', textAlign: 'center', margin: '14px 0' }}>
+                        <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 4px' }}>Saldo pendiente — [mes]</p>
+                        <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#dc2626' }}>$XX.XXX</span>
+                      </div>
+                      <p>Le solicitamos tenga a bien regularizar dicha situación a la mayor brevedad posible. Una vez efectuado el pago, le agradecemos enviar el comprobante correspondiente a esta misma dirección de correo, a fin de poder actualizar nuestros registros.</p>
+                      <p>Quedamos a su disposición ante cualquier consulta o aclaración que considere necesaria.</p>
+                      <div style={{ marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #e2e8f0' }}>
+                        <p style={{ margin: 0 }}>Sin otro particular, lo saludamos atentamente.</p>
+                        <p style={{ margin: '10px 0 0', fontWeight: 700, color: '#1e3a5f' }}>Administración</p>
+                        <p style={{ margin: '2px 0', fontWeight: 700 }}>{labConfig.nombre || '[Nombre del Laboratorio]'}</p>
+                        {labConfig.direccion && <p style={{ margin: '2px 0', fontSize: '12px', color: '#64748b' }}>{labConfig.direccion}</p>}
+                        {labConfig.telefono && <p style={{ margin: '2px 0', fontSize: '12px', color: '#64748b' }}>Tel: {labConfig.telefono}</p>}
+                        {labConfig.email && <p style={{ margin: '2px 0', fontSize: '12px', color: '#64748b' }}>{labConfig.email}</p>}
+                      </div>
+                    </div>
+                  </div>
+                </details>
               </div>
 
               {/* Gestión de Tipos de Tejido */}
