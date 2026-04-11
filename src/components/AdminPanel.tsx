@@ -1516,6 +1516,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           </td>
                           <td className="py-2 px-3">
                             <div className="font-semibold text-gray-900 text-xs">Dr/a. {remito.medico}</div>
+                            {(remito as any).cargadoPor && !(remito as any).cargadoPor.startsWith('Dr') && (
+                              <div className="text-xs text-amber-600">Cargado por: {(remito as any).cargadoPor}</div>
+                            )}
                           </td>
                           <td className="py-2 px-3 text-xs text-gray-500">{new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</td>
                           <td className="py-2 px-3 text-center">
@@ -1660,6 +1663,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       <div style="background:#1a1a1a;color:white;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
                         <div style="display:flex;align-items:baseline;gap:10px;">
                           <span style="font-size:16pt;font-weight:800;letter-spacing:-0.3px;">Dr/a. ${r.medico}</span>
+                          ${(r as any).cargadoPor && !(r as any).cargadoPor.startsWith('Dr') ? '<span style="font-size:9pt;color:#d97706;margin-left:8px;">Cargado por: ' + (r as any).cargadoPor + '</span>' : ''}
                           <span style="font-size:10pt;opacity:0.6;">Remito #${nro}</span>
                         </div>
                         <div style="display:flex;align-items:center;gap:10px;">
@@ -1852,6 +1856,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="text-sm font-semibold text-gray-900">Dr/a. {remito.medico}</div>
+                          {(remito as any).cargadoPor && !(remito as any).cargadoPor.startsWith('Dr') && (
+                            <div className="text-xs text-amber-600">Por: {(remito as any).cargadoPor}</div>
+                          )}
                           <div className="text-xs text-gray-400">{remito.email}</div>
                         </td>
                         <td className="py-3 px-4 text-xs text-gray-600">

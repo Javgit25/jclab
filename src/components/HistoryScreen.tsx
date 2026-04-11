@@ -775,6 +775,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       {urgentCount > 0 && (
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#fca5a5', background: 'rgba(252,165,165,0.2)', padding: '2px 6px', borderRadius: '4px' }}>URGENTE</span>
                       )}
+                      {(entry as any).cargadoPor && (
+                        <span style={{ fontSize: '9px', fontWeight: '600', color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                          Cargado por: {(entry as any).cargadoPor}
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
@@ -1244,6 +1249,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     <div style={{ fontSize: '13pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || 'N/A'}</div>
                     <div style={{ fontSize: '10pt', color: '#475569' }}>{doc.email || ''}</div>
                     {doc.hospital && <div style={{ fontSize: '10pt', color: '#475569' }}>{doc.hospital}</div>}
+                    {(re as any).cargadoPor && <div style={{ fontSize: '9pt', color: '#d97706', fontWeight: 600, marginTop: '4px' }}>Cargado por: {(re as any).cargadoPor}</div>}
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: '8pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Resumen</div>

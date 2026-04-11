@@ -3157,7 +3157,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     type="text"
                     value={newAyudanteNombre}
                     onChange={(e) => setNewAyudanteNombre(e.target.value)}
-                    placeholder="Nombre del ayudante"
+                    placeholder="Dr/a. Nombre Apellido"
                     style={{
                       padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
                       fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
