@@ -975,6 +975,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <thead>
             <tr>
               <th>Remito</th>
+              <th>Cargado por</th>
               <th>Fecha</th>
               <th>N° Estudio</th>
               <th>Material</th>
@@ -1051,8 +1052,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ' lab)</span>' : String(currCass);
 
                 const rowStyle = diff > 0 ? 'background:#f0fdf4;' : '';
+                const cargadoPorLabel = (remito as any).cargadoPor || '';
                 return '<tr style="' + rowStyle + '">' +
                   '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + '</td>' +
+                  '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
                   '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
                   '<td><strong>' + biopsia.numero + '</strong></td>' +
                   '<td>' + biopsia.tejido + '</td>' +
@@ -1064,12 +1067,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               }).join('')
             ).join('')}
             <tr class="total-row">
-              <td colspan="7" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td>
+              <td colspan="8" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td>
               <td style="text-align:right; font-size:18px;">$${totalGeneral.toLocaleString()}</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      ${(() => {
+        // Desempeño por usuario
+        const porUsuario: Record<string, { remitos: number; estudios: number }> = {};
+        remitosDelMedico.forEach((r: any) => {
+          const quien = (r as any).cargadoPor || 'Dr/a. ' + medico;
+          if (!porUsuario[quien]) porUsuario[quien] = { remitos: 0, estudios: 0 };
+          porUsuario[quien].remitos++;
+          porUsuario[quien].estudios += r.biopsias.length;
+        });
+        const usuarios = Object.entries(porUsuario);
+        if (usuarios.length <= 1) return '';
+        return '<div style="margin-top:24px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">' +
+          '<h4 style="margin:0 0 12px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Desempeño por Usuario</h4>' +
+          '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+          '<tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Usuario</th><th style="text-align:center;padding:6px;">Remitos</th><th style="text-align:center;padding:6px;">Estudios</th></tr>' +
+          usuarios.map(([nombre, datos]) =>
+            '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;font-weight:600;">' + nombre + '</td><td style="text-align:center;padding:6px;">' + datos.remitos + '</td><td style="text-align:center;padding:6px;font-weight:700;">' + datos.estudios + '</td></tr>'
+          ).join('') +
+          '</table></div>';
+      })()}
 
       <div class="footer">
         Reporte generado el ${fechaActual} &nbsp;·&nbsp; Powered by BiopsyTracker<br>
