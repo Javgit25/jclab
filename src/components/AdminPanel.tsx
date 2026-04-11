@@ -1739,15 +1739,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const isCito = b.tejido === 'Citología';
                           const citoLabel = isCito ? (b.citologiaSubType || 'Cito') : '';
                           const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : (b.cassettes || 0);
-                          const trozos = isPAP || isCito ? '-' : (b.trozos || b.pieces || '-');
+                          // Trozos detallado por cassette
+                          const trozoPorCass = b.trozoPorCassette || [];
+                          const totalTrozos = isPAP || isCito ? '-' : (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) : (b.trozos || b.pieces || '-'));
+                          const cassNums = b.cassettesNumbers || [];
+                          let trozosDetalle = '';
+                          if (!isPAP && !isCito && trozoPorCass.length > 1) {
+                            trozosDetalle = trozoPorCass.map((t: number, ci: number) => {
+                              const cn = cassNums[ci];
+                              const name = ci === 0 ? (cn?.base || 'C1') : (cn?.suffix ? 'S' + cn.suffix : 'S' + ci);
+                              return name + ':' + (t || 1);
+                            }).join(', ');
+                          }
+                          const quedaMat = b.quedaMaterial ? ' <span style="color:#d97706;font-weight:700;">⚠ Queda material</span>' : '';
                           const bg = isUrgent ? '#fff5f5' : i % 2 === 0 ? '#ffffff' : '#fafafa';
                           const borderLeft = isUrgent ? 'border-left:4px solid #dc2626;' : '';
                           return `<tr style="border-bottom:1px solid #e0e0e0;background:${bg};${borderLeft}">
                             <td style="padding:7px 8px;font-size:10pt;font-weight:700;color:#1a1a1a;">${b.numero||i+1}</td>
-                            <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}</td>
+                            <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}${quedaMat}</td>
                             <td style="padding:7px 8px;text-align:center;font-size:9pt;"><span style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'};color:white;padding:2px 8px;border-radius:3px;font-weight:700;">${isPAP?'PAP':isCito?citoLabel:b.tipo||'BX'}</span></td>
                             <td style="padding:7px 8px;text-align:center;font-size:11pt;font-weight:800;color:#1a1a1a;">${cant}</td>
-                            <td style="padding:7px 8px;text-align:center;font-size:10pt;color:#555;">${trozos}</td>
+                            <td style="padding:7px 8px;text-align:center;font-size:9pt;color:#555;">${trozosDetalle ? '<div style="font-weight:700;font-size:10pt;">' + totalTrozos + '</div><div style="font-size:7pt;color:#888;">' + trozosDetalle + '</div>' : totalTrozos}</td>
                             <td style="padding:7px 8px;font-size:8pt;color:#333;">${svc.length > 0 ? svc.join(' · ') : '<span style="color:#bbb">—</span>'}</td>
                           </tr>`;
                         }).join('')}
