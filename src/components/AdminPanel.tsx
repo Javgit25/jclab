@@ -1556,8 +1556,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         {/* Panel expandido con biopsias filtradas según tab */}
                         {isExpanded && (
                           <tr><td colSpan={8} className="p-0">
-                            <div className="bg-gray-50 border-y border-gray-200 px-4 py-2">
-                              <div className="grid gap-1">
+                            <div className="bg-gray-50 border-y border-gray-200">
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="bg-gray-200">
+                                    <th className="py-1.5 px-2 text-left text-gray-600 font-semibold w-8"></th>
+                                    <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">N° Estudio</th>
+                                    <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">Material</th>
+                                    <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Tipo</th>
+                                    <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Cant.</th>
+                                    <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">Servicios / Detalle</th>
+                                    <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Estado</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
                                 {remito.biopsias.map((b, bi) => {
                                   const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
                                   const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
@@ -1567,30 +1579,59 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   const esUrgente = biopsiaEsUrgente(b);
                                   const estaLista = biopsiaListas[bi] || false;
 
-                                  // Filtrar según tab activo
                                   if (dashFilter === 'urgentes' && !esUrgente) return null;
                                   if ((dashFilter === 'actual' || dashFilter === 'proceso') && estaLista) return null;
                                   if (dashFilter === 'listos' && !estaLista) return null;
 
+                                  // Servicios detalle
+                                  const svcList: string[] = [];
+                                  const sv = b.servicios || {} as any;
+                                  if (esUrgente) svcList.push('⚡ URGENTE 24hs');
+                                  if ((sv.corteBlancoIHQ || 0) > 0) svcList.push(`Corte IHQ ×${sv.corteBlancoIHQ}`);
+                                  if ((sv.corteBlanco || 0) > 0) svcList.push(`Corte Blanco ×${sv.corteBlanco}`);
+                                  if (sv.giemsaPASMasson) {
+                                    const opts = (sv as any).giemsaOptions || {};
+                                    const t: string[] = [];
+                                    if (opts.giemsa) t.push('Giemsa');
+                                    if (opts.pas) t.push('PAS');
+                                    if (opts.masson) t.push('Masson');
+                                    svcList.push(t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson');
+                                  }
+
+                                  const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : `${cass} cass.`;
+
                                   return (
-                                    <div key={bi} className={`flex items-center gap-2 rounded px-3 py-1.5 ${estaLista ? 'bg-green-100 border border-green-200' : esUrgente ? 'bg-red-100 border border-red-200' : 'bg-white border border-gray-100'}`}>
-                                      <button onClick={() => { if (!estaLista && confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO para retirar?\n\nEsta acción no se puede deshacer.`)) marcarBiopsia(bi, true); }}
-                                        disabled={estaLista}
-                                        className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${estaLista ? 'bg-green-600 border-green-600 text-white cursor-default' : 'border-gray-300 hover:border-green-500 cursor-pointer'}`}>
-                                        {estaLista && <CheckCircle size={14} />}
-                                      </button>
-                                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${esUrgente ? 'bg-red-600 text-white' : esCito ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{tipo}</span>
-                                      <span className="text-xs font-semibold text-gray-800">#{b.numero}</span>
-                                      <span className="text-xs text-gray-600">{esCito && citoST ? `Citología (${citoST})` : b.tejido}</span>
-                                      {esPAP && <span className="text-xs font-semibold text-purple-600">{b.papQuantity || b.cassettes || 1} vid.</span>}
-                                      {esCito && <span className="text-xs font-semibold text-purple-600">{b.citologiaQuantity || b.cassettes || 1} vid.</span>}
-                                      {cass > 0 && !esPAP && !esCito && <span className="text-xs text-gray-400">{cass} cass.</span>}
-                                      {esUrgente && !estaLista && <span className="text-xs font-bold text-red-700 ml-auto">⚡ 24hs</span>}
-                                      {estaLista && <span className="text-xs font-bold text-green-700 ml-auto">✓ Listo</span>}
-                                    </div>
+                                    <tr key={bi} className={`border-b border-gray-100 ${estaLista ? 'bg-green-50' : esUrgente ? 'bg-red-50' : ''}`}>
+                                      <td className="py-1.5 px-2">
+                                        <button onClick={() => { if (!estaLista && confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO?\n\nNo se puede deshacer.`)) marcarBiopsia(bi, true); }}
+                                          disabled={estaLista}
+                                          className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${estaLista ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 hover:border-green-500 cursor-pointer'}`}>
+                                          {estaLista && <CheckCircle size={12} />}
+                                        </button>
+                                      </td>
+                                      <td className="py-1.5 px-2 font-semibold text-gray-800">#{b.numero}</td>
+                                      <td className="py-1.5 px-2 text-gray-700">{esCito && citoST ? `Citología (${citoST})` : b.tejido}</td>
+                                      <td className="py-1.5 px-2 text-center">
+                                        <span className={`px-1.5 py-0.5 rounded font-bold text-xs ${esUrgente ? 'bg-red-600 text-white' : esPAP ? 'bg-purple-100 text-purple-700' : esCito ? 'bg-indigo-100 text-indigo-700' : tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>{tipo}</span>
+                                      </td>
+                                      <td className="py-1.5 px-2 text-center font-bold">{cant}</td>
+                                      <td className="py-1.5 px-2">
+                                        {svcList.length > 0 ? (
+                                          <div className="flex flex-wrap gap-1">
+                                            {svcList.map((s, si) => (
+                                              <span key={si} className={`px-1 py-0.5 rounded text-xs font-semibold ${s.includes('URGENTE') ? 'bg-red-100 text-red-700' : 'bg-blue-50 text-blue-700'}`}>{s}</span>
+                                            ))}
+                                          </div>
+                                        ) : <span className="text-gray-300">—</span>}
+                                      </td>
+                                      <td className="py-1.5 px-2 text-center">
+                                        {estaLista ? <span className="text-green-600 font-bold">✓ Listo</span> : esUrgente ? <span className="text-red-600 font-bold">⚡ 24hs</span> : <span className="text-gray-400">Proceso</span>}
+                                      </td>
+                                    </tr>
                                   );
                                 })}
-                              </div>
+                                </tbody>
+                              </table>
                             </div>
                           </td></tr>
                         )}
