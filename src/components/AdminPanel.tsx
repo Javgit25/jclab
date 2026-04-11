@@ -2992,13 +2992,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <input
                     type="number"
                     value={(configuracion as any).diaRecordatorioDeuda || 15}
-                    onChange={(e) => setConfiguracion((prev: any) => ({ ...prev, diaRecordatorioDeuda: Math.max(1, Math.min(28, Number(e.target.value))) }))}
+                    onChange={(e) => {
+                      const dia = Math.max(1, Math.min(28, Number(e.target.value)));
+                      const updated = { ...configuracion, diaRecordatorioDeuda: dia } as any;
+                      setConfiguracion(updated);
+                      localStorage.setItem('adminConfig', JSON.stringify(updated));
+                      if (currentLabCode) db.saveAdminConfig(currentLabCode, updated).catch(() => {});
+                    }}
                     className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold text-lg focus:ring-2 focus:ring-red-500"
                     min="1"
                     max="28"
                   />
                   <span className="text-sm text-gray-500">de cada mes</span>
                 </div>
+
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Mensaje del recordatorio (email)</label>
+                  <textarea
+                    value={(configuracion as any).mensajeRecordatorioDeuda || 'Estimado/a Dr/a., le recordamos que tiene un saldo pendiente correspondiente al mes anterior. Por favor, comuníquese con el laboratorio para coordinar el pago.'}
+                    onChange={(e) => {
+                      const updated = { ...configuracion, mensajeRecordatorioDeuda: e.target.value } as any;
+                      setConfiguracion(updated);
+                      localStorage.setItem('adminConfig', JSON.stringify(updated));
+                      if (currentLabCode) db.saveAdminConfig(currentLabCode, updated).catch(() => {});
+                    }}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 resize-none"
+                    placeholder="Mensaje personalizado para el recordatorio de deuda..."
+                  />
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-xs text-gray-400">Se incluirá automáticamente: nombre del médico, monto adeudado y datos del laboratorio</p>
+                    <button onClick={() => {
+                      const defaultMsg = 'Estimado/a Dr/a., le recordamos que tiene un saldo pendiente correspondiente al mes anterior. Por favor, comuníquese con el laboratorio para coordinar el pago.';
+                      const updated = { ...configuracion, mensajeRecordatorioDeuda: defaultMsg } as any;
+                      setConfiguracion(updated);
+                      localStorage.setItem('adminConfig', JSON.stringify(updated));
+                      if (currentLabCode) db.saveAdminConfig(currentLabCode, updated).catch(() => {});
+                    }} className="text-xs text-blue-600 hover:text-blue-800 font-semibold whitespace-nowrap">
+                      Restaurar predeterminado
+                    </button>
+                  </div>
+                </div>
+
                 <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
                   <p className="text-xs text-red-700">
                     📅 Si hoy es día <strong>{(configuracion as any).diaRecordatorioDeuda || 15}</strong> o posterior y hay médicos con deuda pendiente, aparecerá el botón de recordatorio en la sección de <strong>Cobros</strong>.
@@ -3677,11 +3712,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               messageHtml: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
                                 <h2 style="color:#1e3a5f;">Recordatorio de pago</h2>
                                 <p>Estimado/a <strong>Dr/a. ${d.medico}</strong>,</p>
-                                <p>Le recordamos que tiene un saldo pendiente correspondiente al mes de <strong>${mesAnterior}</strong> por un monto de:</p>
+                                <p>${(configuracion as any).mensajeRecordatorioDeuda || 'Le recordamos que tiene un saldo pendiente correspondiente al mes anterior. Por favor, comuníquese con el laboratorio para coordinar el pago.'}</p>
+                                <p>Mes: <strong>${mesAnterior}</strong></p>
                                 <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:8px;padding:16px;text-align:center;margin:16px 0;">
                                   <span style="font-size:28px;font-weight:bold;color:#dc2626;">$${d.deuda.toLocaleString()}</span>
                                 </div>
-                                <p>Por favor, comuníquese con el laboratorio para coordinar el pago.</p>
                                 <p style="color:#64748b;font-size:12px;margin-top:24px;">Atentamente,<br/><strong>${labNombre}</strong>${labConfig.telefono ? '<br/>' + labConfig.telefono : ''}${labConfig.email ? '<br/>' + labConfig.email : ''}</p>
                               </div>`,
                               fromName: labNombre,
