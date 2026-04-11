@@ -3485,7 +3485,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border">
                               <div>
                                 <div className="font-semibold text-sm text-gray-900">{t.nombre}</div>
-                                <div className="text-xs text-gray-500">Usuario: <span className="font-mono">{t.usuario}</span></div>
+                                <div className="text-xs text-gray-500">Usuario: <span className="font-mono font-semibold">{t.usuario}</span> · Clave: <span className="font-mono font-semibold">{t.password}</span></div>
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className={`text-xs font-semibold px-2 py-0.5 rounded ${t.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
