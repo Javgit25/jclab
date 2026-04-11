@@ -264,6 +264,7 @@ export const db = {
           history[h.id] = {
             id: h.id,
             remitoNumber: h.remito_number,
+            cargadoPor: h.cargado_por || '',
             date: h.date,
             timestamp: h.timestamp,
             biopsies: h.biopsies,
@@ -293,6 +294,7 @@ export const db = {
       await supabase.from('doctor_history').upsert({
         id: entry.id,
         remito_number: entry.remitoNumber,
+        cargado_por: entry.cargadoPor || '',
         doctor_email: doctorEmail.toLowerCase().trim(),
         lab_code: labCode,
         date: entry.date,
