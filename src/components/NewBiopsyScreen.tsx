@@ -667,6 +667,10 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             tissueType={biopsyForm.tissueType}
             onCassettesChange={(value) => handleBiopsyChange('cassettes', value)}
             onPiecesChange={(value) => handleBiopsyChange('pieces', value)}
+            trozoPorCassette={biopsyForm.trozoPorCassette || []}
+            onTrozoPorCassetteChange={(trozos) => setBiopsyForm(prev => ({ ...prev, trozoPorCassette: trozos }))}
+            quedaMaterial={biopsyForm.quedaMaterial || false}
+            onQuedaMaterialChange={(value) => setBiopsyForm(prev => ({ ...prev, quedaMaterial: value }))}
             onUpdateCassetteSuffix={updateCassetteSuffix}
             onNext={nextStep}
             onPrev={prevStep}

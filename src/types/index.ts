@@ -109,6 +109,8 @@ export interface BiopsyForm {
   citologiaUrgente: boolean;  // Si citología es urgente
   citologiaSubType?: string;  // Subtipo: 'PAAF' | 'Líquidos' | ''
   cargadoPor?: string;        // Nombre de quien cargó (médico o ayudante)
+  trozoPorCassette?: number[]; // Trozos por cada cassette individual
+  quedaMaterial?: boolean;     // Si queda material sin procesar
 }
 
 export interface VirtualKeyboard {

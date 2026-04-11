@@ -15,6 +15,10 @@ interface Step4Props {
   onOpenVirtualKeyboard: (type: 'numeric' | 'full', field: string, currentValue?: string) => void;
   onFinishRemito?: () => void;
   todayBiopsiesCount?: number;
+  trozoPorCassette?: number[];
+  onTrozoPorCassetteChange?: (trozos: number[]) => void;
+  quedaMaterial?: boolean;
+  onQuedaMaterialChange?: (value: boolean) => void;
 }
 
 // Componente TouchNumericInput optimizado para tablet
@@ -211,7 +215,11 @@ export const Step4: React.FC<Step4Props> = ({
   onPrev,
   onOpenVirtualKeyboard,
   onFinishRemito,
-  todayBiopsiesCount
+  todayBiopsiesCount,
+  trozoPorCassette = [],
+  onTrozoPorCassetteChange,
+  quedaMaterial = false,
+  onQuedaMaterialChange
 }) => {
   // Determinar si es PAP o Citología para manejo especial
   const isPapOrCitologia = tissueType === 'PAP' || tissueType === 'Citología';
@@ -375,16 +383,64 @@ export const Step4: React.FC<Step4Props> = ({
                 onOpenKeyboard={() => onOpenVirtualKeyboard('numeric', 'cassettes', cassettes)}
               />
 
-              <TouchNumericInput
-                label="Número de Trozos"
-                value={pieces}
-                onChange={onPiecesChange}
-                placeholder="0"
-                min={1}
-                max={999}
-                onOpenKeyboard={() => onOpenVirtualKeyboard('numeric', 'pieces', pieces)}
-              />
+              {/* Trozos: si 1 cassette = input global, si 2+ = por cassette */}
+              {(!cassettes || parseInt(cassettes) <= 1) && (
+                <TouchNumericInput
+                  label="Número de Trozos"
+                  value={pieces}
+                  onChange={onPiecesChange}
+                  placeholder="0"
+                  min={1}
+                  max={999}
+                  onOpenKeyboard={() => onOpenVirtualKeyboard('numeric', 'pieces', pieces)}
+                />
+              )}
             </div>
+
+            {/* Trozos por cassette - cuando hay 2+ cassettes */}
+            {!isPapOrCitologia && cassettes && parseInt(cassettes) >= 2 && (
+              <div style={{ marginBottom: '8px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px', textAlign: 'center' }}>
+                  🔢 Trozos por Cassette
+                </h3>
+                <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '8px', border: '1px solid #e5e7eb' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '6px' }}>
+                    {Array.from({ length: parseInt(cassettes) || 0 }, (_, i) => {
+                      const cn = cassettesNumbers[i];
+                      const label = i === 0 ? (cn?.base || `C${i+1}`) : `${cn?.base || ''}/${cn?.suffix || i}`;
+                      const val = trozoPorCassette[i] || 1;
+                      return (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'white', padding: '6px 8px', borderRadius: '6px', border: '1px solid #d1d5db' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '600', color: '#374151', minWidth: '60px' }}>{label}</span>
+                          <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = Math.max(1, (t[i] || 1) - 1); onTrozoPorCassetteChange?.(t); const total = t.reduce((s, v) => s + v, 0); onPiecesChange(String(total)); }}
+                            style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #d1d5db', background: '#f3f4f6', cursor: 'pointer', fontSize: '14px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
+                          <span style={{ fontSize: '16px', fontWeight: '800', color: '#1e3a5f', minWidth: '24px', textAlign: 'center' }}>{val}</span>
+                          <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = (t[i] || 1) + 1; onTrozoPorCassetteChange?.(t); const total = t.reduce((s, v) => s + v, 0); onPiecesChange(String(total)); }}
+                            style={{ width: '28px', height: '28px', borderRadius: '6px', border: '1px solid #1e3a5f', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ textAlign: 'center', fontSize: '11px', color: '#059669', fontWeight: '600', marginTop: '6px' }}>
+                    Total: {(trozoPorCassette.length > 0 ? trozoPorCassette.reduce((s, v) => s + (v || 1), 0) : parseInt(pieces) || 0)} trozos
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Checkbox Queda Material */}
+            {!isPapOrCitologia && cassettes && parseInt(cassettes) >= 1 && (
+              <div style={{ marginBottom: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', backgroundColor: quedaMaterial ? '#fef3c7' : '#f9fafb', border: `2px solid ${quedaMaterial ? '#f59e0b' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s' }}>
+                  <input type="checkbox" checked={quedaMaterial} onChange={(e) => onQuedaMaterialChange?.(e.target.checked)}
+                    style={{ width: '20px', height: '20px', accentColor: '#f59e0b' }} />
+                  <div>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: quedaMaterial ? '#92400e' : '#374151' }}>Queda material</span>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>Marcar si no se colocó todo el material del paciente</div>
+                  </div>
+                </label>
+              </div>
+            )}
 
             {/* Cassettes individuales - Solo si no es PAP o Citología Y hay 2 o más cassettes */}
             {!isPapOrCitologia && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
