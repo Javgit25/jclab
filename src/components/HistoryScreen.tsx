@@ -1297,7 +1297,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (sv.giemsaOptions?.masson) tecnicas.push('Masson');
                         services.push(tecnicas.length > 0 ? tecnicas.join(', ') : 'Giemsa/PAS/Masson');
                       }
-                      const cassNums = b.cassettesNumbers?.map((c: any) => `${c.base}/${c.suffix}`).join(', ') || '';
+                      const cassNums = b.cassettesNumbers?.map((c: any) => c.suffix ? `${c.base}/${c.suffix}` : c.base).join(', ') || '';
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
                           <td style={{ padding: '8px', fontSize: '10pt', fontWeight: 600, color: '#64748b' }}>{i + 1}</td>
