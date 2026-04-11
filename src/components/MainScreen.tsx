@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail } from 'lucide-react';
-import { BiopsyForm, DoctorInfo } from '../types';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail, Settings, Trash2, ToggleLeft, ToggleRight, UserPlus } from 'lucide-react';
+import { BiopsyForm, DoctorInfo, RegisteredDoctor, Ayudante } from '../types';
 import { db } from '../lib/database';
 import { ConnectionStatus } from './ConnectionStatus';
 import { VirtualKeyboard } from './VirtualKeyboard';
@@ -51,6 +51,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsData, setNotificationsData] = useState<any[]>([]);
+  const [showAyudantesModal, setShowAyudantesModal] = useState(false);
+  const [ayudantesList, setAyudantesList] = useState<Ayudante[]>([]);
+  const [newAyudanteNombre, setNewAyudanteNombre] = useState('');
+  const [newAyudantePassword, setNewAyudantePassword] = useState('');
 
   // Cargar notificaciones del médico (todas, incluidas leídas recientes)
   const loadNotifications = () => {
@@ -169,6 +173,58 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     setShowNotifications(false);
     if (unreadCount > 0) markNotificationsRead();
   };
+
+  // --- Ayudantes Management ---
+  const getRegisteredDoctors = (): RegisteredDoctor[] => {
+    try { return JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); }
+    catch { return []; }
+  };
+
+  const openAyudantesModal = () => {
+    const doctors = getRegisteredDoctors();
+    const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
+    setAyudantesList(doc?.ayudantes || []);
+    setNewAyudanteNombre('');
+    setNewAyudantePassword('');
+    setShowAyudantesModal(true);
+  };
+
+  const saveAyudantesToDoctor = (updatedAyudantes: Ayudante[]) => {
+    const doctors = getRegisteredDoctors();
+    const idx = doctors.findIndex(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
+    if (idx >= 0) {
+      doctors[idx].ayudantes = updatedAyudantes;
+      localStorage.setItem('registeredDoctors', JSON.stringify(doctors));
+      db.saveDoctor(doctors[idx]);
+      setAyudantesList(updatedAyudantes);
+    }
+  };
+
+  const addAyudante = () => {
+    if (!newAyudanteNombre.trim() || !newAyudantePassword.trim() || newAyudantePassword.trim().length < 4) return;
+    const nuevo: Ayudante = {
+      id: `AYU_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      nombre: newAyudanteNombre.trim(),
+      password: newAyudantePassword.trim(),
+      activo: true,
+      creadoAt: new Date().toISOString()
+    };
+    const updated = [...ayudantesList, nuevo];
+    saveAyudantesToDoctor(updated);
+    setNewAyudanteNombre('');
+    setNewAyudantePassword('');
+  };
+
+  const toggleAyudante = (id: string) => {
+    const updated = ayudantesList.map(a => a.id === id ? { ...a, activo: !a.activo } : a);
+    saveAyudantesToDoctor(updated);
+  };
+
+  const deleteAyudante = (id: string) => {
+    const updated = ayudantesList.filter(a => a.id !== id);
+    saveAyudantesToDoctor(updated);
+  };
+
   const [qrImageSrc, setQrImageSrc] = useState<string>('');
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   
@@ -1549,6 +1605,18 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           {/* Controles - derecha */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', zIndex: 1 }}>
             <button
+              onClick={openAyudantesModal}
+              style={{
+                padding: '6px', backgroundColor: 'transparent', border: 'none',
+                borderRadius: '6px', cursor: 'pointer', transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              title="Configurar ayudantes"
+            >
+              <Settings style={{ height: '16px', width: '16px', color: 'rgba(255,255,255,0.8)' }} />
+            </button>
+            <button
               onClick={() => { if (showNotifications) { closeNotifications(); } else { loadNotifications(); setShowNotifications(true); } }}
               style={{
                 padding: '6px', backgroundColor: 'transparent', border: 'none',
@@ -1619,6 +1687,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               )}
               {doctorInfo.email && (
                 <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{doctorInfo.email}</p>
+              )}
+              {doctorInfo.cargadoPor && !doctorInfo.cargadoPor.startsWith('Dr') && (
+                <p style={{ fontSize: '10px', color: '#fbbf24', margin: 0, fontWeight: '600' }}>
+                  Cargando: {doctorInfo.cargadoPor}
+                </p>
               )}
             </div>
           </div>
@@ -3001,6 +3074,126 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
       {/* Modal de Facturación */}
       {showStatistics && <StatisticsModal />}
+
+      {/* Modal de Ayudantes */}
+      {showAyudantesModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 2000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }} onClick={() => setShowAyudantesModal(false)}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: '16px', width: '100%', maxWidth: '480px',
+            maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid #e5e7eb',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #1e3a5f, #1e40af)', color: 'white'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Settings style={{ height: '20px', width: '20px' }} />
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Ayudantes</h2>
+              </div>
+              <button onClick={() => setShowAyudantesModal(false)} style={{
+                background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
+                fontSize: '18px', cursor: 'pointer', padding: '4px 10px', borderRadius: '8px'
+              }}>×</button>
+            </div>
+
+            {/* Lista de ayudantes */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              {ayudantesList.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: '#9ca3af' }}>
+                  <p style={{ fontSize: '14px', margin: 0 }}>No hay ayudantes configurados</p>
+                  <p style={{ fontSize: '12px', margin: '4px 0 0 0' }}>Agregue ayudantes para que puedan cargar biopsias</p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                  {ayudantesList.map((a) => (
+                    <div key={a.id} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '10px 12px', borderRadius: '10px',
+                      backgroundColor: a.activo ? '#f0f9ff' : '#f9fafb',
+                      border: `1px solid ${a.activo ? '#bfdbfe' : '#e5e7eb'}`
+                    }}>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: a.activo ? '#1e40af' : '#9ca3af' }}>
+                          {a.nombre}
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#9ca3af', marginTop: '2px' }}>
+                          {a.activo ? 'Activo' : 'Inactivo'} — Creado {new Date(a.creadoAt).toLocaleDateString('es-AR')}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button onClick={() => toggleAyudante(a.id)} style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '4px',
+                          color: a.activo ? '#16a34a' : '#9ca3af'
+                        }} title={a.activo ? 'Desactivar' : 'Activar'}>
+                          {a.activo ? <ToggleRight style={{ height: '22px', width: '22px' }} /> : <ToggleLeft style={{ height: '22px', width: '22px' }} />}
+                        </button>
+                        <button onClick={() => { if (confirm(`¿Eliminar a ${a.nombre}?`)) deleteAyudante(a.id); }} style={{
+                          background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#ef4444'
+                        }} title="Eliminar">
+                          <Trash2 style={{ height: '16px', width: '16px' }} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Agregar nuevo ayudante */}
+              <div style={{
+                borderTop: '1px solid #e5e7eb', paddingTop: '16px'
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <UserPlus style={{ height: '14px', width: '14px' }} /> Agregar ayudante
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={newAyudanteNombre}
+                    onChange={(e) => setNewAyudanteNombre(e.target.value)}
+                    placeholder="Nombre del ayudante"
+                    style={{
+                      padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
+                      fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
+                    }}
+                  />
+                  <input
+                    type="text"
+                    value={newAyudantePassword}
+                    onChange={(e) => setNewAyudantePassword(e.target.value)}
+                    placeholder="Contraseña (mín. 4 caracteres)"
+                    style={{
+                      padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
+                      fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
+                    }}
+                  />
+                  <button
+                    onClick={addAyudante}
+                    disabled={!newAyudanteNombre.trim() || !newAyudantePassword.trim() || newAyudantePassword.trim().length < 4}
+                    style={{
+                      padding: '10px 16px', borderRadius: '8px', border: 'none',
+                      fontSize: '14px', fontWeight: '600', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+                      backgroundColor: newAyudanteNombre.trim() && newAyudantePassword.trim().length >= 4 ? '#2563eb' : '#d1d5db',
+                      color: newAyudanteNombre.trim() && newAyudantePassword.trim().length >= 4 ? 'white' : '#9ca3af',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <UserPlus style={{ height: '16px', width: '16px' }} />
+                    Agregar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

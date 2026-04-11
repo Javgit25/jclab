@@ -9,6 +9,15 @@ export interface DoctorInfo {
   hospital: string;
   selectedDate: string;
   loginDate?: string;
+  cargadoPor?: string;       // Quién está usando la app (médico o ayudante)
+}
+
+export interface Ayudante {
+  id: string;
+  nombre: string;
+  password: string;
+  activo: boolean;
+  creadoAt: string;
 }
 
 export interface RegisteredDoctor {
@@ -22,6 +31,7 @@ export interface RegisteredDoctor {
   password: string;
   registeredAt: string;
   profileChanges: ProfileChange[];
+  ayudantes?: Ayudante[];
 }
 
 export interface ProfileChange {
@@ -45,6 +55,7 @@ export interface HistoryEntry {
   timestamp: string;
   biopsies: BiopsyForm[];
   doctorInfo: DoctorInfo;
+  cargadoPor?: string;
 }
 
 export interface SyncAction {
@@ -97,6 +108,7 @@ export interface BiopsyForm {
   citologiaQuantity: number;  // Cantidad de vidrios de citología
   citologiaUrgente: boolean;  // Si citología es urgente
   citologiaSubType?: string;  // Subtipo: 'PAAF' | 'Líquidos' | ''
+  cargadoPor?: string;        // Nombre de quien cargó (médico o ayudante)
 }
 
 export interface VirtualKeyboard {

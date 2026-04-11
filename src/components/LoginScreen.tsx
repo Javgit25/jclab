@@ -115,12 +115,64 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     else { setExistingDoctor(null); setMode('register'); }
   }, [email]);
 
+  const [showUserSelect, setShowUserSelect] = useState(false);
+  const [ayudantePassword, setAyudantePassword] = useState('');
+
   const handleLogin = useCallback(async () => {
     if (isSubmitting || !existingDoctor) return;
     if (!password) { setErrors({ password: 'Ingrese su contraseña' }); return; }
-    if (password !== existingDoctor.password) { setErrors({ password: 'Contraseña incorrecta' }); return; }
 
-    setIsSubmitting(true); setErrors({});
+    // Verificar si es contraseña del médico
+    if (password === existingDoctor.password) {
+      const ayudantes = (existingDoctor as any).ayudantes || [];
+      if (ayudantes.filter((a: any) => a.activo).length > 0) {
+        // Tiene ayudantes: mostrar selección de usuario
+        setShowUserSelect(true);
+        return;
+      }
+      // No tiene ayudantes: login directo como médico
+      setIsSubmitting(true); setErrors({});
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        onLogin({
+          id: existingDoctor.id,
+          name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
+          firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
+          hospital: existingDoctor.hospital, email: existingDoctor.email,
+          selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
+          cargadoPor: `Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`
+        });
+      } catch { setErrors({ general: 'Error al iniciar sesión' }); }
+      finally { setIsSubmitting(false); }
+      return;
+    }
+
+    // Verificar si es contraseña de un ayudante
+    const ayudantes = (existingDoctor as any).ayudantes || [];
+    const ayudante = ayudantes.find((a: any) => a.activo && a.password === password);
+    if (ayudante) {
+      setIsSubmitting(true); setErrors({});
+      try {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        onLogin({
+          id: existingDoctor.id,
+          name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
+          firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
+          hospital: existingDoctor.hospital, email: existingDoctor.email,
+          selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
+          cargadoPor: ayudante.nombre
+        });
+      } catch { setErrors({ general: 'Error al iniciar sesión' }); }
+      finally { setIsSubmitting(false); }
+      return;
+    }
+
+    setErrors({ password: 'Contraseña incorrecta' });
+  }, [existingDoctor, password, onLogin, isSubmitting]);
+
+  const loginAsUser = useCallback(async (userName: string) => {
+    if (!existingDoctor) return;
+    setIsSubmitting(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 200));
       onLogin({
@@ -128,11 +180,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
         name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
         firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
         hospital: existingDoctor.hospital, email: existingDoctor.email,
-        selectedDate: new Date().toDateString(), loginDate: new Date().toDateString()
+        selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
+        cargadoPor: userName
       });
-    } catch { setErrors({ general: 'Error al iniciar sesión' }); }
+    } catch {}
     finally { setIsSubmitting(false); }
-  }, [existingDoctor, password, onLogin, isSubmitting]);
+  }, [existingDoctor, onLogin]);
 
   const handleRegister = useCallback(async () => {
     if (isSubmitting) return;
@@ -325,52 +378,91 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
               <div className="text-xs text-blue-600">{existingDoctor.email}</div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                <Lock size={14} className="inline mr-1" /> Contraseña
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'} value={password}
-                  onChange={(e) => { setPassword(e.target.value); setErrors({}); }}
-                  onFocus={() => openKeyboard('password', password)} inputMode="none" readOnly
-                  onKeyPress={handleKeyPressNative}
-                  className={inputClass('password')}
-                  placeholder="Ingrese su contraseña"
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
-                  {showPassword ? 'Ocultar' : 'Ver'}
+            {!showUserSelect && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Lock size={14} className="inline mr-1" /> Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'} value={password}
+                      onChange={(e) => { setPassword(e.target.value); setErrors({}); }}
+                      onFocus={() => openKeyboard('password', password)} inputMode="none" readOnly
+                      onKeyPress={handleKeyPressNative}
+                      className={inputClass('password')}
+                      placeholder="Ingrese su contraseña"
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                      {showPassword ? 'Ocultar' : 'Ver'}
+                    </button>
+                  </div>
+                  {errors.password && (
+                    <div className="flex items-center mt-1 text-red-600 text-xs">
+                      <AlertCircle className="h-3 w-3 mr-1" /> {errors.password}
+                    </div>
+                  )}
+                </div>
+
+                <button onClick={handleLogin} disabled={!password || isSubmitting}
+                  className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base ${
+                    password && !isSubmitting ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /><span>Ingresando...</span></>
+                  ) : (
+                    <><LogIn size={18} /><span>Ingresar</span></>
+                  )}
+                </button>
+
+                <div className="flex justify-between">
+                  <button onClick={goBack} className="text-sm text-gray-500 hover:text-gray-700 py-1">
+                    ← Otro email
+                  </button>
+                  <button onClick={() => { setMode('recover'); setErrors({}); setNewPassword(''); setConfirmPassword(''); }}
+                    className="text-sm text-blue-500 hover:text-blue-700 py-1 flex items-center gap-1">
+                    <Key size={12} /> Olvidé mi contraseña
+                  </button>
+                </div>
+              </>
+            )}
+
+            {showUserSelect && (
+              <div className="space-y-3">
+                <div className="text-center">
+                  <p className="text-base font-semibold text-gray-700">¿Quién va a cargar?</p>
+                </div>
+                <button
+                  onClick={() => loginAsUser(`Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`)}
+                  disabled={isSubmitting}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base shadow-lg"
+                >
+                  <LogIn size={18} />
+                  <span>Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}</span>
+                </button>
+                {((existingDoctor as any).ayudantes || [])
+                  .filter((a: any) => a.activo)
+                  .map((a: any) => (
+                    <button
+                      key={a.id}
+                      onClick={() => loginAsUser(a.nombre)}
+                      disabled={isSubmitting}
+                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base shadow-lg"
+                    >
+                      <LogIn size={18} />
+                      <span>{a.nombre}</span>
+                    </button>
+                  ))}
+                <button
+                  onClick={() => { setShowUserSelect(false); setPassword(''); }}
+                  className="w-full text-sm text-gray-500 hover:text-gray-700 py-1"
+                >
+                  ← Volver
                 </button>
               </div>
-              {errors.password && (
-                <div className="flex items-center mt-1 text-red-600 text-xs">
-                  <AlertCircle className="h-3 w-3 mr-1" /> {errors.password}
-                </div>
-              )}
-            </div>
-
-            <button onClick={handleLogin} disabled={!password || isSubmitting}
-              className={`w-full font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base ${
-                password && !isSubmitting ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg' : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {isSubmitting ? (
-                <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /><span>Ingresando...</span></>
-              ) : (
-                <><LogIn size={18} /><span>Ingresar</span></>
-              )}
-            </button>
-
-            <div className="flex justify-between">
-              <button onClick={goBack} className="text-sm text-gray-500 hover:text-gray-700 py-1">
-                ← Otro email
-              </button>
-              <button onClick={() => { setMode('recover'); setErrors({}); setNewPassword(''); setConfirmPassword(''); }}
-                className="text-sm text-blue-500 hover:text-blue-700 py-1 flex items-center gap-1">
-                <Key size={12} /> Olvidé mi contraseña
-              </button>
-            </div>
+            )}
           </div>
         )}
 

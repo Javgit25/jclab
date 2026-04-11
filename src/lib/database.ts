@@ -140,6 +140,7 @@ export const db = {
           active: d.active,
           registeredAt: d.registered_at,
           profileChanges: d.profile_changes,
+          ayudantes: d.ayudantes || [],
         }));
         localStorage.setItem('registeredDoctors', JSON.stringify(doctors));
         return doctors;
@@ -167,6 +168,7 @@ export const db = {
         active: doctor.active !== false,
         registered_at: doctor.registeredAt,
         profile_changes: doctor.profileChanges,
+        ayudantes: doctor.ayudantes || [],
         updated_at: new Date().toISOString(),
       });
     } catch (e) { console.error('Error saving doctor:', e); }

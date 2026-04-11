@@ -385,7 +385,8 @@ function App() {
       biopsies: [...todayBiopsies],
       doctorInfo: { ...doctorInfo },
       totalCount: todayBiopsies.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      cargadoPor: doctorInfo.cargadoPor || `Dr/a. ${doctorInfo.firstName || ''} ${doctorInfo.lastName || ''}`.trim()
     };
     
     // Usar el ID único como key en lugar de solo la fecha
@@ -459,7 +460,8 @@ function App() {
         estado: 'pendiente',
         remitoNumber: remito.remitoNumber,
         timestamp: remito.timestamp,
-        doctorEmail: remito.doctorInfo.email
+        doctorEmail: remito.doctorInfo.email,
+        cargadoPor: (remito as any).cargadoPor || ''
       };
       
       // No verificar duplicados por médico/fecha, siempre agregar
@@ -545,7 +547,8 @@ function App() {
       biopsies: updatedBiopsies,
       doctorInfo: { ...doctorInfo },
       totalCount: updatedBiopsies.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      cargadoPor: doctorInfo.cargadoPor || `Dr/a. ${doctorInfo.firstName || ''} ${doctorInfo.lastName || ''}`.trim()
     };
 
     // Usar ID único como key
