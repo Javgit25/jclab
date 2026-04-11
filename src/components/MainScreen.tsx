@@ -2787,6 +2787,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
                           {cassettes > 0 && tipo !== 'PAP' && tipo !== 'CITO' && <span style={{ fontSize: '11px', background: '#eff6ff', color: '#1e40af', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>Cassettes: {cassettes}</span>}
                           {(result.pieces && parseInt(result.pieces) > 0) && <span style={{ fontSize: '11px', background: '#f5f3ff', color: '#6d28d9', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>Trozos: {result.pieces}</span>}
+                          {(result as any).trozoPorCassette && (result as any).trozoPorCassette.length > 1 && (
+                            <span style={{ fontSize: '10px', background: '#f0f4ff', color: '#1e3a5f', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
+                              {(result as any).trozoPorCassette.map((t: number, ci: number) => {
+                                const cname = ci === 0 ? (cn[0]?.base || 'C1') : ('S' + (cn[ci]?.suffix || ci));
+                                return cname + ':' + (t || 1);
+                              }).join(', ')}
+                            </span>
+                          )}
+                          {(result as any).quedaMaterial && <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontWeight: '700' }}>⚠ Queda material</span>}
                           {cassettes > 1 && cn.length > 1 && (
                             <span style={{ fontSize: '11px', background: '#f0f9ff', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
                               SUBs: {cn.slice(1).map((c: any, i: number) => typeof c === 'object' ? (c.suffix || 'S' + (i+1)) : (c && c !== '0' ? c : 'S' + (i+1))).join(', ')}
