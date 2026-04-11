@@ -68,6 +68,7 @@ interface Notification {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<'admin' | 'tecnico'>('admin');
   const [loginForm, setLoginForm] = useState({ username: '', password: '', labCode: localStorage.getItem('lastAdminLabCode') || '' });
   const [currentLabCode, setCurrentLabCode] = useState('');
   const [currentView, setCurrentView] = useState('dashboard');
@@ -431,12 +432,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         alert('Código de laboratorio no válido');
         return;
       }
-      // Validar credenciales contra las del laboratorio
+      // Validar credenciales: admin principal o técnico
       const labUser = lab.adminUser || 'admin';
       const labPass = lab.adminPassword || 'admin123';
-      if (loginForm.username !== labUser || loginForm.password !== labPass) {
-        alert('❌ Credenciales incorrectas');
-        return;
+      const tecnicos = lab.adminTecnicos || [];
+
+      let role: 'admin' | 'tecnico' = 'admin';
+
+      if (loginForm.username === labUser && loginForm.password === labPass) {
+        role = 'admin';
+      } else {
+        const tecnico = tecnicos.find((t: any) => t.activo && t.usuario === loginForm.username && t.password === loginForm.password);
+        if (tecnico) {
+          role = 'tecnico';
+        } else {
+          alert('❌ Credenciales incorrectas');
+          return;
+        }
       }
       if (lab.estado === 'vencido') {
         alert('La suscripción de este laboratorio está vencida.\nContacte a BiopsyTracker para renovar.');
@@ -448,6 +460,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       }
       setCurrentLabCode(code);
       localStorage.setItem('lastAdminLabCode', code);
+      setUserRole(role);
       setIsAuthenticated(true);
     } catch {
       alert('Error al verificar laboratorio');
@@ -1268,12 +1281,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           
           <nav className="space-y-2">
             {[
-              { id: 'dashboard', icon: BarChart3, label: 'Dashboard', desc: 'Urgentes, en proceso y listos para retirar' },
-              { id: 'remitos', icon: FileText, label: 'Gestión de Remitos', desc: 'Editar biopsias y agregar servicios adicionales' },
-              { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico' },
-              { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos' },
-              { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos' }
-            ].map(({ id, icon: Icon, label, desc }) => (
+              { id: 'dashboard', icon: BarChart3, label: 'Dashboard', desc: 'Urgentes, en proceso y listos para retirar', roles: ['admin', 'tecnico'] },
+              { id: 'remitos', icon: FileText, label: 'Gestión de Remitos', desc: 'Editar biopsias y agregar servicios adicionales', roles: ['admin', 'tecnico'] },
+              { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico', roles: ['admin'] },
+              { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos', roles: ['admin'] },
+              { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos', roles: ['admin'] }
+            ].filter(item => item.roles.includes(userRole)).map(({ id, icon: Icon, label, desc }) => (
               <button
                 key={id}
                 onClick={() => setCurrentView(id)}
@@ -1342,7 +1355,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 <div className="flex items-center space-x-3">
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-800">Administrador</p>
-                    <p className="text-xs text-gray-500">Sesión activa</p>
+                    <p className="text-xs text-gray-500">{userRole === 'tecnico' ? '🔧 Técnico' : '🔑 Administrador'}</p>
                   </div>
                   <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                     <span className="text-white text-sm font-bold">A</span>
@@ -1460,12 +1473,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <button onClick={() => setCurrentView('remitos')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
                     Gestión Remitos
                   </button>
-                  <button onClick={() => setCurrentView('facturacion')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
-                    Facturación
-                  </button>
-                  <button onClick={() => setCurrentView('analytics')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
-                    Cobros
-                  </button>
+                  {userRole === 'admin' && (
+                    <>
+                      <button onClick={() => setCurrentView('facturacion')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
+                        Facturación
+                      </button>
+                      <button onClick={() => setCurrentView('analytics')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
+                        Cobros
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1565,7 +1582,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <td className="py-2 px-3 text-center">
                             <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{dashFilter === 'listos' ? listasCount : pendientesCount}/{totalBiopsias}</span>
                           </td>
-                          <td className="py-2 px-3 text-right text-xs font-bold text-gray-900">${calcularTotalRemito(remito.biopsias).toLocaleString()}</td>
+                          <td className="py-2 px-3 text-right text-xs font-bold text-gray-900">{userRole === 'admin' ? `$${calcularTotalRemito(remito.biopsias).toLocaleString()}` : '—'}</td>
                           <td className="py-2 px-3 text-center">
                             {hasUrgent ? (
                               <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-200">URGENTE</span>
@@ -3436,6 +3453,97 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Gestión de Técnicos */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Users className="mr-2 text-orange-600" size={20} />
+                  Usuarios del Panel (Técnicos)
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">Los técnicos pueden acceder al Dashboard y Gestión de Remitos, pero no a Facturación, Cobros ni Configuración.</p>
+                {(() => {
+                  const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+                  const lab = labs.find((l: any) => l.labCode === currentLabCode);
+                  const tecnicos = lab?.adminTecnicos || [];
+
+                  const saveTecnicos = (updated: any[]) => {
+                    const allLabs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+                    const updatedLabs = allLabs.map((l: any) => l.labCode === currentLabCode ? { ...l, adminTecnicos: updated } : l);
+                    localStorage.setItem('superAdmin_laboratories', JSON.stringify(updatedLabs));
+                    const updatedLab = updatedLabs.find((l: any) => l.labCode === currentLabCode);
+                    if (updatedLab) db.saveLab(updatedLab);
+                  };
+
+                  return (
+                    <div>
+                      {tecnicos.length === 0 ? (
+                        <p className="text-sm text-gray-400 text-center py-3">No hay técnicos registrados</p>
+                      ) : (
+                        <div className="space-y-2 mb-4">
+                          {tecnicos.map((t: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border">
+                              <div>
+                                <div className="font-semibold text-sm text-gray-900">{t.nombre}</div>
+                                <div className="text-xs text-gray-500">Usuario: <span className="font-mono">{t.usuario}</span></div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-xs font-semibold px-2 py-0.5 rounded ${t.activo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                  {t.activo ? 'Activo' : 'Inactivo'}
+                                </span>
+                                <button onClick={() => {
+                                  const updated = [...tecnicos];
+                                  updated[i] = { ...updated[i], activo: !updated[i].activo };
+                                  saveTecnicos(updated);
+                                  setRemitos([...remitos]); // force re-render
+                                }} className="text-xs text-blue-600 hover:text-blue-800 font-semibold">
+                                  {t.activo ? 'Desactivar' : 'Activar'}
+                                </button>
+                                <button onClick={() => {
+                                  if (confirm(`¿Eliminar técnico ${t.nombre}?`)) {
+                                    saveTecnicos(tecnicos.filter((_: any, j: number) => j !== i));
+                                    setRemitos([...remitos]);
+                                  }
+                                }} className="text-xs text-red-600 hover:text-red-800 font-semibold">
+                                  Eliminar
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="border-t border-gray-200 pt-4">
+                        <div className="text-sm font-semibold text-gray-700 mb-2">Agregar técnico</div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input type="text" placeholder="Nombre" id="tecNombre"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                          <input type="text" placeholder="Usuario" id="tecUsuario"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono" />
+                          <input type="password" placeholder="Contraseña" id="tecPassword"
+                            className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                        </div>
+                        <button onClick={() => {
+                          const nombre = (document.getElementById('tecNombre') as HTMLInputElement)?.value?.trim();
+                          const usuario = (document.getElementById('tecUsuario') as HTMLInputElement)?.value?.trim();
+                          const password = (document.getElementById('tecPassword') as HTMLInputElement)?.value?.trim();
+                          if (!nombre || !usuario || !password || password.length < 4) {
+                            alert('Complete todos los campos (contraseña mín. 4 caracteres)');
+                            return;
+                          }
+                          const updated = [...tecnicos, { nombre, usuario, password, activo: true, creadoAt: new Date().toISOString() }];
+                          saveTecnicos(updated);
+                          (document.getElementById('tecNombre') as HTMLInputElement).value = '';
+                          (document.getElementById('tecUsuario') as HTMLInputElement).value = '';
+                          (document.getElementById('tecPassword') as HTMLInputElement).value = '';
+                          setRemitos([...remitos]);
+                          alert(`✅ Técnico "${nombre}" agregado. Puede ingresar con usuario "${usuario}" y su contraseña.`);
+                        }} className="mt-2 bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                          + Agregar Técnico
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Control de Médicos */}

@@ -68,6 +68,7 @@ export const db = {
           emailjsConfig: l.emailjs_config,
           labConfig: l.lab_config,
           adminConfig: l.admin_config,
+          adminTecnicos: l.lab_config?.adminTecnicos || [],
           historialPagos: l.historial_pagos,
         }));
         localStorage.setItem('superAdmin_laboratories', JSON.stringify(labs));
@@ -102,7 +103,7 @@ export const db = {
         logo_margin_top: lab.logoMarginTop,
         info_margin_top: lab.infoMarginTop,
         emailjs_config: lab.emailjsConfig,
-        lab_config: lab.labConfig,
+        lab_config: { ...(lab.labConfig || {}), adminTecnicos: lab.adminTecnicos || [] },
         admin_config: lab.adminConfig,
         historial_pagos: lab.historialPagos,
         updated_at: new Date().toISOString(),
