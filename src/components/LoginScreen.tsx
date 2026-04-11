@@ -376,21 +376,62 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}
               </div>
               <div className="text-xs text-blue-600">{existingDoctor.email}</div>
-              {((existingDoctor as any).ayudantes || []).filter((a: any) => a.activo).length > 0 && !showUserSelect && (
-                <div className="mt-2 pt-2 border-t border-blue-200">
-                  <div className="text-xs text-blue-500 mb-1">Usuarios registrados:</div>
-                  <div className="flex flex-wrap gap-1 justify-center">
-                    <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs font-semibold">Dr/a. {existingDoctor.firstName}</span>
-                    {((existingDoctor as any).ayudantes || []).filter((a: any) => a.activo).map((a: any) => (
-                      <span key={a.id} className="bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">{a.nombre}</span>
-                    ))}
-                  </div>
-                  <div className="text-xs text-gray-400 mt-1">Cada usuario ingresa con su contraseña</div>
-                </div>
-              )}
             </div>
 
-            {!showUserSelect && (
+            {/* Si tiene ayudantes: mostrar botones directamente */}
+            {((existingDoctor as any).ayudantes || []).filter((a: any) => a.activo).length > 0 ? (
+              <div className="space-y-2">
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-gray-600">Seleccione usuario e ingrese su clave</p>
+                </div>
+
+                {/* Doctor principal */}
+                <button
+                  onClick={() => {
+                    const clave = prompt(`Contraseña de Dr/a. ${existingDoctor.firstName}:`);
+                    if (!clave) return;
+                    if (clave === existingDoctor.password) {
+                      loginAsUser(`Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`);
+                    } else { alert('❌ Contraseña incorrecta'); }
+                  }}
+                  disabled={isSubmitting}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base shadow-lg"
+                >
+                  <LogIn size={18} />
+                  <span>Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}</span>
+                  <Lock size={14} className="ml-1 opacity-50" />
+                </button>
+
+                {/* Ayudantes */}
+                {((existingDoctor as any).ayudantes || [])
+                  .filter((a: any) => a.activo)
+                  .map((a: any) => (
+                    <button key={a.id}
+                      onClick={() => {
+                        const clave = prompt(`Contraseña de ${a.nombre}:`);
+                        if (!clave) return;
+                        if (clave === a.password) { loginAsUser(a.nombre); }
+                        else { alert('❌ Contraseña incorrecta'); }
+                      }}
+                      disabled={isSubmitting}
+                      className="w-full bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-lg border border-purple-200 transition-all flex items-center justify-center space-x-2 text-base"
+                    >
+                      <LogIn size={18} />
+                      <span>{a.nombre}</span>
+                      <Lock size={14} className="ml-1 opacity-50" />
+                    </button>
+                  ))}
+
+                <div className="flex justify-between">
+                  <button onClick={goBack} className="text-sm text-gray-500 hover:text-gray-700 py-1">← Otro email</button>
+                  <button onClick={() => { setMode('recover'); setErrors({}); setNewPassword(''); setConfirmPassword(''); }}
+                    className="text-sm text-blue-500 hover:text-blue-700 py-1 flex items-center gap-1">
+                    <Key size={12} /> Olvidé mi contraseña
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Sin ayudantes: contraseña normal */
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -430,65 +471,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 </button>
 
                 <div className="flex justify-between">
-                  <button onClick={goBack} className="text-sm text-gray-500 hover:text-gray-700 py-1">
-                    ← Otro email
-                  </button>
+                  <button onClick={goBack} className="text-sm text-gray-500 hover:text-gray-700 py-1">← Otro email</button>
                   <button onClick={() => { setMode('recover'); setErrors({}); setNewPassword(''); setConfirmPassword(''); }}
                     className="text-sm text-blue-500 hover:text-blue-700 py-1 flex items-center gap-1">
                     <Key size={12} /> Olvidé mi contraseña
                   </button>
                 </div>
               </>
-            )}
-
-            {showUserSelect && (
-              <div className="space-y-3">
-                <div className="text-center">
-                  <p className="text-base font-semibold text-gray-700">Seleccione usuario e ingrese su clave</p>
-                </div>
-
-                {/* Doctor principal — ya autenticado con su clave */}
-                <button
-                  onClick={() => loginAsUser(`Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`)}
-                  disabled={isSubmitting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base shadow-lg"
-                >
-                  <LogIn size={18} />
-                  <span>Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}</span>
-                </button>
-
-                {/* Ayudantes — cada uno pide su clave */}
-                {((existingDoctor as any).ayudantes || [])
-                  .filter((a: any) => a.activo)
-                  .map((a: any) => (
-                    <div key={a.id} className="border border-purple-200 rounded-lg overflow-hidden">
-                      <button
-                        onClick={() => {
-                          const clave = prompt(`Contraseña de ${a.nombre}:`);
-                          if (!clave) return;
-                          if (clave === a.password) {
-                            loginAsUser(a.nombre);
-                          } else {
-                            alert('❌ Contraseña incorrecta');
-                          }
-                        }}
-                        disabled={isSubmitting}
-                        className="w-full bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 transition-all flex items-center justify-center space-x-2 text-base"
-                      >
-                        <LogIn size={18} />
-                        <span>{a.nombre}</span>
-                        <Lock size={14} className="ml-1 opacity-50" />
-                      </button>
-                    </div>
-                  ))}
-
-                <button
-                  onClick={() => { setShowUserSelect(false); setPassword(''); }}
-                  className="w-full text-sm text-gray-500 hover:text-gray-700 py-1"
-                >
-                  ← Volver
-                </button>
-              </div>
             )}
           </div>
         )}
