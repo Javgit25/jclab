@@ -2744,11 +2744,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     const serviciosDetail: string[] = [];
                     if (svc.cassetteUrgente) serviciosDetail.push('URGENTE 24hs');
                     if (svc.corteBlancoIHQ) {
-                      const cassLabel = (svc.corteBlancoIHQCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ');
+                      const cassLabel = (svc.corteBlancoIHQCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ');
                       serviciosDetail.push('Corte IHQ ×' + (svc.corteBlancoIHQQuantity || 1) + (cassLabel ? ' [' + cassLabel + ']' : ''));
                     }
                     if (svc.corteBlancoComun) {
-                      const cassLabel = (svc.corteBlancoComunCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ');
+                      const cassLabel = (svc.corteBlancoComunCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ');
                       serviciosDetail.push('Corte Blanco ×' + (svc.corteBlancoComunQuantity || 1) + (cassLabel ? ' [' + cassLabel + ']' : ''));
                     }
                     if (svc.giemsaPASMasson) {
@@ -2757,7 +2757,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       if (opts.giemsa) t.push('Giemsa');
                       if (opts.pas) t.push('PAS');
                       if (opts.masson) t.push('Masson');
-                      const cassLabel = (svc.giemsaCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ');
+                      const cassLabel = (svc.giemsaCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ');
                       serviciosDetail.push((t.length > 0 ? t.join(', ') : 'Tinciones') + (cassLabel ? ' [' + cassLabel + ']' : ''));
                     }
 
@@ -2790,7 +2790,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           {(result as any).trozoPorCassette && (result as any).trozoPorCassette.length > 1 && (
                             <span style={{ fontSize: '10px', background: '#f0f4ff', color: '#1e3a5f', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
                               {(result as any).trozoPorCassette.map((t: number, ci: number) => {
-                                const cname = ci === 0 ? (cn[0]?.base || 'C1') : ('S' + (cn[ci]?.suffix || ci));
+                                const cname = ci === 0 ? (cn[0]?.base || 'C1') : ('S/' + (cn[ci]?.suffix || ci));
                                 return cname + ':' + (t || 1);
                               }).join(', ')}
                             </span>
@@ -2798,7 +2798,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           {(result as any).quedaMaterial && <span style={{ fontSize: '11px', background: '#fef3c7', color: '#92400e', padding: '2px 8px', borderRadius: '4px', fontWeight: '700' }}>⚠ Queda material</span>}
                           {cassettes > 1 && cn.length > 1 && (
                             <span style={{ fontSize: '11px', background: '#f0f9ff', color: '#0369a1', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
-                              SUBs: {cn.slice(1).map((c: any, i: number) => typeof c === 'object' ? (c.suffix || 'S' + (i+1)) : (c && c !== '0' ? c : 'S' + (i+1))).join(', ')}
+                              SUBs: {cn.slice(1).map((c: any, i: number) => typeof c === 'object' ? (c.suffix || 'S/' + (i+1)) : (c && c !== '0' ? c : 'S/' + (i+1))).join(', ')}
                             </span>
                           )}
                           {(result.papQuantity || 0) > 0 && <span style={{ fontSize: '11px', background: '#fce7f3', color: '#be185d', padding: '2px 8px', borderRadius: '4px', fontWeight: '600' }}>PAP: {result.papQuantity}</span>}
@@ -3028,7 +3028,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           {cassNum > 0 ? cassNum : '-'}
                           {cassNum > 1 && cnArr.length > 1 && (
                             <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
-                              {cnArr.slice(1).map((c: any, si: number) => 'S-' + (typeof c === 'object' ? (c.suffix || (si+1)) : (c && c !== '0' ? c : (si+1)))).join(', ')}
+                              {cnArr.slice(1).map((c: any, si: number) => 'S/' + (typeof c === 'object' ? (c.suffix || (si+1)) : (c && c !== '0' ? c : (si+1)))).join(', ')}
                             </div>
                           )}
                         </td>

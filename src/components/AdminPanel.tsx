@@ -1015,7 +1015,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 const cn = (biopsia as any).cassettesNumbers || [];
                 const getCassNames = (indices: number[]) => {
                   if (!indices || indices.length === 0) return '';
-                  return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[c]?.suffix || c)).join(', ') + ']';
+                  return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ') + ']';
                 };
                 if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
                   const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoIHQCassettes || []);
@@ -1685,7 +1685,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           if (tpc.length > 1) {
                                             return <div>
                                               <div className="font-bold">{totalT}</div>
-                                              <div className="text-gray-400" style={{ fontSize: '8px' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cn[0]?.base || 'C1') : ('S' + (cn[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                              <div className="text-gray-400" style={{ fontSize: '8px' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cn[0]?.base || 'C1') : ('S/' + (cn[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
                                             </div>;
                                           }
                                           return <span>{totalT || '-'}</span>;
@@ -1783,7 +1783,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           if (!isPAP && !isCito && trozoPorCass.length > 1) {
                             trozosDetalle = trozoPorCass.map((t: number, ci: number) => {
                               const cn = cassNums[ci];
-                              const name = ci === 0 ? (cn?.base || 'C1') : (cn?.suffix ? 'S' + cn.suffix : 'S' + ci);
+                              const name = ci === 0 ? (cn?.base || 'C1') : (cn?.suffix ? 'S/' + cn.suffix : 'S/' + ci);
                               return name + ':' + (t || 1);
                             }).join(', ');
                           }
@@ -2031,18 +2031,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               if ((biopsia.servicios?.citologiaUrgente || 0) > 0) servicios.push('Cito Urgente');
                               if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
                                 const cass = (biopsia.servicios as any)?.corteBlancoIHQCassettes;
-                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '-' + (cn[c]?.suffix || 'S' + c); }).join(', ')}]` : '';
+                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '/' + (cn[c]?.suffix || 'S/' + c); }).join(', ')}]` : '';
                                 servicios.push(`Corte IHQ (${biopsia.servicios.corteBlancoIHQ})${cassLabel}`);
                               }
                               if ((biopsia.servicios?.corteBlanco || 0) > 0) {
                                 const cass = (biopsia.servicios as any)?.corteBlancoComunCassettes;
-                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '-' + (cn[c]?.suffix || 'S' + c); }).join(', ')}]` : '';
+                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '/' + (cn[c]?.suffix || 'S/' + c); }).join(', ')}]` : '';
                                 servicios.push(`Corte Blanco (${biopsia.servicios.corteBlanco})${cassLabel}`);
                               }
                               if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
                                 const opts = (biopsia.servicios as any)?.giemsaOptions;
                                 const cass = (biopsia.servicios as any)?.giemsaCassettes;
-                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '-' + (cn[c]?.suffix || 'S' + c); }).join(', ')}]` : '';
+                                const cassLabel = cass?.length > 0 ? ` [C${cass.map((c: number) => { const cn = (biopsia as any).cassettesNumbers || []; return c === 0 ? (cn[0]?.base || '') : '/' + (cn[c]?.suffix || 'S/' + c); }).join(', ')}]` : '';
                                 if (opts) {
                                   const t: string[] = [];
                                   if (opts.giemsa) t.push('Giemsa');
@@ -2121,7 +2121,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                                 const isSel = sel.includes(ci);
                                                 return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQCassettes: newSel }}; setEditingBiopsias(u); }}
                                                   className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[ci]?.suffix || ci); })()}</button>;
+                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[ci]?.suffix || ci); })()}</button>;
                                               })}
                                             </div>
                                           )}
@@ -2148,7 +2148,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                                 const isSel = sel.includes(ci);
                                                 return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoComunCassettes: newSel }}; setEditingBiopsias(u); }}
                                                   className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[ci]?.suffix || ci); })()}</button>;
+                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[ci]?.suffix || ci); })()}</button>;
                                               })}
                                             </div>
                                           )}
@@ -2176,7 +2176,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                             const isSel = sel.includes(ci);
                                             return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, giemsaCassettes: newSel }}; setEditingBiopsias(u); }}
                                               className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                            >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S-' + (cn[ci]?.suffix || ci); })()}</button>;
+                                            >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[ci]?.suffix || ci); })()}</button>;
                                           })}
                                         </div>
                                       )}

@@ -1318,7 +1318,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                               if (tpc.length > 1) {
                                 return <div>
                                   <div style={{ fontWeight: 700 }}>{totalT}</div>
-                                  <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                  <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S/' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
                                 </div>;
                               }
                               return totalT || '-';
