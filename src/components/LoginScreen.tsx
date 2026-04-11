@@ -376,6 +376,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}
               </div>
               <div className="text-xs text-blue-600">{existingDoctor.email}</div>
+              {((existingDoctor as any).ayudantes || []).filter((a: any) => a.activo).length > 0 && !showUserSelect && (
+                <div className="mt-2 pt-2 border-t border-blue-200">
+                  <div className="text-xs text-blue-500 mb-1">Usuarios registrados:</div>
+                  <div className="flex flex-wrap gap-1 justify-center">
+                    <span className="bg-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs font-semibold">Dr/a. {existingDoctor.firstName}</span>
+                    {((existingDoctor as any).ayudantes || []).filter((a: any) => a.activo).map((a: any) => (
+                      <span key={a.id} className="bg-purple-200 text-purple-800 px-2 py-0.5 rounded-full text-xs font-semibold">{a.nombre}</span>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">Cada usuario ingresa con su contraseña</div>
+                </div>
+              )}
             </div>
 
             {!showUserSelect && (
