@@ -1561,9 +1561,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 {remito.biopsias.map((b, bi) => {
                                   const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
                                   const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
-                                  const citoST = (b as any).citologiaSubType || (b as any)['citologiaSubType'] || '';
-                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Citología') : b.tipo === 'PQ' ? 'PQ' : 'BX';
-                                  if (esCito) console.log('🔍 Cito biopsia:', JSON.stringify(b).substring(0, 200), 'subType:', citoST);
+                                  const citoST = (b as any).citologiaSubType || '';
+                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Cito') : b.tipo === 'PQ' ? 'PQ' : 'BX';
                                   const cass = parseInt(String(b.cassettes)) || 0;
                                   const esUrgente = biopsiaEsUrgente(b);
                                   const estaLista = biopsiaListas[bi] || false;
@@ -1580,9 +1579,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         className={`w-6 h-6 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${estaLista ? 'bg-green-600 border-green-600 text-white cursor-default' : 'border-gray-300 hover:border-green-500 cursor-pointer'}`}>
                                         {estaLista && <CheckCircle size={14} />}
                                       </button>
-                                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${esUrgente ? 'bg-red-600 text-white' : 'bg-blue-100 text-blue-700'}`}>{tipo}</span>
+                                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${esUrgente ? 'bg-red-600 text-white' : esCito ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{tipo}</span>
                                       <span className="text-xs font-semibold text-gray-800">#{b.numero}</span>
-                                      <span className="text-xs text-gray-600">{b.tejido}</span>
+                                      <span className="text-xs text-gray-600">{esCito && citoST ? `Citología (${citoST})` : b.tejido}</span>
                                       {esPAP && <span className="text-xs font-semibold text-purple-600">{b.papQuantity || b.cassettes || 1} vid.</span>}
                                       {esCito && <span className="text-xs font-semibold text-purple-600">{b.citologiaQuantity || b.cassettes || 1} vid.</span>}
                                       {cass > 0 && !esPAP && !esCito && <span className="text-xs text-gray-400">{cass} cass.</span>}
