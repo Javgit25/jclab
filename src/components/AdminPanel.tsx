@@ -2978,6 +2978,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
+              {/* Recordatorio de Deuda */}
+              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Mail className="mr-2 text-red-600" size={20} />
+                  Recordatorio de Deuda
+                </h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Si no se ha registrado el pago hasta el día indicado, se habilitará la opción de enviar un recordatorio por email al médico.
+                </p>
+                <div className="flex items-center gap-4">
+                  <label className="text-sm font-medium text-gray-700">Activar recordatorio a partir del día</label>
+                  <input
+                    type="number"
+                    value={(configuracion as any).diaRecordatorioDeuda || 15}
+                    onChange={(e) => setConfiguracion((prev: any) => ({ ...prev, diaRecordatorioDeuda: Math.max(1, Math.min(28, Number(e.target.value))) }))}
+                    className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center font-bold text-lg focus:ring-2 focus:ring-red-500"
+                    min="1"
+                    max="28"
+                  />
+                  <span className="text-sm text-gray-500">de cada mes</span>
+                </div>
+                <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-xs text-red-700">
+                    📅 Si hoy es día <strong>{(configuracion as any).diaRecordatorioDeuda || 15}</strong> o posterior y hay médicos con deuda pendiente, aparecerá el botón de recordatorio en la sección de <strong>Cobros</strong>.
+                  </p>
+                </div>
+              </div>
+
               {/* Gestión de Tipos de Tejido */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -3610,10 +3638,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
-              {/* Botón recordatorio de deuda (después del día 10) */}
+              {/* Botón recordatorio de deuda (configurable) */}
               {(() => {
                 const hoy = new Date();
-                if (hoy.getDate() < 10) return null;
+                const diaRecordatorio = (configuracion as any).diaRecordatorioDeuda || 15;
+                if (hoy.getDate() < diaRecordatorio) return null;
                 const deudores: { medico: string; email: string; deuda: number }[] = [];
                 medicos.forEach(medico => {
                   const rm = remitos.filter(r => r.medico === medico);
