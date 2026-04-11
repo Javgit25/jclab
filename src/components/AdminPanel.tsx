@@ -1635,6 +1635,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             </div>
                           </td></tr>
                         )}
+                        {/* Separador visual entre remitos */}
+                        <tr><td colSpan={8} style={{ height: isExpanded ? '10px' : '2px', background: isExpanded ? '#cbd5e1' : 'transparent', padding: 0, border: 'none' }}></td></tr>
                         </React.Fragment>
                       );
                     })}
