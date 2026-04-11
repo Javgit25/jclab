@@ -126,7 +126,7 @@ export const Step7: React.FC<Step7Props> = ({
     }
     
     if (biopsyForm.cassettesNumbers && biopsyForm.cassettesNumbers.length > 0) {
-      return biopsyForm.cassettesNumbers.map(cassette => `${cassette.base}${cassette.suffix}`);
+      return biopsyForm.cassettesNumbers.map(cassette => `${cassette.base}/${cassette.suffix}`);
     }
     
     return [biopsyForm.number];
