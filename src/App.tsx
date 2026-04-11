@@ -535,6 +535,18 @@ function App() {
     // Primero actualizar frecuencia de tejidos
     updateFrequentTissues(currentBiopsy.tissueType);
     
+    // Guardar observaciones frecuentes de la biopsia actual
+    if (currentBiopsy.observations && currentBiopsy.observations.trim()) {
+      try {
+        const frecuentes: string[] = JSON.parse(localStorage.getItem('observacionesFrecuentes') || '[]');
+        const obs = currentBiopsy.observations.trim();
+        if (!frecuentes.includes(obs)) {
+          frecuentes.unshift(obs);
+          localStorage.setItem('observacionesFrecuentes', JSON.stringify(frecuentes.slice(0, 15)));
+        }
+      } catch {}
+    }
+
     // Agregar la biopsia actual a las del día
     const updatedBiopsies = [...todayBiopsies, currentBiopsy];
     console.log('App - Biopsias totales para el remito:', updatedBiopsies.length);
