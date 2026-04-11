@@ -1561,7 +1561,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 {remito.biopsias.map((b, bi) => {
                                   const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
                                   const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
-                                  const tipo = esPAP ? 'PAP' : esCito ? ((b as any).citologiaSubType || 'Citología') : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  const citoST = (b as any).citologiaSubType || (b as any)['citologiaSubType'] || '';
+                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Citología') : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  if (esCito) console.log('🔍 Cito biopsia:', JSON.stringify(b).substring(0, 200), 'subType:', citoST);
                                   const cass = parseInt(String(b.cassettes)) || 0;
                                   const esUrgente = biopsiaEsUrgente(b);
                                   const estaLista = biopsiaListas[bi] || false;
