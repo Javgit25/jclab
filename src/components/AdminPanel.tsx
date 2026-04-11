@@ -439,10 +439,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
       let role: 'admin' | 'tecnico' = 'admin';
 
-      if (loginForm.username === labUser && loginForm.password === labPass) {
+      if (loginForm.username.toLowerCase() === labUser.toLowerCase() && loginForm.password === labPass) {
         role = 'admin';
       } else {
-        const tecnico = tecnicos.find((t: any) => t.activo && t.usuario === loginForm.username && t.password === loginForm.password);
+        const tecnico = tecnicos.find((t: any) => t.activo && t.usuario.toLowerCase() === loginForm.username.toLowerCase() && t.password === loginForm.password);
         if (tecnico) {
           role = 'tecnico';
         } else {
