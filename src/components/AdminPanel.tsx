@@ -1606,6 +1606,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">Material</th>
                                     <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Tipo</th>
                                     <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Cant.</th>
+                                    <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Trozos</th>
                                     <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">Servicios / Detalle</th>
                                     <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Estado</th>
                                   </tr>
@@ -1656,6 +1657,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         <span className={`px-1.5 py-0.5 rounded font-bold text-xs ${esUrgente ? 'bg-red-600 text-white' : esPAP ? 'bg-purple-100 text-purple-700' : esCito ? 'bg-indigo-100 text-indigo-700' : tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>{tipo}</span>
                                       </td>
                                       <td className="py-1.5 px-2 text-center font-bold">{cant}</td>
+                                      <td className="py-1.5 px-2 text-center">
+                                        {!esPAP && !esCito ? (() => {
+                                          const tpc = (b as any).trozoPorCassette || [];
+                                          const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(String(b.trozos || (b as any).pieces)) || 0);
+                                          const cn = (b as any).cassettesNumbers || [];
+                                          if (tpc.length > 1) {
+                                            return <div>
+                                              <div className="font-bold">{totalT}</div>
+                                              <div className="text-gray-400" style={{ fontSize: '8px' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cn[0]?.base || 'C1') : ('S' + (cn[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                            </div>;
+                                          }
+                                          return <span>{totalT || '-'}</span>;
+                                        })() : <span className="text-gray-300">-</span>}
+                                        {(b as any).quedaMaterial && <div className="text-amber-600 font-bold" style={{ fontSize: '8px' }}>⚠ Q.Mat</div>}
+                                      </td>
                                       <td className="py-1.5 px-2">
                                         {svcList.length > 0 ? (
                                           <div className="flex flex-wrap gap-1">

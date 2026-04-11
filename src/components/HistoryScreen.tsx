@@ -1310,7 +1310,21 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                             <span style={{ background: tipo === 'BX' ? '#1e40af' : tipo === 'PQ' ? '#0369a1' : tipo === 'PAP' ? '#4338ca' : '#475569', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '9pt', fontWeight: 700 }}>{tipo}</span>
                           </td>
                           <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt', fontWeight: 600 }}>{isPAP ? (b.papQuantity || 1) : isCito ? (b.citologiaQuantity || 1) : (b.cassettes || 0)}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt' }}>{isPAP || isCito ? '-' : (b.pieces || '-')}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt' }}>
+                            {isPAP || isCito ? '-' : (() => {
+                              const tpc = b.trozoPorCassette || [];
+                              const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(b.pieces) || 0);
+                              const cns = b.cassettesNumbers || [];
+                              if (tpc.length > 1) {
+                                return <div>
+                                  <div style={{ fontWeight: 700 }}>{totalT}</div>
+                                  <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                </div>;
+                              }
+                              return totalT || '-';
+                            })()}
+                            {b.quedaMaterial && <div style={{ fontSize: '7pt', color: '#d97706', fontWeight: 700 }}>⚠ Q.Material</div>}
+                          </td>
                           <td style={{ padding: '8px', fontSize: '9pt', color: '#475569' }}>{services.length > 0 ? services.join(', ') : '-'}</td>
                         </tr>
                       );
