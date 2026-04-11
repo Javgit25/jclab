@@ -482,11 +482,33 @@ export const Step7: React.FC<Step7Props> = ({
               }}>
                 Observaciones
               </p>
+              {/* Sugerencias frecuentes */}
+              {(() => {
+                const frecuentes: string[] = JSON.parse(localStorage.getItem('observacionesFrecuentes') || '[]');
+                if (frecuentes.length === 0) return null;
+                return (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                    {frecuentes.slice(0, 6).map((obs, i) => (
+                      <button key={i} onClick={() => {
+                        const current = biopsyForm.observations || '';
+                        onObservationsChange(current ? current + '. ' + obs : obs);
+                      }}
+                        style={{
+                          padding: '4px 10px', borderRadius: '14px', border: '1px solid #d1d5db',
+                          background: '#f9fafb', fontSize: '11px', color: '#374151', cursor: 'pointer',
+                          whiteSpace: 'nowrap', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis'
+                        }}>
+                        {obs}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
               <div
                 onClick={() => onOpenVirtualKeyboard('full', 'observations', biopsyForm.observations)}
                 style={{
                   width: '100%',
-                  minHeight: '100px',
+                  minHeight: '80px',
                   padding: '12px',
                   background: colors.lightGray,
                   border: `2px solid ${biopsyForm.observations ? colors.primaryBlue : '#e5e7eb'}`,

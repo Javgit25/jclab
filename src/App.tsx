@@ -268,7 +268,19 @@ function App() {
     
     const updatedBiopsies = [...todayBiopsies, newBiopsy];
     setTodayBiopsies(updatedBiopsies);
-    
+
+    // Guardar observaciones frecuentes
+    if (newBiopsy.observations && newBiopsy.observations.trim()) {
+      try {
+        const frecuentes: string[] = JSON.parse(localStorage.getItem('observacionesFrecuentes') || '[]');
+        const obs = newBiopsy.observations.trim();
+        if (!frecuentes.includes(obs)) {
+          frecuentes.unshift(obs);
+          localStorage.setItem('observacionesFrecuentes', JSON.stringify(frecuentes.slice(0, 15)));
+        }
+      } catch {}
+    }
+
     console.log('App - Biopsias totales después de guardar:', updatedBiopsies.length);
     
     // Agregar a cola de sincronización
