@@ -231,7 +231,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     },
                     papQuantity: biopsy.papQuantity || 0,
                     citologiaQuantity: biopsy.citologiaQuantity || 0,
-                    cassettesNumbers: biopsy.cassettesNumbers || biopsy.cassettes_numbers || []
+                    citologiaSubType: biopsy.citologiaSubType || '',
+                    cassettesNumbers: biopsy.cassettesNumbers || biopsy.cassettes_numbers || [],
+                    trozoPorCassette: biopsy.trozoPorCassette || [],
+                    quedaMaterial: biopsy.quedaMaterial || false
                   }))
                 };
                 allRemitos.push(adminRemito);

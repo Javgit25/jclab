@@ -454,7 +454,9 @@ function App() {
             papQuantity: biopsy.papQuantity || 0,
             citologiaQuantity: biopsy.citologiaQuantity || 0,
             citologiaSubType: biopsy.citologiaSubType || '',
-            cassettesNumbers: biopsy.cassettesNumbers || []
+            cassettesNumbers: biopsy.cassettesNumbers || [],
+            trozoPorCassette: biopsy.trozoPorCassette || [],
+            quedaMaterial: biopsy.quedaMaterial || false
           };
         }),
         estado: 'pendiente',
