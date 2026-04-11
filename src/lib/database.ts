@@ -379,10 +379,7 @@ export const db = {
   },
 
   async savePayment(payment: any) {
-    const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]');
-    payments.push(payment);
-    localStorage.setItem('doctorPayments', JSON.stringify(payments));
-
+    // Solo guardar en Supabase — localStorage ya fue actualizado por el caller
     try {
       await supabase.from('doctor_payments').upsert({
         id: payment.id,
