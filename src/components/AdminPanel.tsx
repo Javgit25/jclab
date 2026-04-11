@@ -3009,7 +3009,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Mensaje del recordatorio (email)</label>
                   <textarea
-                    value={(configuracion as any).mensajeRecordatorioDeuda || 'Estimado/a Dr/a., le recordamos que tiene un saldo pendiente correspondiente al mes anterior. Por favor, comuníquese con el laboratorio para coordinar el pago.'}
+                    value={(configuracion as any).mensajeRecordatorioDeuda || 'Nos dirigimos a usted a fin de recordarle que, al día de la fecha, registra un saldo pendiente correspondiente al período del mes anterior por los servicios brindados por nuestro laboratorio.'}
                     onChange={(e) => {
                       const updated = { ...configuracion, mensajeRecordatorioDeuda: e.target.value } as any;
                       setConfiguracion(updated);
@@ -3023,7 +3023,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <div className="flex items-center justify-between mt-2">
                     <p className="text-xs text-gray-400">Se incluirá automáticamente: nombre del médico, monto adeudado y datos del laboratorio</p>
                     <button onClick={() => {
-                      const defaultMsg = 'Estimado/a Dr/a., le recordamos que tiene un saldo pendiente correspondiente al mes anterior. Por favor, comuníquese con el laboratorio para coordinar el pago.';
+                      const defaultMsg = 'Nos dirigimos a usted a fin de recordarle que, al día de la fecha, registra un saldo pendiente correspondiente al período del mes anterior por los servicios brindados por nuestro laboratorio.';
                       const updated = { ...configuracion, mensajeRecordatorioDeuda: defaultMsg } as any;
                       setConfiguracion(updated);
                       localStorage.setItem('adminConfig', JSON.stringify(updated));
@@ -3709,15 +3709,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               toEmail: d.email,
                               toName: `Dr/a. ${d.medico}`,
                               subject: `Recordatorio de pago pendiente — ${labNombre}`,
-                              messageHtml: `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px;">
-                                <h2 style="color:#1e3a5f;">Recordatorio de pago</h2>
-                                <p>Estimado/a <strong>Dr/a. ${d.medico}</strong>,</p>
-                                <p>${(configuracion as any).mensajeRecordatorioDeuda || 'Le recordamos que tiene un saldo pendiente correspondiente al mes anterior. Por favor, comuníquese con el laboratorio para coordinar el pago.'}</p>
-                                <p>Mes: <strong>${mesAnterior}</strong></p>
-                                <div style="background:#fef2f2;border:2px solid #fecaca;border-radius:8px;padding:16px;text-align:center;margin:16px 0;">
-                                  <span style="font-size:28px;font-weight:bold;color:#dc2626;">$${d.deuda.toLocaleString()}</span>
+                              messageHtml: `<div style="font-family:Georgia,'Times New Roman',serif;max-width:600px;margin:0 auto;padding:30px;color:#1a1a1a;line-height:1.7;">
+                                <div style="border-bottom:2px solid #1e3a5f;padding-bottom:16px;margin-bottom:24px;">
+                                  <h2 style="color:#1e3a5f;margin:0;font-size:18px;">Recordatorio de Saldo Pendiente</h2>
+                                  <p style="color:#64748b;font-size:12px;margin:4px 0 0;">Ref: Servicios de ${mesAnterior}</p>
                                 </div>
-                                <p style="color:#64748b;font-size:12px;margin-top:24px;">Atentamente,<br/><strong>${labNombre}</strong>${labConfig.telefono ? '<br/>' + labConfig.telefono : ''}${labConfig.email ? '<br/>' + labConfig.email : ''}</p>
+                                <p>Estimado/a <strong>Dr./Dra. ${d.medico}</strong>,</p>
+                                <p>${(configuracion as any).mensajeRecordatorioDeuda || 'Nos dirigimos a usted a fin de recordarle que, al día de la fecha, registra un saldo pendiente correspondiente al período del mes anterior por los servicios brindados por nuestro laboratorio.'}</p>
+                                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:20px;text-align:center;margin:20px 0;">
+                                  <p style="font-size:12px;color:#64748b;margin:0 0 6px;">Saldo pendiente — ${mesAnterior}</p>
+                                  <span style="font-size:32px;font-weight:bold;color:#dc2626;">$${d.deuda.toLocaleString()}</span>
+                                </div>
+                                <p>Le solicitamos tenga a bien regularizar dicha situación a la mayor brevedad posible. Una vez efectuado el pago, le agradecemos enviar el comprobante correspondiente a esta misma dirección de correo, a fin de poder actualizar nuestros registros.</p>
+                                <p>Quedamos a su disposición ante cualquier consulta o aclaración que considere necesaria.</p>
+                                <div style="margin-top:30px;padding-top:20px;border-top:1px solid #e2e8f0;">
+                                  <p style="margin:0;">Sin otro particular, lo saludamos atentamente.</p>
+                                  <p style="margin:16px 0 0;font-weight:700;color:#1e3a5f;">Administración</p>
+                                  <p style="margin:2px 0;font-weight:700;font-size:16px;">${labNombre}</p>
+                                  ${labConfig.direccion ? '<p style="margin:2px 0;font-size:13px;color:#64748b;">' + labConfig.direccion + '</p>' : ''}
+                                  ${labConfig.telefono ? '<p style="margin:2px 0;font-size:13px;color:#64748b;">Tel: ' + labConfig.telefono + '</p>' : ''}
+                                  ${labConfig.email ? '<p style="margin:2px 0;font-size:13px;color:#64748b;">' + labConfig.email + '</p>' : ''}
+                                </div>
                               </div>`,
                               fromName: labNombre,
                             });
