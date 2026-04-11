@@ -1085,14 +1085,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         });
         const usuarios = Object.entries(porUsuario);
         if (usuarios.length <= 1) return '';
-        return '<div style="margin-top:24px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">' +
-          '<h4 style="margin:0 0 12px;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Desempeño por Usuario</h4>' +
-          '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
-          '<tr style="border-bottom:2px solid #e2e8f0;"><th style="text-align:left;padding:6px;">Usuario</th><th style="text-align:center;padding:6px;">Remitos</th><th style="text-align:center;padding:6px;">Estudios</th></tr>' +
-          usuarios.map(([nombre, datos]) =>
-            '<tr style="border-bottom:1px solid #f1f5f9;"><td style="padding:6px;font-weight:600;">' + nombre + '</td><td style="text-align:center;padding:6px;">' + datos.remitos + '</td><td style="text-align:center;padding:6px;font-weight:700;">' + datos.estudios + '</td></tr>'
-          ).join('') +
-          '</table></div>';
+        const maxEstudios = Math.max(...usuarios.map(([, d]) => d.estudios));
+        const colores = ['#1e40af', '#7c3aed', '#059669', '#d97706', '#dc2626', '#0891b2'];
+        const totalEstudios = usuarios.reduce((s, [, d]) => s + d.estudios, 0);
+        return '<div style="margin-top:24px;padding:20px;background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:1px solid #e2e8f0;border-radius:12px;">' +
+          '<h4 style="margin:0 0 16px;font-size:13px;color:#1e293b;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;">📊 Desempeño por Usuario</h4>' +
+          '<div style="display:flex;gap:12px;margin-bottom:16px;justify-content:center;">' +
+          usuarios.map(([nombre, datos], i) => {
+            const color = colores[i % colores.length];
+            const pct = totalEstudios > 0 ? Math.round((datos.estudios / totalEstudios) * 100) : 0;
+            return '<div style="flex:1;max-width:200px;background:white;border-radius:10px;padding:14px;text-align:center;border:2px solid ' + color + '20;box-shadow:0 2px 8px rgba(0,0,0,0.04);">' +
+              '<div style="font-size:11px;color:#64748b;margin-bottom:6px;">' + nombre + '</div>' +
+              '<div style="font-size:28px;font-weight:800;color:' + color + ';">' + datos.estudios + '</div>' +
+              '<div style="font-size:9px;color:#94a3b8;margin-bottom:8px;">estudios (' + pct + '%)</div>' +
+              '<div style="background:#f1f5f9;border-radius:4px;height:8px;overflow:hidden;">' +
+              '<div style="background:' + color + ';height:100%;width:' + (maxEstudios > 0 ? Math.round((datos.estudios / maxEstudios) * 100) : 0) + '%;border-radius:4px;"></div>' +
+              '</div>' +
+              '<div style="font-size:10px;color:#64748b;margin-top:6px;">' + datos.remitos + ' remito' + (datos.remitos !== 1 ? 's' : '') + '</div>' +
+            '</div>';
+          }).join('') +
+          '</div>' +
+          '<div style="text-align:center;font-size:11px;color:#94a3b8;">Total: ' + totalEstudios + ' estudios en ' + remitosDelMedico.length + ' remitos</div>' +
+        '</div>';
       })()}
 
       <div class="footer">

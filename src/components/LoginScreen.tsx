@@ -444,8 +444,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
             {showUserSelect && (
               <div className="space-y-3">
                 <div className="text-center">
-                  <p className="text-base font-semibold text-gray-700">¿Quién va a cargar?</p>
+                  <p className="text-base font-semibold text-gray-700">Seleccione usuario e ingrese su clave</p>
                 </div>
+
+                {/* Doctor principal — ya autenticado con su clave */}
                 <button
                   onClick={() => loginAsUser(`Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`)}
                   disabled={isSubmitting}
@@ -454,19 +456,32 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                   <LogIn size={18} />
                   <span>Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}</span>
                 </button>
+
+                {/* Ayudantes — cada uno pide su clave */}
                 {((existingDoctor as any).ayudantes || [])
                   .filter((a: any) => a.activo)
                   .map((a: any) => (
-                    <button
-                      key={a.id}
-                      onClick={() => loginAsUser(a.nombre)}
-                      disabled={isSubmitting}
-                      className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base shadow-lg"
-                    >
-                      <LogIn size={18} />
-                      <span>{a.nombre}</span>
-                    </button>
+                    <div key={a.id} className="border border-purple-200 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() => {
+                          const clave = prompt(`Contraseña de ${a.nombre}:`);
+                          if (!clave) return;
+                          if (clave === a.password) {
+                            loginAsUser(a.nombre);
+                          } else {
+                            alert('❌ Contraseña incorrecta');
+                          }
+                        }}
+                        disabled={isSubmitting}
+                        className="w-full bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 transition-all flex items-center justify-center space-x-2 text-base"
+                      >
+                        <LogIn size={18} />
+                        <span>{a.nombre}</span>
+                        <Lock size={14} className="ml-1 opacity-50" />
+                      </button>
+                    </div>
                   ))}
+
                 <button
                   onClick={() => { setShowUserSelect(false); setPassword(''); }}
                   className="w-full text-sm text-gray-500 hover:text-gray-700 py-1"
