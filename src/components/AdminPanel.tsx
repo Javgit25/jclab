@@ -1962,7 +1962,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4">
                           <div className="text-xs font-mono text-gray-400">#{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</div>
                           {(remito as any).esServicioAdicional && (
-                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-purple-100 text-purple-700 border border-purple-200">Serv. Adicional</span>
+                            <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold border ${(remito as any).esProfundizacion ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>{(remito as any).esProfundizacion ? 'Profundización' : 'Serv. Adicional'}</span>
                           )}
                           {(remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Editado</span>
@@ -3765,6 +3765,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             if (blancoMatch) servicios.corteBlanco = parseInt(blancoMatch[1]);
                           }
 
+                          const tipoRemito = sol.tipo === 'profundizacion' ? 'Profundización' : 'Servicio Adicional';
                           const nuevoRemito: any = {
                             id: `SA_SOL_${now.getTime()}`,
                             remitoNumber,
@@ -3776,13 +3777,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             timestamp: now.toISOString(),
                             estado: 'pendiente',
                             esServicioAdicional: true,
+                            esProfundizacion: sol.tipo === 'profundizacion',
                             remitoOriginalId: sol.remitoNumber,
-                            notaServicioAdicional: `Solicitud #${sol.id.slice(-6)} — ${tipoMsg}`,
+                            notaServicioAdicional: `${tipoRemito} — Pac. #${sol.numeroPaciente} — Solicitado por: ${sol.solicitadoPor || 'Médico'}`,
+                            cargadoPor: sol.solicitadoPor || '',
                             labCode: currentLabCode,
                             biopsias: [{
                               numero: sol.numeroPaciente,
                               tejido: sol.tejido || remitoOrig?.biopsias?.[0]?.tejido || 'Material',
-                              tipo: 'BX',
+                              tipo: remitoOrig?.biopsias?.find((b: any) => b.numero === sol.numeroPaciente)?.tipo || 'BX',
                               cassettes: sol.tipo === 'profundizacion' ? 1 : 0,
                               trozos: 0,
                               desclasificar: 'No',

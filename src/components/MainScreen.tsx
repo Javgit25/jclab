@@ -2303,8 +2303,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                             }}>{status.label}</span>
                           </div>
                           <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
-                            <strong>Paciente:</strong> {sol.numeroPaciente} &nbsp;|&nbsp; <strong>Remito:</strong> {sol.remitoNumber}
+                            <strong>Paciente:</strong> #{sol.numeroPaciente} &nbsp;|&nbsp; <strong>Remito:</strong> #{sol.remitoNumber}
                           </div>
+                          {sol.tejido && (
+                            <div style={{ fontSize: '11px', color: '#475569', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ background: '#f0fdf4', color: '#166534', padding: '1px 6px', borderRadius: '4px', fontWeight: '600', fontSize: '10px' }}>
+                                {sol.tejido === 'PAP' ? 'PAP' : sol.tejido === 'Citología' ? 'Cito' : 'BX'}
+                              </span>
+                              <span>{sol.tejido}</span>
+                            </div>
+                          )}
                           {sol.descripcion && (
                             <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{sol.descripcion}</div>
                           )}
