@@ -1840,8 +1840,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
               {/* Solicitudes de Material */}
               {(() => {
+                if (solicitudesAdmin.length === 0) return null;
                 const solsPendientes = solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso');
-                if (solsPendientes.length === 0) return null;
+                const solsHistorial = solicitudesAdmin.filter((s: any) => s.estado === 'entregado' || s.estado === 'rechazado');
                 const tipoBadge = (tipo: string) => {
                   if (tipo === 'taco') return 'bg-amber-100 text-amber-800';
                   if (tipo === 'profundizacion') return 'bg-blue-100 text-blue-800';
@@ -1928,6 +1929,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </div>
                       ))}
                     </div>
+
+                    {/* Historial de solicitudes completadas */}
+                    {solsHistorial.length > 0 && (
+                      <details className="mt-4">
+                        <summary className="cursor-pointer text-sm font-semibold text-gray-500 hover:text-gray-700">
+                          📋 Historial ({solsHistorial.length} completadas)
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          {solsHistorial.map((sol: any) => (
+                            <div key={sol.id} className={`p-3 rounded-lg border ${sol.estado === 'entregado' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${tipoBadge(sol.tipo)}`}>
+                                    {sol.tipo === 'taco' ? '📦 Taco' : sol.tipo === 'profundizacion' ? '🔬 Prof.' : '➕ Serv.'}
+                                  </span>
+                                  <span className="text-sm font-semibold">#{sol.numeroPaciente}</span>
+                                  <span className="text-xs text-gray-500">Rem. #{sol.remitoNumber}</span>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-xs font-bold ${sol.estado === 'entregado' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {sol.estado === 'entregado' ? '✓ Entregado' : '✕ Rechazado'}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-1">
+                                Solicitado: {new Date(sol.solicitadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })} por {sol.solicitadoPor}
+                                {sol.entregadoAt && <> · Entregado: {new Date(sol.entregadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })} por {sol.entregadoPor}</>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    )}
                   </div>
                 );
               })()}
