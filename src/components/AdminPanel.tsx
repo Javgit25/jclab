@@ -3737,73 +3737,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       };
                       db.saveNotification(notif).catch(console.error);
 
-                      // Auto-facturar: crear remito de servicio adicional al marcar entregado
+                      // Auto-facturar: agregar servicios al remito original
                       if (nuevoEstado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
                         try {
-                          // Buscar remito original para datos del médico
                           const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber);
-                          const medicoName = remitoOrig?.medico || getMedicoName(sol.doctorEmail);
-                          const now = new Date();
-                          const remitoNumber = String(now.getTime() % 1000000).padStart(6, '0');
+                          if (remitoOrig) {
+                            const desc = sol.descripcion || '';
+                            // Encontrar la biopsia del paciente
+                            const biopsiaIdx = remitoOrig.biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
+                            if (biopsiaIdx >= 0) {
+                              const biopsia = { ...remitoOrig.biopsias[biopsiaIdx] };
+                              const sv = { ...(biopsia.servicios || {}) } as any;
 
-                          // Parsear servicios de la descripción
-                          const desc = sol.descripcion || '';
-                          const servicios: any = {
-                            cassetteNormal: 0, cassetteUrgente: 0, profundizacion: 0,
-                            pap: 0, papUrgente: 0, citologia: 0, citologiaUrgente: 0,
-                            corteBlanco: 0, corteBlancoIHQ: 0, giemsaPASMasson: 0
-                          };
+                              if (sol.tipo === 'profundizacion') {
+                                sv.profundizacion = (sv.profundizacion || 0) + 1;
+                              } else {
+                                if (desc.includes('Giemsa') || desc.includes('PAS') || desc.includes('Masson')) {
+                                  const tCount = (desc.includes('Giemsa') ? 1 : 0) + (desc.includes('PAS') ? 1 : 0) + (desc.includes('Masson') ? 1 : 0);
+                                  sv.giemsaPASMasson = (sv.giemsaPASMasson || 0) + tCount;
+                                }
+                                const ihqMatch = desc.match(/Vidrios IHQ ×(\d+)/);
+                                if (ihqMatch) sv.corteBlancoIHQ = (sv.corteBlancoIHQ || 0) + parseInt(ihqMatch[1]);
+                                const blancoMatch = desc.match(/Vidrios Blanco ×(\d+)/);
+                                if (blancoMatch) sv.corteBlanco = (sv.corteBlanco || 0) + parseInt(blancoMatch[1]);
+                              }
 
-                          if (sol.tipo === 'profundizacion') {
-                            // Profundización = 1 cassette adicional por solicitud
-                            servicios.profundizacion = 1;
-                          } else {
-                            // Servicio adicional: parsear de la descripción
-                            if (desc.includes('Giemsa') || desc.includes('PAS') || desc.includes('Masson')) {
-                              const tCount = (desc.includes('Giemsa') ? 1 : 0) + (desc.includes('PAS') ? 1 : 0) + (desc.includes('Masson') ? 1 : 0);
-                              servicios.giemsaPASMasson = tCount;
+                              biopsia.servicios = sv;
+                              const updatedBiopsias = [...remitoOrig.biopsias];
+                              updatedBiopsias[biopsiaIdx] = biopsia;
+                              const updatedRemito = { ...remitoOrig, biopsias: updatedBiopsias, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() };
+                              const updatedRemitos = remitos.map(r => r.id === remitoOrig.id ? updatedRemito : r);
+                              setRemitos(updatedRemitos as any);
+                              localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+                              db.saveRemito(updatedRemito).catch(console.error);
                             }
-                            const ihqMatch = desc.match(/Vidrios IHQ ×(\d+)/);
-                            if (ihqMatch) servicios.corteBlancoIHQ = parseInt(ihqMatch[1]);
-                            const blancoMatch = desc.match(/Vidrios Blanco ×(\d+)/);
-                            if (blancoMatch) servicios.corteBlanco = parseInt(blancoMatch[1]);
                           }
-
-                          const tipoRemito = sol.tipo === 'profundizacion' ? 'Profundización' : 'Servicio Adicional';
-                          const nuevoRemito: any = {
-                            id: `SA_SOL_${now.getTime()}`,
-                            remitoNumber,
-                            medico: medicoName,
-                            email: sol.doctorEmail,
-                            doctorEmail: sol.doctorEmail,
-                            hospital: remitoOrig?.hospital || '',
-                            fecha: now.toISOString(),
-                            timestamp: now.toISOString(),
-                            estado: 'pendiente',
-                            esServicioAdicional: true,
-                            esProfundizacion: sol.tipo === 'profundizacion',
-                            remitoOriginalId: sol.remitoNumber,
-                            notaServicioAdicional: `${tipoRemito} — Pac. #${sol.numeroPaciente} — Solicitado por: ${sol.solicitadoPor || 'Médico'}`,
-                            cargadoPor: sol.solicitadoPor || '',
-                            labCode: currentLabCode,
-                            biopsias: [{
-                              numero: sol.numeroPaciente,
-                              tejido: sol.tejido || remitoOrig?.biopsias?.[0]?.tejido || 'Material',
-                              tipo: remitoOrig?.biopsias?.find((b: any) => b.numero === sol.numeroPaciente)?.tipo || 'BX',
-                              cassettes: sol.tipo === 'profundizacion' ? 1 : 0,
-                              trozos: 0,
-                              desclasificar: 'No',
-                              servicios,
-                              papQuantity: 0,
-                              citologiaQuantity: 0,
-                              cassettesNumbers: []
-                            }]
-                          };
-
-                          const updatedRemitos = [...remitos, nuevoRemito];
-                          setRemitos(updatedRemitos);
-                          localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
-                          db.saveRemito(nuevoRemito).catch(console.error);
                         } catch (e) {
                           console.error('Error auto-facturando solicitud:', e);
                         }
