@@ -2071,13 +2071,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       {solicitudSelectedPatient && solicitudSelectedPatient.cassettesNumbers && solicitudSelectedPatient.cassettesNumbers.length > 0 ? (
                         <div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
-                            {solicitudSelectedPatient.cassettesNumbers.map((cass: string, i: number) => {
-                              const isSelected = solicitudSelectedCassettes.includes(cass);
+                            {solicitudSelectedPatient.cassettesNumbers.map((cass: any, i: number) => {
+                              const label = typeof cass === 'object' ? (cass.suffix ? `${cass.base}/${cass.suffix}` : cass.base) : String(cass);
+                              const isSelected = solicitudSelectedCassettes.includes(label);
                               return (
                                 <button key={i} onClick={() => {
                                   const next = isSelected
-                                    ? solicitudSelectedCassettes.filter(c => c !== cass)
-                                    : [...solicitudSelectedCassettes, cass];
+                                    ? solicitudSelectedCassettes.filter((c: any) => c !== label)
+                                    : [...solicitudSelectedCassettes, label];
                                   setSolicitudSelectedCassettes(next);
                                   setSolicitudCassettes(next.join(', '));
                                 }} style={{
@@ -2088,13 +2089,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                                   fontSize: '12px', fontWeight: '700',
                                   transition: 'all 0.15s'
                                 }}>
-                                  {cass}
+                                  {label}
                                 </button>
                               );
                             })}
                           </div>
                           <button onClick={() => {
-                            const allCass = solicitudSelectedPatient.cassettesNumbers;
+                            const allCass = solicitudSelectedPatient.cassettesNumbers.map((c: any) => typeof c === 'object' ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : String(c));
                             const allSelected = allCass.length === solicitudSelectedCassettes.length;
                             const next = allSelected ? [] : [...allCass];
                             setSolicitudSelectedCassettes(next);
@@ -3493,7 +3494,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: 1100,
+          zIndex: 2000,
           backgroundColor: 'white',
           borderTop: '1px solid #e5e7eb',
           boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
