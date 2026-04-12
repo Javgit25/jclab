@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail, Settings, Trash2, ToggleLeft, ToggleRight, UserPlus } from 'lucide-react';
-import { BiopsyForm, DoctorInfo, RegisteredDoctor, Ayudante } from '../types';
+import { BiopsyForm, DoctorInfo, RegisteredDoctor, Ayudante, Solicitud } from '../types';
 import { db } from '../lib/database';
 import { ConnectionStatus } from './ConnectionStatus';
 import { VirtualKeyboard } from './VirtualKeyboard';
@@ -56,6 +56,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [newAyudanteNombre, setNewAyudanteNombre] = useState('');
   const [newAyudantePassword, setNewAyudantePassword] = useState('');
 
+  // Solicitudes state
+  const [showSolicitudes, setShowSolicitudes] = useState(false);
+  const [solicitudesData, setSolicitudesData] = useState<any[]>([]);
+  const [solicitudTab, setSolicitudTab] = useState<'nueva' | 'mis'>('nueva');
+  const [solicitudTipo, setSolicitudTipo] = useState<'taco' | 'profundizacion' | 'servicio_adicional'>('taco');
+  const [solicitudPaciente, setSolicitudPaciente] = useState('');
+  const [solicitudRemito, setSolicitudRemito] = useState('');
+  const [solicitudDescripcion, setSolicitudDescripcion] = useState('');
+  const [solicitudCassettes, setSolicitudCassettes] = useState('');
+
   // Cargar notificaciones del médico (todas, incluidas leídas recientes)
   const loadNotifications = () => {
     try {
@@ -105,6 +115,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   }, [doctorInfo.email]);
 
   const unreadCount = notificationsData.filter(n => !n.leida).length;
+
+  // Load solicitudes on mount
+  React.useEffect(() => {
+    db.getSolicitudes(doctorInfo.email).then(s => setSolicitudesData(s)).catch(() => {});
+  }, []);
 
   // Detectar notificaciones de "listo para retirar" no leídas
   const [listoAlert, setListoAlert] = useState<any>(null);
@@ -1816,6 +1831,245 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           Powered by BiopsyTracker
         </span>
       </div>
+
+      {/* Barra de Solicitudes */}
+      <div style={{
+        padding: '6px 12px',
+        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        flexShrink: 0,
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px'
+      }} onClick={() => {
+        db.getSolicitudes(doctorInfo.email).then(s => setSolicitudesData(s)).catch(() => {});
+        setShowSolicitudes(true);
+      }}>
+        <span style={{ fontSize: '14px' }}>📋</span>
+        <span style={{ fontSize: '13px', fontWeight: '700', color: 'white', letterSpacing: '0.5px' }}>
+          Solicitudes
+        </span>
+        {solicitudesData.filter(s => s.estado === 'pendiente').length > 0 && (
+          <span style={{
+            background: 'white', color: '#d97706', fontSize: '10px', fontWeight: '800',
+            borderRadius: '10px', padding: '1px 6px', minWidth: '18px', textAlign: 'center'
+          }}>
+            {solicitudesData.filter(s => s.estado === 'pendiente').length}
+          </span>
+        )}
+      </div>
+
+      {/* Modal de Solicitudes */}
+      {showSolicitudes && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1500,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }}>
+          <div style={{
+            background: 'white', borderRadius: '16px', width: '100%', maxWidth: '480px',
+            maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.3)'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '16px 20px', borderBottom: '1px solid #e2e8f0',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              borderRadius: '16px 16px 0 0', color: 'white'
+            }}>
+              <span style={{ fontSize: '16px', fontWeight: '800' }}>Solicitudes de Material</span>
+              <button onClick={() => setShowSolicitudes(false)} style={{
+                background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px',
+                width: '32px', height: '32px', cursor: 'pointer', color: 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px'
+              }}>✕</button>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0' }}>
+              <button onClick={() => setSolicitudTab('nueva')} style={{
+                flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
+                background: solicitudTab === 'nueva' ? '#fffbeb' : 'white',
+                color: solicitudTab === 'nueva' ? '#d97706' : '#64748b',
+                borderBottom: solicitudTab === 'nueva' ? '2px solid #d97706' : '2px solid transparent'
+              }}>Nueva Solicitud</button>
+              <button onClick={() => setSolicitudTab('mis')} style={{
+                flex: 1, padding: '10px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '700',
+                background: solicitudTab === 'mis' ? '#fffbeb' : 'white',
+                color: solicitudTab === 'mis' ? '#d97706' : '#64748b',
+                borderBottom: solicitudTab === 'mis' ? '2px solid #d97706' : '2px solid transparent'
+              }}>Mis Solicitudes</button>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+              {solicitudTab === 'nueva' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Tipo */}
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Tipo de solicitud</label>
+                    <select value={solicitudTipo} onChange={e => setSolicitudTipo(e.target.value as any)} style={{
+                      width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                      fontSize: '13px', background: 'white', color: '#1f2937'
+                    }}>
+                      <option value="taco">Solicitar Taco/Cassette</option>
+                      <option value="profundizacion">Profundización</option>
+                      <option value="servicio_adicional">Servicio Adicional</option>
+                    </select>
+                  </div>
+
+                  {/* N° Paciente */}
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Paciente</label>
+                    <input value={solicitudPaciente} onChange={e => setSolicitudPaciente(e.target.value)} placeholder="Número de paciente"
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                        fontSize: '13px', boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* N° Remito */}
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Remito</label>
+                    <input value={solicitudRemito} onChange={e => setSolicitudRemito(e.target.value)} placeholder="Número de remito"
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                        fontSize: '13px', boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Cassettes (solo para taco) */}
+                  {solicitudTipo === 'taco' && (
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Cassettes solicitados</label>
+                      <input value={solicitudCassettes} onChange={e => setSolicitudCassettes(e.target.value)} placeholder="Ej: 1, 3, 5 o A, B, C"
+                        style={{
+                          width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                          fontSize: '13px', boxSizing: 'border-box'
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Descripción */}
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Descripción</label>
+                    <textarea value={solicitudDescripcion} onChange={e => setSolicitudDescripcion(e.target.value)} placeholder="Detalle de la solicitud..."
+                      rows={3} style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                        fontSize: '13px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    disabled={!solicitudPaciente.trim() || !solicitudRemito.trim()}
+                    onClick={async () => {
+                      const doctors = getRegisteredDoctors();
+                      const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
+                      const sol: Solicitud = {
+                        id: `SOL_${Date.now()}`,
+                        tipo: solicitudTipo,
+                        numeroPaciente: solicitudPaciente.trim(),
+                        remitoNumber: solicitudRemito.trim(),
+                        descripcion: solicitudDescripcion.trim(),
+                        tejido: '',
+                        solicitadoPor: doctorInfo.cargadoPor || doctorInfo.name,
+                        solicitadoAt: new Date().toISOString(),
+                        estado: 'pendiente',
+                        doctorEmail: doctorInfo.email,
+                        labCode: doc?.labCode || '',
+                        ...(solicitudTipo === 'taco' && solicitudCassettes.trim() ? { cassetteLabels: solicitudCassettes.split(',').map(s => s.trim()).filter(Boolean) } : {})
+                      };
+                      try {
+                        await db.saveSolicitud(sol);
+                        setSolicitudesData(prev => [sol, ...prev]);
+                        setSolicitudPaciente('');
+                        setSolicitudRemito('');
+                        setSolicitudDescripcion('');
+                        setSolicitudCassettes('');
+                        setSolicitudTab('mis');
+                      } catch (err) {
+                        console.error('Error saving solicitud:', err);
+                      }
+                    }}
+                    style={{
+                      width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
+                      fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                      background: solicitudPaciente.trim() && solicitudRemito.trim() ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#e5e7eb',
+                      color: solicitudPaciente.trim() && solicitudRemito.trim() ? 'white' : '#9ca3af',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    Enviar Solicitud
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {solicitudesData.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '32px 16px', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '32px', marginBottom: '8px' }}>📋</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600' }}>No hay solicitudes</div>
+                      <div style={{ fontSize: '12px', marginTop: '4px' }}>Las solicitudes enviadas aparecerán aquí</div>
+                    </div>
+                  ) : (
+                    [...solicitudesData].sort((a, b) => new Date(b.solicitadoAt).getTime() - new Date(a.solicitadoAt).getTime()).map((sol: any) => {
+                      const statusColors: Record<string, { bg: string; color: string; label: string }> = {
+                        pendiente: { bg: '#fef9c3', color: '#a16207', label: 'Pendiente' },
+                        en_proceso: { bg: '#dbeafe', color: '#1d4ed8', label: 'En proceso' },
+                        entregado: { bg: '#dcfce7', color: '#15803d', label: 'Entregado' },
+                        rechazado: { bg: '#fee2e2', color: '#dc2626', label: 'Rechazado' }
+                      };
+                      const tipoLabels: Record<string, string> = {
+                        taco: 'Taco/Cassette',
+                        profundizacion: 'Profundización',
+                        servicio_adicional: 'Servicio Adicional'
+                      };
+                      const status = statusColors[sol.estado] || statusColors.pendiente;
+                      return (
+                        <div key={sol.id} style={{
+                          border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px',
+                          background: '#fafafa'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                            <span style={{
+                              fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px',
+                              background: '#f3e8ff', color: '#7c3aed'
+                            }}>{tipoLabels[sol.tipo] || sol.tipo}</span>
+                            <span style={{
+                              fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px',
+                              background: status.bg, color: status.color
+                            }}>{status.label}</span>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#374151', marginBottom: '4px' }}>
+                            <strong>Paciente:</strong> {sol.numeroPaciente} &nbsp;|&nbsp; <strong>Remito:</strong> {sol.remitoNumber}
+                          </div>
+                          {sol.descripcion && (
+                            <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{sol.descripcion}</div>
+                          )}
+                          <div style={{ fontSize: '10px', color: '#94a3b8' }}>
+                            {new Date(sol.solicitadoAt).toLocaleDateString('es-AR')} - {new Date(sol.solicitadoAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                          {sol.estado === 'entregado' && sol.entregadoAt && (
+                            <div style={{ fontSize: '10px', color: '#15803d', marginTop: '4px', fontWeight: '600' }}>
+                              Entregado: {new Date(sol.entregadoAt).toLocaleDateString('es-AR')} por {sol.entregadoPor || 'Lab'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Alerta verde: Remito listo para retirar */}
       {listoAlert && (

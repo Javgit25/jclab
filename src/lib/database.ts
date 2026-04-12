@@ -431,4 +431,65 @@ export const db = {
       await supabase.from('laboratories').update({ admin_config: config, updated_at: new Date().toISOString() }).eq('lab_code', labCode);
     } catch {}
   },
+
+  // ---- SOLICITUDES (tacos, profundizaciones) ----
+  async getSolicitudes(doctorEmail?: string, labCode?: string): Promise<any[]> {
+    try {
+      let query = supabase.from('solicitudes').select('*').order('solicitado_at', { ascending: false });
+      if (doctorEmail) query = query.eq('doctor_email', doctorEmail.toLowerCase().trim());
+      if (labCode) query = query.eq('lab_code', labCode);
+      const { data } = await query;
+      if (data && data.length >= 0) {
+        const solicitudes = data.map(s => ({
+          id: s.id,
+          tipo: s.tipo,
+          remitoNumber: s.remito_number,
+          numeroPaciente: s.numero_paciente,
+          tejido: s.tejido,
+          cassettesSeleccionados: s.cassettes_seleccionados,
+          cassetteLabels: s.cassette_labels,
+          descripcion: s.descripcion,
+          solicitadoPor: s.solicitado_por,
+          solicitadoAt: s.solicitado_at,
+          estado: s.estado,
+          entregadoAt: s.entregado_at,
+          entregadoPor: s.entregado_por,
+          doctorEmail: s.doctor_email,
+          labCode: s.lab_code,
+          notas: s.notas,
+        }));
+        localStorage.setItem('solicitudes', JSON.stringify(solicitudes));
+        return solicitudes;
+      }
+    } catch {}
+    try { return JSON.parse(localStorage.getItem('solicitudes') || '[]'); } catch { return []; }
+  },
+
+  async saveSolicitud(sol: any) {
+    const solicitudes = JSON.parse(localStorage.getItem('solicitudes') || '[]');
+    const idx = solicitudes.findIndex((s: any) => s.id === sol.id);
+    if (idx >= 0) solicitudes[idx] = sol; else solicitudes.push(sol);
+    localStorage.setItem('solicitudes', JSON.stringify(solicitudes));
+
+    try {
+      await supabase.from('solicitudes').upsert({
+        id: sol.id,
+        tipo: sol.tipo,
+        remito_number: sol.remitoNumber,
+        numero_paciente: sol.numeroPaciente,
+        tejido: sol.tejido,
+        cassettes_seleccionados: sol.cassettesSeleccionados,
+        cassette_labels: sol.cassetteLabels,
+        descripcion: sol.descripcion,
+        solicitado_por: sol.solicitadoPor,
+        solicitado_at: sol.solicitadoAt,
+        estado: sol.estado,
+        entregado_at: sol.entregadoAt,
+        entregado_por: sol.entregadoPor,
+        doctor_email: sol.doctorEmail,
+        lab_code: sol.labCode,
+        notas: sol.notas,
+      });
+    } catch (e) { console.error('Error saving solicitud:', e); }
+  },
 };

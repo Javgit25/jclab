@@ -34,6 +34,25 @@ export interface RegisteredDoctor {
   ayudantes?: Ayudante[];
 }
 
+export interface Solicitud {
+  id: string;
+  tipo: 'taco' | 'profundizacion' | 'servicio_adicional';
+  remitoNumber: string;
+  numeroPaciente: string;
+  tejido: string;
+  cassettesSeleccionados?: number[];  // Para tacos: cuáles cassettes
+  cassetteLabels?: string[];          // Labels legibles de los cassettes
+  descripcion: string;                // Descripción de la solicitud
+  solicitadoPor: string;              // Médico o ayudante
+  solicitadoAt: string;               // Fecha ISO
+  estado: 'pendiente' | 'en_proceso' | 'entregado' | 'rechazado';
+  entregadoAt?: string;
+  entregadoPor?: string;              // Quién del lab lo entregó
+  doctorEmail: string;
+  labCode: string;
+  notas?: string;                     // Notas del laboratorio
+}
+
 export interface ProfileChange {
   field: string;
   oldValue: string;
