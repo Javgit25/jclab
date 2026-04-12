@@ -3732,6 +3732,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         tipo: nuevoEstado === 'entregado' ? 'listo' : 'parcial'
                       };
                       db.saveNotification(notif).catch(console.error);
+
+                      // Auto-facturar: crear remito de servicio adicional al marcar entregado
+                      if (nuevoEstado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
+                        try {
+                          // Buscar remito original para datos del médico
+                          const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber);
+                          const medicoName = remitoOrig?.medico || getMedicoName(sol.doctorEmail);
+                          const now = new Date();
+                          const remitoNumber = String(now.getTime() % 1000000).padStart(6, '0');
+
+                          // Parsear servicios de la descripción
+                          const desc = sol.descripcion || '';
+                          const servicios: any = {
+                            cassetteNormal: 0, cassetteUrgente: 0, profundizacion: 0,
+                            pap: 0, papUrgente: 0, citologia: 0, citologiaUrgente: 0,
+                            corteBlanco: 0, corteBlancoIHQ: 0, giemsaPASMasson: 0
+                          };
+
+                          if (sol.tipo === 'profundizacion') {
+                            // Profundización = 1 cassette adicional por solicitud
+                            servicios.profundizacion = 1;
+                          } else {
+                            // Servicio adicional: parsear de la descripción
+                            if (desc.includes('Giemsa') || desc.includes('PAS') || desc.includes('Masson')) {
+                              const tCount = (desc.includes('Giemsa') ? 1 : 0) + (desc.includes('PAS') ? 1 : 0) + (desc.includes('Masson') ? 1 : 0);
+                              servicios.giemsaPASMasson = tCount;
+                            }
+                            const ihqMatch = desc.match(/Vidrios IHQ ×(\d+)/);
+                            if (ihqMatch) servicios.corteBlancoIHQ = parseInt(ihqMatch[1]);
+                            const blancoMatch = desc.match(/Vidrios Blanco ×(\d+)/);
+                            if (blancoMatch) servicios.corteBlanco = parseInt(blancoMatch[1]);
+                          }
+
+                          const nuevoRemito: any = {
+                            id: `SA_SOL_${now.getTime()}`,
+                            remitoNumber,
+                            medico: medicoName,
+                            email: sol.doctorEmail,
+                            doctorEmail: sol.doctorEmail,
+                            hospital: remitoOrig?.hospital || '',
+                            fecha: now.toISOString(),
+                            timestamp: now.toISOString(),
+                            estado: 'pendiente',
+                            esServicioAdicional: true,
+                            remitoOriginalId: sol.remitoNumber,
+                            notaServicioAdicional: `Solicitud #${sol.id.slice(-6)} — ${tipoMsg}`,
+                            labCode: currentLabCode,
+                            biopsias: [{
+                              numero: sol.numeroPaciente,
+                              tejido: sol.tejido || remitoOrig?.biopsias?.[0]?.tejido || 'Material',
+                              tipo: 'BX',
+                              cassettes: sol.tipo === 'profundizacion' ? 1 : 0,
+                              trozos: 0,
+                              desclasificar: 'No',
+                              servicios,
+                              papQuantity: 0,
+                              citologiaQuantity: 0,
+                              cassettesNumbers: []
+                            }]
+                          };
+
+                          const updatedRemitos = [...remitos, nuevoRemito];
+                          setRemitos(updatedRemitos);
+                          localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+                          db.saveRemito(nuevoRemito).catch(console.error);
+                        } catch (e) {
+                          console.error('Error auto-facturando solicitud:', e);
+                        }
+                      }
                     }
                   };
 
