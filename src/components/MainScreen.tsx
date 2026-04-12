@@ -1516,7 +1516,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const handleFieldFocus = (fieldName: string) => {
     setActiveField(fieldName);
-    setKeyboardType('full');
+    setKeyboardType(fieldName === 'solicitud-paciente' ? 'numeric' : 'full');
     setShowKeyboard(true);
   };
 
@@ -2264,13 +2264,29 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             boxShadow: '0 25px 60px rgba(5, 150, 105, 0.4)',
             animation: 'pulse 2s infinite'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
-            <div style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px' }}>
-              Material Listo
-            </div>
-            <div style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.5', marginBottom: '20px', whiteSpace: 'pre-line' }}>
-              {listoAlert.mensaje}
-            </div>
+            {(() => {
+              const msg = listoAlert.mensaje || '';
+              const isTaco = msg.includes('Taco/Cassette');
+              const isProf = msg.includes('Profundización');
+              const isServ = msg.includes('Servicio Adicional');
+              const isSolicitud = isTaco || isProf || isServ;
+              const icon = isTaco ? '📦' : isProf ? '🔬' : isServ ? '➕' : '✅';
+              const titulo = isTaco ? 'Taco/Cassette' : isProf ? 'Profundización' : isServ ? 'Servicio Adicional' : 'Material Listo';
+              return (
+                <>
+                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '800', marginBottom: '4px' }}>
+                    {titulo}
+                  </div>
+                  <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
+                    {isSolicitud ? 'Listo para retirar' : 'Listo para retirar'}
+                  </div>
+                  <div style={{ fontSize: '14px', opacity: 0.85, lineHeight: '1.5', marginBottom: '20px', whiteSpace: 'pre-line', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px' }}>
+                    {msg.replace(/.*listo para retirar!\n?/i, '').trim() || msg}
+                  </div>
+                </>
+              );
+            })()}
             <button
               onClick={() => {
                 // Marcar TODAS las de listo/parcial como leídas
