@@ -95,6 +95,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [expandedUrgents, setExpandedUrgents] = useState<Set<string>>(new Set());
   const [showChangePass, setShowChangePass] = useState(false);
   const [credForm, setCredForm] = useState({ currentPassword: '', newUser: '', newPassword: '', confirmPassword: '' });
+  const [solicitudesAdmin, setSolicitudesAdmin] = useState<any[]>([]);
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
     precioCassette: 300,
@@ -139,6 +140,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     generateNotifications();
     // Polling: recargar remitos desde Supabase cada 30 segundos
     if (!currentLabCode) return;
+    db.getSolicitudes(undefined, currentLabCode).then(s => setSolicitudesAdmin(s)).catch(() => {});
     const interval = setInterval(() => {
       db.getRemitos(currentLabCode).then((remote: any[]) => {
         if (remote && remote.length > 0) {
@@ -147,6 +149,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           setMedicos(medicosUnicos);
         }
       }).catch(() => {});
+      db.getSolicitudes(undefined, currentLabCode).then(s => setSolicitudesAdmin(s)).catch(() => {});
     }, 30000);
     return () => clearInterval(interval);
   }, [currentLabCode]);
@@ -1300,7 +1303,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               >
                 <div className="flex items-center space-x-3 px-4 py-3">
                   <Icon size={20} className={currentView === id ? 'text-white' : 'text-slate-300'} />
-                  <div className="text-left">
+                  <div className="text-left flex-1">
                     <span className={`font-medium ${currentView === id ? 'text-white' : 'text-slate-200'}`}>
                       {label}
                     </span>
@@ -1308,6 +1311,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {desc}
                     </p>
                   </div>
+                  {id === 'dashboard' && solicitudesAdmin.filter((s: any) => s.estado === 'pendiente').length > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5">
+                      {solicitudesAdmin.filter((s: any) => s.estado === 'pendiente').length}
+                    </span>
+                  )}
                 </div>
                 {currentView === id && (
                   <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
@@ -1829,6 +1837,100 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   🖨 Imprimir pendientes
                 </button>
               </div>
+
+              {/* Solicitudes de Material */}
+              {(() => {
+                const solsPendientes = solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso');
+                if (solsPendientes.length === 0) return null;
+                const tipoBadge = (tipo: string) => {
+                  if (tipo === 'taco') return 'bg-amber-100 text-amber-800';
+                  if (tipo === 'profundizacion') return 'bg-blue-100 text-blue-800';
+                  return 'bg-purple-100 text-purple-800';
+                };
+                const tipoLabel = (tipo: string) => {
+                  if (tipo === 'taco') return 'Taco';
+                  if (tipo === 'profundizacion') return 'Profundización';
+                  return 'Servicio adicional';
+                };
+                const estadoBadge = (estado: string) => {
+                  if (estado === 'pendiente') return 'bg-yellow-100 text-yellow-800';
+                  if (estado === 'en_proceso') return 'bg-blue-100 text-blue-800';
+                  if (estado === 'entregado') return 'bg-green-100 text-green-800';
+                  return 'bg-red-100 text-red-800';
+                };
+                const handleUpdateSolicitud = async (sol: any, nuevoEstado: string) => {
+                  const updated = { ...sol, estado: nuevoEstado, ...(nuevoEstado === 'entregado' ? { entregadoAt: new Date().toISOString(), entregadoPor: 'Admin' } : {}) };
+                  await db.saveSolicitud(updated);
+                  setSolicitudesAdmin(prev => prev.map(s => s.id === sol.id ? updated : s));
+                  const notif = {
+                    id: `NOTIF_SOL_${Date.now()}`,
+                    remitoId: sol.remitoId || sol.id,
+                    medicoEmail: sol.doctorEmail || sol.medico || '',
+                    mensaje: nuevoEstado === 'en_proceso'
+                      ? `Su solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''} está siendo procesada.`
+                      : nuevoEstado === 'entregado'
+                      ? `Su solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''} fue entregada.`
+                      : `Su solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''} fue rechazada.`,
+                    fecha: new Date().toISOString(),
+                    leida: false,
+                    tipo: nuevoEstado === 'rechazado' ? 'warning' : 'info'
+                  };
+                  db.saveNotification(notif).catch(console.error);
+                };
+                return (
+                  <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
+                        📦 Solicitudes de Material
+                        <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                          {solsPendientes.filter((s: any) => s.estado === 'pendiente').length} pendientes
+                        </span>
+                      </h4>
+                    </div>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {solsPendientes.map((sol: any) => (
+                        <div key={sol.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge(sol.tipo)}`}>
+                              {tipoLabel(sol.tipo)}
+                            </span>
+                            {sol.numeroPaciente && <span className="text-xs text-gray-600">Pac. #{sol.numeroPaciente}</span>}
+                            {sol.remitoNumber && <span className="text-xs text-gray-500">Remito #{sol.remitoNumber}</span>}
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ml-auto ${estadoBadge(sol.estado)}`}>
+                              {sol.estado}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-600 mb-1">
+                            <span className="font-medium">Médico:</span> {sol.medico || sol.doctorEmail || 'N/A'}
+                          </div>
+                          {sol.solicitadoPor && (
+                            <div className="text-xs text-gray-500 mb-1">
+                              Solicitado por: {sol.solicitadoPor} {sol.creadoAt ? `— ${new Date(sol.creadoAt).toLocaleDateString()}` : ''}
+                            </div>
+                          )}
+                          {sol.descripcion && <p className="text-xs text-gray-700 mb-2">{sol.descripcion}</p>}
+                          {sol.estado === 'entregado' && sol.entregadoAt && (
+                            <div className="text-xs text-green-700 mb-1">
+                              Entregado: {new Date(sol.entregadoAt).toLocaleDateString()} por {sol.entregadoPor || 'Admin'}
+                            </div>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            {sol.estado === 'pendiente' && (
+                              <>
+                                <button onClick={() => handleUpdateSolicitud(sol, 'en_proceso')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-semibold">En proceso</button>
+                                <button onClick={() => handleUpdateSolicitud(sol, 'rechazado')} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold">Rechazar</button>
+                              </>
+                            )}
+                            {sol.estado === 'en_proceso' && (
+                              <button onClick={() => handleUpdateSolicitud(sol, 'entregado')} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-semibold">Marcar Entregado</button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Eficiencia del laboratorio - separado */}
               <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
