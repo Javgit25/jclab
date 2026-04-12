@@ -68,6 +68,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [solicitudSelectedCassettes, setSolicitudSelectedCassettes] = useState<string[]>([]);
   const [solicitudPatientHistory, setSolicitudPatientHistory] = useState<any[]>([]);
   const [solicitudSelectedPatient, setSolicitudSelectedPatient] = useState<any>(null);
+  const [solicitudServicios, setSolicitudServicios] = useState<{ giemsa: boolean; pas: boolean; masson: boolean; vidriosIHQ: number; vidriosBlanco: number }>({ giemsa: false, pas: false, masson: false, vidriosIHQ: 0, vidriosBlanco: 0 });
 
   // Cargar notificaciones del médico (todas, incluidas leídas recientes)
   const loadNotifications = () => {
@@ -2120,6 +2121,68 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     </div>
                   )}
 
+                  {/* Servicios específicos para Servicio Adicional */}
+                  {solicitudTipo === 'servicio_adicional' && (
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px', display: 'block' }}>Servicios solicitados</label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {/* Tinciones */}
+                        <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>Tinciones especiales</div>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {(['giemsa', 'pas', 'masson'] as const).map(t => (
+                              <button key={t} onClick={() => setSolicitudServicios(prev => ({ ...prev, [t]: !prev[t] }))}
+                                style={{
+                                  flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer', textAlign: 'center',
+                                  border: solicitudServicios[t] ? '2px solid #1e40af' : '2px solid #e5e7eb',
+                                  background: solicitudServicios[t] ? '#dbeafe' : 'white',
+                                  color: solicitudServicios[t] ? '#1e40af' : '#6b7280',
+                                  fontSize: '12px', fontWeight: '700'
+                                }}>
+                                {solicitudServicios[t] ? '✓ ' : ''}{t.charAt(0).toUpperCase() + t.slice(1)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Vidrios */}
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>Vidrios para IHQ</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: Math.max(0, prev.vidriosIHQ - 1) }))}
+                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>−</button>
+                              <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a5f', minWidth: '24px', textAlign: 'center' }}>{solicitudServicios.vidriosIHQ}</span>
+                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: prev.vidriosIHQ + 1 }))}
+                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>+</button>
+                            </div>
+                          </div>
+                          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
+                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>Vidrios en Blanco</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: Math.max(0, prev.vidriosBlanco - 1) }))}
+                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>−</button>
+                              <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a5f', minWidth: '24px', textAlign: 'center' }}>{solicitudServicios.vidriosBlanco}</span>
+                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: prev.vidriosBlanco + 1 }))}
+                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>+</button>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Resumen */}
+                        {(solicitudServicios.giemsa || solicitudServicios.pas || solicitudServicios.masson || solicitudServicios.vidriosIHQ > 0 || solicitudServicios.vidriosBlanco > 0) && (
+                          <div style={{ background: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#059669', fontWeight: '600' }}>
+                            ✓ {[
+                              solicitudServicios.giemsa && 'Giemsa',
+                              solicitudServicios.pas && 'PAS',
+                              solicitudServicios.masson && 'Masson',
+                              solicitudServicios.vidriosIHQ > 0 && `Vidrios IHQ ×${solicitudServicios.vidriosIHQ}`,
+                              solicitudServicios.vidriosBlanco > 0 && `Vidrios Blanco ×${solicitudServicios.vidriosBlanco}`
+                            ].filter(Boolean).join(' · ')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Descripción */}
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Descripción</label>
@@ -2148,12 +2211,25 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         : solicitudTipo === 'taco' && solicitudCassettes.trim()
                           ? solicitudCassettes.split(',').map(s => s.trim()).filter(Boolean)
                           : undefined;
+                      // Construir descripción con servicios adicionales
+                      let descFinal = solicitudDescripcion.trim();
+                      if (solicitudTipo === 'servicio_adicional') {
+                        const svcParts: string[] = [];
+                        if (solicitudServicios.giemsa) svcParts.push('Giemsa');
+                        if (solicitudServicios.pas) svcParts.push('PAS');
+                        if (solicitudServicios.masson) svcParts.push('Masson');
+                        if (solicitudServicios.vidriosIHQ > 0) svcParts.push(`Vidrios IHQ ×${solicitudServicios.vidriosIHQ}`);
+                        if (solicitudServicios.vidriosBlanco > 0) svcParts.push(`Vidrios Blanco ×${solicitudServicios.vidriosBlanco}`);
+                        if (svcParts.length > 0) {
+                          descFinal = `Servicios: ${svcParts.join(', ')}${descFinal ? '\n' + descFinal : ''}`;
+                        }
+                      }
                       const sol: Solicitud = {
                         id: `SOL_${Date.now()}`,
                         tipo: solicitudTipo,
                         numeroPaciente: solicitudPaciente.trim(),
                         remitoNumber: solicitudRemito.trim(),
-                        descripcion: solicitudDescripcion.trim(),
+                        descripcion: descFinal,
                         tejido: solicitudSelectedPatient?.tissueType || '',
                         solicitadoPor: doctorInfo.cargadoPor || doctorInfo.name,
                         solicitadoAt: new Date().toISOString(),
@@ -2171,6 +2247,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         setSolicitudCassettes('');
                         setSolicitudSelectedCassettes([]);
                         setSolicitudSelectedPatient(null);
+                        setSolicitudServicios({ giemsa: false, pas: false, masson: false, vidriosIHQ: 0, vidriosBlanco: 0 });
                         setSolicitudTab('mis');
                       } catch (err) {
                         console.error('Error saving solicitud:', err);
