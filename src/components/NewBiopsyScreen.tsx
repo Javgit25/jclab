@@ -721,6 +721,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           <Step7
             biopsyForm={biopsyForm}
             onObservationsChange={(value) => handleBiopsyChange('observations', value)}
+            onBiopsyFieldChange={(field, value) => handleBiopsyChange(field, value)}
             onSave={saveBiopsy}
             onPrev={prevStep}
             onFinishDailyReport={finishDailyReportWithCurrentBiopsy}

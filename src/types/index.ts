@@ -111,6 +111,8 @@ export interface BiopsyForm {
   cargadoPor?: string;        // Nombre de quien cargó (médico o ayudante)
   trozoPorCassette?: number[]; // Trozos por cada cassette individual
   quedaMaterial?: boolean;     // Si queda material sin procesar
+  entregarConTaco?: boolean;   // Si se solicita devolver tacos/cassettes
+  tacosSeleccionados?: number[]; // Índices de cassettes a devolver (vacío = todos)
 }
 
 export interface VirtualKeyboard {

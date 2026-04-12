@@ -6,6 +6,7 @@ import { serviciosAdicionales, giemsaOptions } from '../../constants/services';
 interface Step7Props {
   biopsyForm: BiopsyForm;
   onObservationsChange: (value: string) => void;
+  onBiopsyFieldChange?: (field: string, value: any) => void;
   onSave: () => void;
   onPrev: () => void;
   onFinishDailyReport: () => void;
@@ -15,6 +16,7 @@ interface Step7Props {
 export const Step7: React.FC<Step7Props> = ({
   biopsyForm,
   onObservationsChange,
+  onBiopsyFieldChange,
   onSave,
   onPrev,
   onFinishDailyReport,
@@ -469,6 +471,89 @@ export const Step7: React.FC<Step7Props> = ({
                 }}>
                   {getGiemsaText()}
                 </p>
+              </div>
+            )}
+
+            {/* Entregar con Taco */}
+            {biopsyForm.tissueType !== 'PAP' && biopsyForm.tissueType !== 'Citología' && (
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px',
+                  backgroundColor: biopsyForm.entregarConTaco ? '#fef3c7' : '#f9fafb',
+                  border: `2px solid ${biopsyForm.entregarConTaco ? '#f59e0b' : '#e5e7eb'}`,
+                  borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s'
+                }}>
+                  <input type="checkbox"
+                    checked={biopsyForm.entregarConTaco || false}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      if (onBiopsyFieldChange) {
+                        onBiopsyFieldChange('entregarConTaco', checked);
+                        if (!checked) onBiopsyFieldChange('tacosSeleccionados', []);
+                      }
+                    }}
+                    style={{ width: '20px', height: '20px', accentColor: '#f59e0b' }}
+                  />
+                  <div>
+                    <span style={{ fontSize: '14px', fontWeight: '700', color: biopsyForm.entregarConTaco ? '#92400e' : '#374151' }}>
+                      📦 Entregar con Taco
+                    </span>
+                    <div style={{ fontSize: '10px', color: '#64748b' }}>
+                      El laboratorio devolverá los cassettes/tacos junto a los vidrios
+                    </div>
+                  </div>
+                </label>
+
+                {/* Selección de cuáles tacos cuando hay 2+ cassettes */}
+                {biopsyForm.entregarConTaco && parseInt(biopsyForm.cassettes) >= 2 && (
+                  <div style={{ marginTop: '8px', padding: '10px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fcd34d' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '600', color: '#92400e' }}>¿Cuáles tacos necesita?</span>
+                      <button
+                        onClick={() => {
+                          const all = Array.from({ length: parseInt(biopsyForm.cassettes) }, (_, i) => i);
+                          const current = biopsyForm.tacosSeleccionados || [];
+                          const newSel = current.length === parseInt(biopsyForm.cassettes) ? [] : all;
+                          if (onBiopsyFieldChange) onBiopsyFieldChange('tacosSeleccionados', newSel);
+                        }}
+                        style={{ fontSize: '10px', fontWeight: '700', color: '#1e40af', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 8px', borderRadius: '6px', cursor: 'pointer' }}
+                      >
+                        {(biopsyForm.tacosSeleccionados || []).length === parseInt(biopsyForm.cassettes) ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {Array.from({ length: parseInt(biopsyForm.cassettes) }, (_, i) => {
+                        const cn = biopsyForm.cassettesNumbers?.[i];
+                        const label = i === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `SUB ${i}`);
+                        const selected = (biopsyForm.tacosSeleccionados || []).includes(i);
+                        return (
+                          <button key={i}
+                            onClick={() => {
+                              const current = biopsyForm.tacosSeleccionados || [];
+                              const newSel = selected ? current.filter(x => x !== i) : [...current, i];
+                              if (onBiopsyFieldChange) onBiopsyFieldChange('tacosSeleccionados', newSel);
+                            }}
+                            style={{
+                              padding: '6px 12px', borderRadius: '8px', cursor: 'pointer',
+                              border: selected ? '2px solid #f59e0b' : '1px solid #d1d5db',
+                              background: selected ? '#fef3c7' : 'white',
+                              fontWeight: selected ? '700' : '500',
+                              fontSize: '12px',
+                              color: selected ? '#92400e' : '#374151'
+                            }}
+                          >
+                            {selected ? '✓ ' : ''}{label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {(biopsyForm.tacosSeleccionados || []).length === 0 && biopsyForm.entregarConTaco && (
+                      <p style={{ fontSize: '10px', color: '#d97706', marginTop: '6px', fontStyle: 'italic' }}>
+                        Seleccione al menos un cassette o use "Seleccionar todos"
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

@@ -468,7 +468,9 @@ function App() {
             citologiaSubType: biopsy.citologiaSubType || '',
             cassettesNumbers: biopsy.cassettesNumbers || [],
             trozoPorCassette: biopsy.trozoPorCassette || [],
-            quedaMaterial: biopsy.quedaMaterial || false
+            quedaMaterial: biopsy.quedaMaterial || false,
+            entregarConTaco: biopsy.entregarConTaco || false,
+            tacosSeleccionados: biopsy.tacosSeleccionados || []
           };
         }),
         estado: 'pendiente',

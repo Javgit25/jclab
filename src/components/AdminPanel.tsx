@@ -235,7 +235,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     citologiaSubType: biopsy.citologiaSubType || '',
                     cassettesNumbers: biopsy.cassettesNumbers || biopsy.cassettes_numbers || [],
                     trozoPorCassette: biopsy.trozoPorCassette || [],
-                    quedaMaterial: biopsy.quedaMaterial || false
+                    quedaMaterial: biopsy.quedaMaterial || false,
+                    entregarConTaco: biopsy.entregarConTaco || false,
+                    tacosSeleccionados: biopsy.tacosSeleccionados || []
                   }))
                 };
                 allRemitos.push(adminRemito);
