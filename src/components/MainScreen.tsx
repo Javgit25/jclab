@@ -65,6 +65,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [solicitudRemito, setSolicitudRemito] = useState('');
   const [solicitudDescripcion, setSolicitudDescripcion] = useState('');
   const [solicitudCassettes, setSolicitudCassettes] = useState('');
+  const [solicitudSelectedCassettes, setSolicitudSelectedCassettes] = useState<string[]>([]);
+  const [solicitudPatientHistory, setSolicitudPatientHistory] = useState<any[]>([]);
+  const [solicitudSelectedPatient, setSolicitudSelectedPatient] = useState<any>(null);
 
   // Cargar notificaciones del médico (todas, incluidas leídas recientes)
   const loadNotifications = () => {
@@ -1440,8 +1443,49 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     setActiveField(null);
   };
 
+  // Load patient history for solicitudes
+  const loadSolicitudPatientHistory = () => {
+    try {
+      const historyKey = `doctor_${doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '')}_history`;
+      const history = JSON.parse(localStorage.getItem(historyKey) || '{}');
+      const patients: any[] = [];
+      Object.entries(history).forEach(([key, entry]: [string, any]) => {
+        if (entry && entry.biopsies && Array.isArray(entry.biopsies)) {
+          entry.biopsies.forEach((biopsy: any) => {
+            if (biopsy.number) {
+              patients.push({
+                patientNumber: biopsy.number,
+                remitoNumber: entry.remitoNumber || '',
+                tissueType: biopsy.tissueType || '',
+                cassettes: biopsy.cassettes || '',
+                cassettesNumbers: biopsy.cassettesNumbers || [],
+                historyKey: key
+              });
+            }
+          });
+        }
+      });
+      setSolicitudPatientHistory(patients);
+    } catch { setSolicitudPatientHistory([]); }
+  };
+
   // Funciones para el teclado virtual
   const handleKeyPress = (key: string) => {
+    const applyKeyToSetter = (setter: React.Dispatch<React.SetStateAction<string>>) => {
+      const k = key.toLowerCase();
+      if (k === 'backspace') {
+        setter(prev => prev.slice(0, -1));
+      } else if (k === 'space') {
+        setter(prev => prev + ' ');
+      } else if (k === 'clear') {
+        setter('');
+      } else if (k === 'shift') {
+        // ignorar
+      } else {
+        setter(prev => prev + key);
+      }
+    };
+
     if (activeField === 'search-query') {
       const k = key.toLowerCase();
       if (k === 'backspace') {
@@ -1455,6 +1499,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       } else {
         setSearchFilters(prev => ({ ...prev, query: prev.query + key }));
       }
+    } else if (activeField === 'solicitud-paciente') {
+      applyKeyToSetter(setSolicitudPaciente);
+      // Clear patient selection when typing manually
+      setSolicitudSelectedPatient(null);
+      setSolicitudSelectedCassettes([]);
+    } else if (activeField === 'solicitud-descripcion') {
+      applyKeyToSetter(setSolicitudDescripcion);
     }
   };
 
@@ -1844,6 +1895,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         gap: '8px'
       }} onClick={() => {
         db.getSolicitudes(doctorInfo.email).then(s => setSolicitudesData(s)).catch(() => {});
+        loadSolicitudPatientHistory();
         setShowSolicitudes(true);
       }}>
         <span style={{ fontSize: '14px' }}>📋</span>
@@ -1880,7 +1932,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               borderRadius: '16px 16px 0 0', color: 'white'
             }}>
               <span style={{ fontSize: '16px', fontWeight: '800' }}>Solicitudes de Material</span>
-              <button onClick={() => setShowSolicitudes(false)} style={{
+              <button onClick={() => { setShowSolicitudes(false); setShowKeyboard(false); setActiveField(null); }} style={{
                 background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: '8px',
                 width: '32px', height: '32px', cursor: 'pointer', color: 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px'
@@ -1907,60 +1959,178 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
               {solicitudTab === 'nueva' ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Tipo */}
+                  {/* Tipo - Styled buttons */}
                   <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Tipo de solicitud</label>
-                    <select value={solicitudTipo} onChange={e => setSolicitudTipo(e.target.value as any)} style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
-                      fontSize: '13px', background: 'white', color: '#1f2937'
-                    }}>
-                      <option value="taco">Solicitar Taco/Cassette</option>
-                      <option value="profundizacion">Profundización</option>
-                      <option value="servicio_adicional">Servicio Adicional</option>
-                    </select>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px', display: 'block' }}>Tipo de solicitud</label>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {([
+                        { value: 'taco', label: 'Taco/Cassette', icon: '\ud83d\udce6', color: '#f59e0b', bg: '#fffbeb', border: '#fbbf24' },
+                        { value: 'profundizacion', label: 'Profundizaci\u00f3n', icon: '\ud83d\udd2c', color: '#3b82f6', bg: '#eff6ff', border: '#60a5fa' },
+                        { value: 'servicio_adicional', label: 'Serv. Adicional', icon: '\u2795', color: '#8b5cf6', bg: '#f5f3ff', border: '#a78bfa' }
+                      ] as const).map(opt => (
+                        <button key={opt.value} onClick={() => setSolicitudTipo(opt.value as any)} style={{
+                          flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer',
+                          border: solicitudTipo === opt.value ? `2px solid ${opt.border}` : '2px solid #e5e7eb',
+                          background: solicitudTipo === opt.value ? opt.bg : 'white',
+                          color: solicitudTipo === opt.value ? opt.color : '#6b7280',
+                          fontSize: '11px', fontWeight: '700', textAlign: 'center' as const,
+                          transition: 'all 0.2s', display: 'flex', flexDirection: 'column' as const,
+                          alignItems: 'center', gap: '2px'
+                        }}>
+                          <span style={{ fontSize: '18px' }}>{opt.icon}</span>
+                          <span>{opt.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* N° Paciente */}
+                  {/* N\u00b0 Paciente with autocomplete */}
                   <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Paciente</label>
-                    <input value={solicitudPaciente} onChange={e => setSolicitudPaciente(e.target.value)} placeholder="Número de paciente"
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N\u00b0 Paciente</label>
+                    <input
+                      value={solicitudPaciente}
+                      readOnly
+                      inputMode="none"
+                      onFocus={() => handleFieldFocus('solicitud-paciente')}
+                      placeholder="Tocar para buscar paciente"
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '8px',
+                        border: activeField === 'solicitud-paciente' ? '2px solid #f59e0b' : '1px solid #d1d5db',
+                        fontSize: '13px', boxSizing: 'border-box', background: '#fefce8'
+                      }}
+                    />
+                    {/* Patient suggestions */}
+                    {activeField === 'solicitud-paciente' && solicitudPatientHistory.length > 0 && (
+                      <div style={{
+                        marginTop: '4px', borderRadius: '8px', border: '1px solid #e5e7eb',
+                        background: 'white', maxHeight: '180px', overflowY: 'auto',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}>
+                        {(() => {
+                          const query = solicitudPaciente.toLowerCase().trim();
+                          const filtered = query
+                            ? solicitudPatientHistory.filter(p => p.patientNumber.toLowerCase().includes(query))
+                            : solicitudPatientHistory;
+                          const unique = filtered.reduce((acc: any[], p: any) => {
+                            if (!acc.find(x => x.patientNumber === p.patientNumber && x.remitoNumber === p.remitoNumber)) acc.push(p);
+                            return acc;
+                          }, []);
+                          const shown = unique.slice(0, 6);
+                          if (shown.length === 0) {
+                            return <div style={{ padding: '10px 12px', fontSize: '12px', color: '#94a3b8', textAlign: 'center' }}>Sin resultados</div>;
+                          }
+                          return shown.map((p: any, i: number) => (
+                            <button key={i} onClick={() => {
+                              setSolicitudPaciente(p.patientNumber);
+                              setSolicitudRemito(p.remitoNumber);
+                              setSolicitudSelectedPatient(p);
+                              setSolicitudSelectedCassettes([]);
+                              setSolicitudCassettes('');
+                              setShowKeyboard(false);
+                              setActiveField(null);
+                            }} style={{
+                              width: '100%', padding: '8px 12px', border: 'none', borderBottom: '1px solid #f1f5f9',
+                              background: 'white', cursor: 'pointer', textAlign: 'left',
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px'
+                            }}>
+                              <div>
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: '#1f2937' }}>{p.patientNumber}</div>
+                                <div style={{ fontSize: '10px', color: '#6b7280' }}>{p.tissueType || 'Sin tejido'}</div>
+                              </div>
+                              <div style={{ fontSize: '10px', color: '#94a3b8', textAlign: 'right' }}>
+                                Remito: {p.remitoNumber || '-'}
+                              </div>
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* N\u00b0 Remito - auto-filled */}
+                  <div>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N\u00b0 Remito</label>
+                    <input
+                      value={solicitudRemito}
+                      readOnly
+                      inputMode="none"
+                      placeholder={solicitudSelectedPatient ? 'Auto-completado' : 'Se completa al elegir paciente'}
                       style={{
                         width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
-                        fontSize: '13px', boxSizing: 'border-box'
+                        fontSize: '13px', boxSizing: 'border-box',
+                        background: solicitudSelectedPatient ? '#f0fdf4' : '#f9fafb',
+                        color: solicitudSelectedPatient ? '#15803d' : '#9ca3af'
                       }}
                     />
                   </div>
 
-                  {/* N° Remito */}
-                  <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Remito</label>
-                    <input value={solicitudRemito} onChange={e => setSolicitudRemito(e.target.value)} placeholder="Número de remito"
-                      style={{
-                        width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
-                        fontSize: '13px', boxSizing: 'border-box'
-                      }}
-                    />
-                  </div>
-
-                  {/* Cassettes (solo para taco) */}
+                  {/* Cassettes - selectable buttons when patient selected and type is taco */}
                   {solicitudTipo === 'taco' && (
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Cassettes solicitados</label>
-                      <input value={solicitudCassettes} onChange={e => setSolicitudCassettes(e.target.value)} placeholder="Ej: 1, 3, 5 o A, B, C"
-                        style={{
-                          width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
-                          fontSize: '13px', boxSizing: 'border-box'
-                        }}
-                      />
+                      {solicitudSelectedPatient && solicitudSelectedPatient.cassettesNumbers && solicitudSelectedPatient.cassettesNumbers.length > 0 ? (
+                        <div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '6px' }}>
+                            {solicitudSelectedPatient.cassettesNumbers.map((cass: string, i: number) => {
+                              const isSelected = solicitudSelectedCassettes.includes(cass);
+                              return (
+                                <button key={i} onClick={() => {
+                                  const next = isSelected
+                                    ? solicitudSelectedCassettes.filter(c => c !== cass)
+                                    : [...solicitudSelectedCassettes, cass];
+                                  setSolicitudSelectedCassettes(next);
+                                  setSolicitudCassettes(next.join(', '));
+                                }} style={{
+                                  padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+                                  border: isSelected ? '2px solid #f59e0b' : '2px solid #e5e7eb',
+                                  background: isSelected ? '#fef3c7' : 'white',
+                                  color: isSelected ? '#92400e' : '#374151',
+                                  fontSize: '12px', fontWeight: '700',
+                                  transition: 'all 0.15s'
+                                }}>
+                                  {cass}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <button onClick={() => {
+                            const allCass = solicitudSelectedPatient.cassettesNumbers;
+                            const allSelected = allCass.length === solicitudSelectedCassettes.length;
+                            const next = allSelected ? [] : [...allCass];
+                            setSolicitudSelectedCassettes(next);
+                            setSolicitudCassettes(next.join(', '));
+                          }} style={{
+                            padding: '5px 10px', borderRadius: '6px', cursor: 'pointer',
+                            border: '1px solid #d1d5db', background: '#f9fafb',
+                            color: '#6b7280', fontSize: '11px', fontWeight: '600'
+                          }}>
+                            {solicitudSelectedPatient.cassettesNumbers.length === solicitudSelectedCassettes.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{
+                          padding: '10px 12px', borderRadius: '8px', border: '1px dashed #d1d5db',
+                          fontSize: '12px', color: '#94a3b8', textAlign: 'center',
+                          background: '#f9fafb'
+                        }}>
+                          {solicitudSelectedPatient ? 'Este paciente no tiene cassettes registrados' : 'Seleccione un paciente para ver cassettes'}
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Descripción */}
+                  {/* Descripci\u00f3n */}
                   <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Descripción</label>
-                    <textarea value={solicitudDescripcion} onChange={e => setSolicitudDescripcion(e.target.value)} placeholder="Detalle de la solicitud..."
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Descripci\u00f3n</label>
+                    <textarea
+                      value={solicitudDescripcion}
+                      readOnly
+                      inputMode="none"
+                      onFocus={() => handleFieldFocus('solicitud-descripcion')}
+                      placeholder="Tocar para escribir detalle..."
                       rows={3} style={{
-                        width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #d1d5db',
+                        width: '100%', padding: '10px 12px', borderRadius: '8px',
+                        border: activeField === 'solicitud-descripcion' ? '2px solid #f59e0b' : '1px solid #d1d5db',
                         fontSize: '13px', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box'
                       }}
                     />
@@ -1972,19 +2142,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     onClick={async () => {
                       const doctors = getRegisteredDoctors();
                       const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
+                      const cassetteLabels = solicitudTipo === 'taco' && solicitudSelectedCassettes.length > 0
+                        ? solicitudSelectedCassettes
+                        : solicitudTipo === 'taco' && solicitudCassettes.trim()
+                          ? solicitudCassettes.split(',').map(s => s.trim()).filter(Boolean)
+                          : undefined;
                       const sol: Solicitud = {
                         id: `SOL_${Date.now()}`,
                         tipo: solicitudTipo,
                         numeroPaciente: solicitudPaciente.trim(),
                         remitoNumber: solicitudRemito.trim(),
                         descripcion: solicitudDescripcion.trim(),
-                        tejido: '',
+                        tejido: solicitudSelectedPatient?.tissueType || '',
                         solicitadoPor: doctorInfo.cargadoPor || doctorInfo.name,
                         solicitadoAt: new Date().toISOString(),
                         estado: 'pendiente',
                         doctorEmail: doctorInfo.email,
                         labCode: doc?.labCode || '',
-                        ...(solicitudTipo === 'taco' && solicitudCassettes.trim() ? { cassetteLabels: solicitudCassettes.split(',').map(s => s.trim()).filter(Boolean) } : {})
+                        ...(cassetteLabels ? { cassetteLabels } : {})
                       };
                       try {
                         await db.saveSolicitud(sol);
@@ -1993,6 +2168,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         setSolicitudRemito('');
                         setSolicitudDescripcion('');
                         setSolicitudCassettes('');
+                        setSolicitudSelectedCassettes([]);
+                        setSolicitudSelectedPatient(null);
                         setSolicitudTab('mis');
                       } catch (err) {
                         console.error('Error saving solicitud:', err);
@@ -3309,8 +3486,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         </div>
       )}
 
-      {/* Teclado Virtual para Búsqueda */}
-      {showKeyboard && showSearchModal && (
+      {/* Teclado Virtual para Búsqueda y Solicitudes */}
+      {showKeyboard && (showSearchModal || showSolicitudes) && (
         <div style={{
           position: 'fixed',
           bottom: 0,
@@ -3326,7 +3503,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               isOpen: showKeyboard, 
               type: keyboardType, 
               targetField: activeField || '',
-              targetValue: searchFilters.query 
+              targetValue: activeField === 'solicitud-paciente' ? solicitudPaciente : activeField === 'solicitud-descripcion' ? solicitudDescripcion : searchFilters.query 
             }}
             onKeyPress={handleKeyPress}
             onConfirm={handleKeyboardConfirm}
