@@ -1072,15 +1072,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
                   : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ' lab)</span>' : String(currCass);
 
-                const rowStyle = diff > 0 ? 'background:#f0fdf4;' : '';
+                const isProf = (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
+                const isSA = (remito as any).esServicioAdicional && !isProf;
+                const rowStyle = diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
                 const cargadoPorLabel = (remito as any).cargadoPor || '';
+                const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
+                const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
                 return '<tr style="' + rowStyle + '">' +
-                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + '</td>' +
+                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
                   '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
                   '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
                   '<td><strong>' + biopsia.numero + '</strong></td>' +
                   '<td>' + biopsia.tejido + '</td>' +
-                  '<td><span class="badge ' + bc + '">' + tipo + '</span></td>' +
+                  '<td>' + tipoDisplay + '</td>' +
                   '<td>' + cantLabel + '</td>' +
                   '<td class="servicios-cell">' + (svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
                   '<td class="subtotal">$' + calcularTotalBiopsia(biopsia).toLocaleString() + '</td>' +
@@ -1962,7 +1966,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4">
                           <div className="text-xs font-mono text-gray-400">#{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</div>
                           {(remito as any).esServicioAdicional && (
-                            <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold border ${(remito as any).esProfundizacion ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>{(remito as any).esProfundizacion ? 'Profundización' : 'Serv. Adicional'}</span>
+                            <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold border ${((remito as any).esProfundizacion || ((remito as any).notaServicioAdicional || '').includes('Profundización')) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>{((remito as any).esProfundizacion || ((remito as any).notaServicioAdicional || '').includes('Profundización')) ? 'Profundización' : 'Serv. Adicional'}</span>
                           )}
                           {(remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Editado</span>
@@ -3725,8 +3729,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         remitoId: sol.id,
                         medicoEmail: sol.doctorEmail || '',
                         mensaje: nuevoEstado === 'entregado'
-                          ? `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — Remito #${sol.remitoNumber || ''}`
-                          : `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — Remito #${sol.remitoNumber || ''}`,
+                          ? `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
+                          : `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
                         fecha: new Date().toISOString(),
                         leida: false,
                         tipo: nuevoEstado === 'entregado' ? 'listo' : 'parcial'
