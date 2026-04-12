@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   ArrowLeft, Users, FileText, Settings, DollarSign, Calendar, Download, Edit, Save, X, Plus, Trash2,
   Eye, EyeOff, Lock, Search, Filter, TrendingUp, AlertTriangle, BarChart3, Activity,
-  Clock, CheckCircle, XCircle, RefreshCw, Bell, Target, Zap, Award, Building2 as Building, Mail
+  Clock, CheckCircle, XCircle, RefreshCw, Bell, Target, Zap, Award, Building2 as Building, Mail, Package
 } from 'lucide-react';
 import { db } from '../lib/database';
 
@@ -1288,6 +1288,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             {[
               { id: 'dashboard', icon: BarChart3, label: 'Dashboard', desc: 'Urgentes, en proceso y listos para retirar', roles: ['admin', 'tecnico'] },
               { id: 'remitos', icon: FileText, label: 'Gestión de Remitos', desc: 'Editar biopsias y agregar servicios adicionales', roles: ['admin', 'tecnico'] },
+              { id: 'solicitudes', icon: Package, label: 'Solicitudes', desc: 'Tacos, profundizaciones y servicios adicionales', roles: ['admin', 'tecnico'] },
               { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico', roles: ['admin'] },
               { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos', roles: ['admin'] },
               { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos', roles: ['admin'] }
@@ -1311,9 +1312,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {desc}
                     </p>
                   </div>
-                  {id === 'dashboard' && solicitudesAdmin.filter((s: any) => s.estado === 'pendiente').length > 0 && (
+                  {id === 'solicitudes' && solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso').length > 0 && (
                     <span className="bg-red-500 text-white text-xs font-bold min-w-[20px] h-5 flex items-center justify-center rounded-full px-1.5">
-                      {solicitudesAdmin.filter((s: any) => s.estado === 'pendiente').length}
+                      {solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso').length}
                     </span>
                   )}
                 </div>
@@ -1838,128 +1839,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </button>
               </div>
 
-              {/* Solicitudes de Material */}
+              {/* Solicitudes movidas a sección propia */}
               {(() => {
                 if (solicitudesAdmin.length === 0) return null;
                 const solsPendientes = solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso');
-                const solsHistorial = solicitudesAdmin.filter((s: any) => s.estado === 'entregado' || s.estado === 'rechazado');
-                const tipoBadge = (tipo: string) => {
-                  if (tipo === 'taco') return 'bg-amber-100 text-amber-800';
-                  if (tipo === 'profundizacion') return 'bg-blue-100 text-blue-800';
-                  return 'bg-purple-100 text-purple-800';
-                };
-                const tipoLabel = (tipo: string) => {
-                  if (tipo === 'taco') return 'Taco';
-                  if (tipo === 'profundizacion') return 'Profundización';
-                  return 'Servicio adicional';
-                };
-                const estadoBadge = (estado: string) => {
-                  if (estado === 'pendiente') return 'bg-yellow-100 text-yellow-800';
-                  if (estado === 'en_proceso') return 'bg-blue-100 text-blue-800';
-                  if (estado === 'entregado') return 'bg-green-100 text-green-800';
-                  return 'bg-red-100 text-red-800';
-                };
-                const handleUpdateSolicitud = async (sol: any, nuevoEstado: string) => {
-                  const updated = { ...sol, estado: nuevoEstado, ...(nuevoEstado === 'entregado' ? { entregadoAt: new Date().toISOString(), entregadoPor: 'Admin' } : {}) };
-                  await db.saveSolicitud(updated);
-                  setSolicitudesAdmin(prev => prev.map(s => s.id === sol.id ? updated : s));
-                  const notif = {
-                    id: `NOTIF_SOL_${Date.now()}`,
-                    remitoId: sol.remitoId || sol.id,
-                    medicoEmail: sol.doctorEmail || sol.medico || '',
-                    mensaje: nuevoEstado === 'en_proceso'
-                      ? `Su solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''} está siendo procesada.`
-                      : nuevoEstado === 'entregado'
-                      ? `Su solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''} fue entregada.`
-                      : `Su solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''} fue rechazada.`,
-                    fecha: new Date().toISOString(),
-                    leida: false,
-                    tipo: nuevoEstado === 'rechazado' ? 'warning' : 'info'
-                  };
-                  db.saveNotification(notif).catch(console.error);
-                };
+                // Solo mostrar resumen rápido en dashboard
+                if (solsPendientes.length === 0) return null;
                 return (
-                  <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                        📦 Solicitudes de Material
-                        <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
-                          {solsPendientes.filter((s: any) => s.estado === 'pendiente').length} pendientes
-                        </span>
-                      </h4>
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3 flex items-center justify-between cursor-pointer" onClick={() => setCurrentView('solicitudes')}>
+                    <div className="flex items-center gap-2">
+                      <Package size={18} className="text-amber-600" />
+                      <span className="text-sm font-semibold text-amber-800">{solsPendientes.length} solicitud{solsPendientes.length !== 1 ? 'es' : ''} pendiente{solsPendientes.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {solsPendientes.map((sol: any) => (
-                        <div key={sol.id} className="border border-gray-100 rounded-lg p-3 bg-gray-50">
-                          <div className="flex items-center gap-2 mb-2 flex-wrap">
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${tipoBadge(sol.tipo)}`}>
-                              {tipoLabel(sol.tipo)}
-                            </span>
-                            {sol.numeroPaciente && <span className="text-xs text-gray-600">Pac. #{sol.numeroPaciente}</span>}
-                            {sol.remitoNumber && <span className="text-xs text-gray-500">Remito #{sol.remitoNumber}</span>}
-                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ml-auto ${estadoBadge(sol.estado)}`}>
-                              {sol.estado}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-600 mb-1">
-                            <span className="font-medium">Médico:</span> {sol.medico || sol.doctorEmail || 'N/A'}
-                          </div>
-                          {sol.solicitadoPor && (
-                            <div className="text-xs text-gray-500 mb-1">
-                              Solicitado por: {sol.solicitadoPor} {sol.creadoAt ? `— ${new Date(sol.creadoAt).toLocaleDateString()}` : ''}
-                            </div>
-                          )}
-                          {sol.descripcion && <p className="text-xs text-gray-700 mb-2">{sol.descripcion}</p>}
-                          {sol.estado === 'entregado' && sol.entregadoAt && (
-                            <div className="text-xs text-green-700 mb-1">
-                              Entregado: {new Date(sol.entregadoAt).toLocaleDateString()} por {sol.entregadoPor || 'Admin'}
-                            </div>
-                          )}
-                          <div className="flex gap-2 mt-2">
-                            {sol.estado === 'pendiente' && (
-                              <>
-                                <button onClick={() => handleUpdateSolicitud(sol, 'en_proceso')} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-semibold">En proceso</button>
-                                <button onClick={() => handleUpdateSolicitud(sol, 'rechazado')} className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold">Rechazar</button>
-                              </>
-                            )}
-                            {sol.estado === 'en_proceso' && (
-                              <button onClick={() => handleUpdateSolicitud(sol, 'entregado')} className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs font-semibold">Marcar Entregado</button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Historial de solicitudes completadas */}
-                    {solsHistorial.length > 0 && (
-                      <details className="mt-4">
-                        <summary className="cursor-pointer text-sm font-semibold text-gray-500 hover:text-gray-700">
-                          📋 Historial ({solsHistorial.length} completadas)
-                        </summary>
-                        <div className="mt-2 space-y-2">
-                          {solsHistorial.map((sol: any) => (
-                            <div key={sol.id} className={`p-3 rounded-lg border ${sol.estado === 'entregado' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${tipoBadge(sol.tipo)}`}>
-                                    {sol.tipo === 'taco' ? '📦 Taco' : sol.tipo === 'profundizacion' ? '🔬 Prof.' : '➕ Serv.'}
-                                  </span>
-                                  <span className="text-sm font-semibold">#{sol.numeroPaciente}</span>
-                                  <span className="text-xs text-gray-500">Rem. #{sol.remitoNumber}</span>
-                                </div>
-                                <span className={`px-2 py-0.5 rounded text-xs font-bold ${sol.estado === 'entregado' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                  {sol.estado === 'entregado' ? '✓ Entregado' : '✕ Rechazado'}
-                                </span>
-                              </div>
-                              <div className="text-xs text-gray-500 mt-1">
-                                Solicitado: {new Date(sol.solicitadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })} por {sol.solicitadoPor}
-                                {sol.entregadoAt && <> · Entregado: {new Date(sol.entregadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })} por {sol.entregadoPor}</>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </details>
-                    )}
+                    <span className="text-xs text-amber-600 font-semibold">Ver →</span>
                   </div>
                 );
               })()}
@@ -3801,6 +3693,136 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     <p className="text-gray-500">{(() => { try { return JSON.parse(localStorage.getItem('superAdmin_config') || '{}').soporteEmail || 'support@biopsytracker.com'; } catch { return 'support@biopsytracker.com'; } })()}</p>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* SECCIÓN SOLICITUDES */}
+          {currentView === 'solicitudes' && (
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="flex-shrink-0 px-5 pt-4 pb-3">
+                <h2 className="text-lg font-bold text-gray-900">📦 Solicitudes de Material</h2>
+                <p className="text-xs text-gray-400">Tacos, profundizaciones y servicios adicionales solicitados por médicos</p>
+              </div>
+              <div className="flex-1 overflow-auto px-5 pb-4">
+                {(() => {
+                  const solsPendientes = solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso');
+                  const solsHistorial = solicitudesAdmin.filter((s: any) => s.estado === 'entregado' || s.estado === 'rechazado');
+                  const tipoBadge = (tipo: string) => tipo === 'taco' ? 'bg-amber-100 text-amber-800' : tipo === 'profundizacion' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
+                  const tipoLabel = (tipo: string) => tipo === 'taco' ? '📦 Taco' : tipo === 'profundizacion' ? '🔬 Profundización' : '➕ Serv. Adicional';
+                  const estadoBadge = (estado: string) => estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : estado === 'en_proceso' ? 'bg-blue-100 text-blue-800' : estado === 'entregado' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+                  const estadoLabel = (estado: string) => estado === 'pendiente' ? '⏳ Pendiente' : estado === 'en_proceso' ? '🔄 En proceso' : estado === 'entregado' ? '✓ Entregado' : '✕ Rechazado';
+
+                  const handleUpdateSolicitud = async (sol: any, nuevoEstado: string) => {
+                    const updated = { ...sol, estado: nuevoEstado, ...(nuevoEstado === 'entregado' ? { entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' } : {}) };
+                    await db.saveSolicitud(updated);
+                    setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
+                    const notif = {
+                      id: `NOTIF_SOL_${Date.now()}`,
+                      remitoId: sol.id,
+                      medicoEmail: sol.doctorEmail || '',
+                      mensaje: `Solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''}: ${estadoLabel(nuevoEstado)}`,
+                      fecha: new Date().toISOString(),
+                      leida: false,
+                      tipo: nuevoEstado === 'entregado' ? 'listo' : 'modificacion'
+                    };
+                    db.saveNotification(notif).catch(console.error);
+                  };
+
+                  // Buscar nombre del médico desde los remitos
+                  const getMedicoName = (email: string) => {
+                    const r = remitos.find(rem => rem.email?.toLowerCase() === email?.toLowerCase());
+                    return r ? r.medico : email;
+                  };
+
+                  if (solicitudesAdmin.length === 0) {
+                    return (
+                      <div className="flex-1 flex items-center justify-center">
+                        <div className="text-center py-8">
+                          <Package className="h-10 w-10 mx-auto mb-2 text-gray-200" />
+                          <p className="text-gray-400 text-sm">No hay solicitudes</p>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      {/* Pendientes y en proceso */}
+                      {solsPendientes.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+                            Pendientes
+                            <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">{solsPendientes.length}</span>
+                          </h3>
+                          <div className="space-y-2">
+                            {solsPendientes.map((sol: any) => (
+                              <div key={sol.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${tipoBadge(sol.tipo)}`}>{tipoLabel(sol.tipo)}</span>
+                                  <span className="text-sm font-bold text-gray-800">Pac. #{sol.numeroPaciente}</span>
+                                  <span className="text-xs text-gray-500">Remito #{sol.remitoNumber}</span>
+                                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ml-auto ${estadoBadge(sol.estado)}`}>{estadoLabel(sol.estado)}</span>
+                                </div>
+                                <div className="text-sm text-gray-700 mb-1">
+                                  <strong>Dr/a. {getMedicoName(sol.doctorEmail)}</strong>
+                                  {sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') && <span className="text-amber-600 ml-1">({sol.solicitadoPor})</span>}
+                                </div>
+                                <div className="text-xs text-gray-500 mb-1">
+                                  {new Date(sol.solicitadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })}
+                                </div>
+                                {sol.cassetteLabels && sol.cassetteLabels.length > 0 && (
+                                  <div className="text-xs text-gray-600 mb-1">Cassettes: <strong>{sol.cassetteLabels.join(', ')}</strong></div>
+                                )}
+                                {sol.descripcion && <p className="text-sm text-gray-600 bg-gray-50 rounded p-2 mb-2">{sol.descripcion}</p>}
+                                <div className="flex gap-2 mt-2">
+                                  {sol.estado === 'pendiente' && (
+                                    <>
+                                      <button onClick={() => handleUpdateSolicitud(sol, 'en_proceso')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">En proceso</button>
+                                      <button onClick={() => { if (confirm('¿Rechazar esta solicitud?')) handleUpdateSolicitud(sol, 'rechazado'); }} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">Rechazar</button>
+                                    </>
+                                  )}
+                                  {sol.estado === 'en_proceso' && (
+                                    <button onClick={() => handleUpdateSolicitud(sol, 'entregado')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">✓ Marcar Entregado</button>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Historial */}
+                      {solsHistorial.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-bold text-gray-500 mb-2">Historial ({solsHistorial.length})</h3>
+                          <div className="space-y-2">
+                            {solsHistorial.map((sol: any) => (
+                              <div key={sol.id} className={`border rounded-lg p-3 ${sol.estado === 'entregado' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2 py-0.5 rounded text-xs font-bold ${tipoBadge(sol.tipo)}`}>{tipoLabel(sol.tipo)}</span>
+                                    <span className="text-sm font-semibold">#{sol.numeroPaciente}</span>
+                                    <span className="text-xs text-gray-500">Rem. #{sol.remitoNumber}</span>
+                                  </div>
+                                  <span className={`px-2 py-0.5 rounded text-xs font-bold ${estadoBadge(sol.estado)}`}>{estadoLabel(sol.estado)}</span>
+                                </div>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  <strong>Dr/a. {getMedicoName(sol.doctorEmail)}</strong>
+                                  {sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') && <span className="text-amber-600 ml-1">({sol.solicitadoPor})</span>}
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  Solicitado: {new Date(sol.solicitadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })}
+                                  {sol.entregadoAt && <> · Entregado: {new Date(sol.entregadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' })}</>}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
