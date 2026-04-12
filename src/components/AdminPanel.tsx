@@ -3717,16 +3717,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     const updated = { ...sol, estado: nuevoEstado, ...(nuevoEstado === 'entregado' ? { entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' } : {}) };
                     await db.saveSolicitud(updated);
                     setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
-                    const notif = {
-                      id: `NOTIF_SOL_${Date.now()}`,
-                      remitoId: sol.id,
-                      medicoEmail: sol.doctorEmail || '',
-                      mensaje: `Solicitud de ${tipoLabel(sol.tipo)} para paciente #${sol.numeroPaciente || ''}: ${estadoLabel(nuevoEstado)}`,
-                      fecha: new Date().toISOString(),
-                      leida: false,
-                      tipo: nuevoEstado === 'entregado' ? 'listo' : 'modificacion'
-                    };
-                    db.saveNotification(notif).catch(console.error);
+                    // Solo notificar entregado y rechazado (no en_proceso)
+                    if (nuevoEstado === 'entregado' || nuevoEstado === 'rechazado') {
+                      const tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : 'Servicio Adicional';
+                      const notif = {
+                        id: `NOTIF_SOL_${Date.now()}`,
+                        remitoId: sol.id,
+                        medicoEmail: sol.doctorEmail || '',
+                        mensaje: nuevoEstado === 'entregado'
+                          ? `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — Remito #${sol.remitoNumber || ''}`
+                          : `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — Remito #${sol.remitoNumber || ''}`,
+                        fecha: new Date().toISOString(),
+                        leida: false,
+                        tipo: nuevoEstado === 'entregado' ? 'listo' : 'parcial'
+                      };
+                      db.saveNotification(notif).catch(console.error);
+                    }
                   };
 
                   // Buscar nombre del médico desde los remitos
