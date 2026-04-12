@@ -14,7 +14,7 @@ interface Step7Props {
 
 export const Step7: React.FC<Step7Props> = ({
   biopsyForm,
-  // onObservationsChange, // No se usa directamente, se maneja por el teclado virtual
+  onObservationsChange,
   onSave,
   onPrev,
   onFinishDailyReport,
