@@ -2217,8 +2217,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                             <span style={{
                               fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px',
-                              background: '#f3e8ff', color: '#7c3aed'
-                            }}>{tipoLabels[sol.tipo] || sol.tipo}</span>
+                              background: sol.tipo === 'taco' ? '#fffbeb' : sol.tipo === 'profundizacion' ? '#eff6ff' : '#f3e8ff',
+                              color: sol.tipo === 'taco' ? '#d97706' : sol.tipo === 'profundizacion' ? '#1d4ed8' : '#7c3aed'
+                            }}>{sol.tipo === 'taco' ? '📦 ' : sol.tipo === 'profundizacion' ? '🔬 ' : '➕ '}{tipoLabels[sol.tipo] || sol.tipo}</span>
                             <span style={{
                               fontSize: '10px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px',
                               background: status.bg, color: status.color
