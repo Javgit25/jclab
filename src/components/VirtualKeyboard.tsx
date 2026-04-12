@@ -67,57 +67,54 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
     ];
 
     return (
-      <div className="bg-white border-t border-gray-200 p-4">
+      <div className="bg-white border-t border-gray-200 p-2">
         <div className="max-w-sm mx-auto">
-          <div className="mb-3">
+          <div className="mb-2">
             <input
               type="text"
               value={keyboard.targetValue}
               readOnly
-              className="w-full px-4 py-3 text-lg border border-gray-300 rounded-lg bg-gray-50 text-center font-mono"
+              className="w-full px-3 py-2 text-base border border-gray-300 rounded-lg bg-gray-50 text-center font-mono"
               placeholder="Ingrese número..."
             />
           </div>
-          
-          <div className="grid grid-cols-3 gap-2 mb-3">
+
+          <div className="grid grid-cols-3 gap-1.5 mb-2">
             {numericKeys.flat().map((key) => (
               <button
                 key={key}
                 onClick={() => onKeyPress(key)}
-                className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-4 px-4 rounded-lg text-lg transition-colors"
+                className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-semibold py-2.5 px-3 rounded-lg text-base transition-colors"
               >
                 {key}
               </button>
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="grid grid-cols-4 gap-1.5">
             <button
               onClick={() => onKeyPress('backspace')}
-              className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-2 rounded-lg transition-colors text-sm"
             >
               ← Borrar
             </button>
             <button
               onClick={() => onKeyPress('clear')}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-2 px-2 rounded-lg transition-colors text-sm"
             >
               Limpiar
             </button>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => onSwitchType('full')}
-              className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-3 px-4 rounded-lg transition-colors text-sm"
+              className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-2 px-2 rounded-lg transition-colors text-sm"
             >
-              ABC Teclado
+              ABC
             </button>
             <button
               onClick={onConfirm}
-              className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-3 px-4 rounded-lg transition-colors"
+              className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-2 rounded-lg transition-colors text-sm"
             >
-              ✓ Confirmar
+              ✓ OK
             </button>
           </div>
         </div>
