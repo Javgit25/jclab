@@ -1921,7 +1921,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         }}>
           <div style={{
             background: 'white', borderRadius: '16px', width: '100%', maxWidth: '480px',
-            maxHeight: '85vh', display: 'flex', flexDirection: 'column',
+            height: '85vh', display: 'flex', flexDirection: 'column',
             boxShadow: '0 25px 60px rgba(0,0,0,0.3)'
           }}>
             {/* Header */}
@@ -1965,7 +1965,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     <div style={{ display: 'flex', gap: '6px' }}>
                       {([
                         { value: 'taco', label: 'Taco/Cassette', icon: '\ud83d\udce6', color: '#f59e0b', bg: '#fffbeb', border: '#fbbf24' },
-                        { value: 'profundizacion', label: 'Profundizaci\u00f3n', icon: '\ud83d\udd2c', color: '#3b82f6', bg: '#eff6ff', border: '#60a5fa' },
+                        { value: 'profundizacion', label: 'Profundización', icon: '\ud83d\udd2c', color: '#3b82f6', bg: '#eff6ff', border: '#60a5fa' },
                         { value: 'servicio_adicional', label: 'Serv. Adicional', icon: '\u2795', color: '#8b5cf6', bg: '#f5f3ff', border: '#a78bfa' }
                       ] as const).map(opt => (
                         <button key={opt.value} onClick={() => setSolicitudTipo(opt.value as any)} style={{
@@ -1984,9 +1984,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     </div>
                   </div>
 
-                  {/* N\u00b0 Paciente with autocomplete */}
+                  {/* N° Paciente with autocomplete */}
                   <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N\u00b0 Paciente</label>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Paciente</label>
                     <input
                       value={solicitudPaciente}
                       readOnly
@@ -2047,9 +2047,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     )}
                   </div>
 
-                  {/* N\u00b0 Remito - auto-filled */}
+                  {/* N° Remito - auto-filled */}
                   <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N\u00b0 Remito</label>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Remito</label>
                     <input
                       value={solicitudRemito}
                       readOnly
@@ -2119,9 +2119,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     </div>
                   )}
 
-                  {/* Descripci\u00f3n */}
+                  {/* Descripción */}
                   <div>
-                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Descripci\u00f3n</label>
+                    <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>Descripción</label>
                     <textarea
                       value={solicitudDescripcion}
                       readOnly
