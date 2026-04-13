@@ -1798,28 +1798,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     const fecha = new Date((r as any).timestamp || r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
                     const hasUrgents = r.biopsias.some((b: any) => b.servicios?.cassetteUrgente || b.servicios?.papUrgente || b.servicios?.citologiaUrgente);
                     return `
-                    <div style="border:2px solid #1a1a1a;margin-bottom:16px;font-family:'Segoe UI',Arial,sans-serif;page-break-inside:avoid;">
-                      <div style="background:#1a1a1a;color:white;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;">
-                        <div style="display:flex;align-items:baseline;gap:10px;">
-                          <span style="font-size:16pt;font-weight:800;letter-spacing:-0.3px;">Dr/a. ${r.medico}</span>
-                          ${(r as any).cargadoPor ? '<span style="font-size:9pt;color:#d97706;margin-left:8px;">Cargado por: ' + (r as any).cargadoPor + '</span>' : ''}
-                          <span style="font-size:10pt;opacity:0.6;">Remito #${nro}</span>
+                    <div class="remito">
+                      <div class="remito-header">
+                        <div>
+                          <span class="medico">Dr/a. ${r.medico}</span>
+                          ${(r as any).cargadoPor ? '<span class="cargado">(' + (r as any).cargadoPor + ')</span>' : ''}
+                          <span class="nro">Remito #${nro}</span>
                         </div>
-                        <div style="display:flex;align-items:center;gap:10px;">
-                          ${hasUrgents ? '<span style="background:#dc2626;color:white;padding:3px 10px;border-radius:4px;font-size:9pt;font-weight:700;">⚡ URGENTE</span>' : ''}
-                          <span style="font-size:9pt;opacity:0.7;">${fecha}</span>
-                          <span style="font-size:9pt;opacity:0.5;">${r.biopsias.length} pac.</span>
+                        <div class="right">
+                          ${hasUrgents ? '<span class="urgente">⚡ URGENTE</span>' : ''}
+                          <span>${fecha}</span> · <span>${r.biopsias.length} pac.</span>
                         </div>
                       </div>
-                      <table style="width:100%;border-collapse:collapse;">
-                        <colgroup><col style="width:10%"><col style="width:26%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:34%"></colgroup>
-                        <tr style="background:#f0f0f0;border-bottom:2px solid #1a1a1a;">
-                          <th style="padding:6px 8px;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">N°</th>
-                          <th style="padding:6px 8px;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Material</th>
-                          <th style="padding:6px 8px;text-align:center;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Tipo</th>
-                          <th style="padding:6px 8px;text-align:center;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Cant.</th>
-                          <th style="padding:6px 8px;text-align:center;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Trozos</th>
-                          <th style="padding:6px 8px;text-align:left;font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#333;">Servicios</th>
+                      <table>
+                        <colgroup><col style="width:8%"><col style="width:28%"><col style="width:10%"><col style="width:10%"><col style="width:10%"><col style="width:34%"></colgroup>
+                        <tr>
+                          <th style="text-align:left">N°</th>
+                          <th style="text-align:left">Material</th>
+                          <th style="text-align:center">Tipo</th>
+                          <th style="text-align:center">Cant.</th>
+                          <th style="text-align:center">Trozos</th>
+                          <th style="text-align:left">Servicios</th>
                         </tr>
                         ${r.biopsias.map((b: any, i: number) => {
                           const sv = b.servicios || {};
@@ -1861,46 +1860,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 const cn = cns[idx];
                                 return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? cn.base + '/' + cn.suffix : 'S/' + idx);
                               });
-                              tacoInfo = '<div style="margin-top:3px;"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;border:1px solid #fbbf24;">📦 Devolver: ' + labels.join(', ') + '</span></div>';
+                              tacoInfo = '<div style="margin-top:3px;"><span class="taco">📦 Devolver: ' + labels.join(', ') + '</span></div>';
                             } else {
-                              tacoInfo = '<div style="margin-top:3px;"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;border:1px solid #fbbf24;">📦 Devolver todos los tacos</span></div>';
+                              tacoInfo = '<div style="margin-top:3px;"><span class="taco">📦 Devolver todos los tacos</span></div>';
                             }
                           }
-                          const bg = isUrgent ? '#fff5f5' : i % 2 === 0 ? '#ffffff' : '#fafafa';
-                          const borderLeft = isUrgent ? 'border-left:4px solid #dc2626;' : '';
-                          return `<tr style="border-bottom:1px solid #e0e0e0;background:${bg};${borderLeft}">
-                            <td style="padding:7px 8px;font-size:10pt;font-weight:700;color:#1a1a1a;">${b.numero||i+1}</td>
-                            <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}${tacoInfo}</td>
-                            <td style="padding:7px 8px;text-align:center;font-size:9pt;"><span style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'};color:white;padding:2px 8px;border-radius:3px;font-weight:700;">${isPAP?'PAP':isCito?citoLabel:b.tipo||'BX'}</span></td>
-                            <td style="padding:7px 8px;text-align:center;font-size:11pt;font-weight:800;color:#1a1a1a;">${cant}</td>
-                            <td style="padding:7px 8px;text-align:center;font-size:9pt;color:#555;">${trozosDetalle ? '<div style="font-weight:700;font-size:10pt;">' + totalTrozos + '</div><div style="font-size:7pt;color:#888;">' + trozosDetalle + '</div>' : totalTrozos}</td>
-                            <td style="padding:7px 8px;font-size:8pt;color:#333;">${svc.length > 0 ? svc.join(' · ') : '<span style="color:#bbb">—</span>'}</td>
+                          return `<tr class="${isUrgent ? 'urgent' : ''}">
+                            <td class="num">${b.numero||i+1}</td>
+                            <td>${b.tejido||'-'}${tacoInfo}</td>
+                            <td style="text-align:center"><span class="tipo-badge" style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'}">${isPAP?'PAP':isCito?citoLabel:b.tipo||'BX'}</span></td>
+                            <td class="cant">${cant}</td>
+                            <td style="text-align:center">${trozosDetalle ? '<div style="font-weight:700;font-size:10pt;">' + totalTrozos + '</div><div class="trozos-detail">' + trozosDetalle + '</div>' : totalTrozos}</td>
+                            <td class="svc">${svc.length > 0 ? svc.map(s => s.includes('URGENTE') ? '<span class="svc-urgent">' + s + '</span>' : s).join(' · ') : '<span style="color:#bbb">—</span>'}</td>
                           </tr>`;
                         }).join('')}
                       </table>
                     </div>`;
                   }).join('');
-                  const html = `
-                    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;">
-                      <div style="text-align:center;margin-bottom:20px;padding-bottom:12px;border-bottom:3px solid #1a1a1a;">
-                        <div style="font-size:18pt;font-weight:800;color:#1a1a1a;letter-spacing:-0.5px;">${labNombre}</div>
-                        <div style="font-size:12pt;color:#555;margin-top:4px;">Remitos Pendientes por Entregar</div>
-                        <div style="font-size:9pt;color:#999;margin-top:4px;">${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })} · ${remitosToPrint.length} remito${remitosToPrint.length !== 1 ? 's' : ''} · ${totalPacientes} paciente${totalPacientes !== 1 ? 's' : ''}</div>
-                      </div>
-                      ${htmlParts}
-                    </div>`;
-                  // Crear div temporal para imprimir
-                  let printDiv = document.getElementById('admin-print-area');
-                  if (printDiv) printDiv.remove();
-                  printDiv = document.createElement('div');
-                  printDiv.id = 'admin-print-area';
-                  printDiv.style.fontFamily = 'Arial, sans-serif';
-                  printDiv.style.fontSize = '9pt';
-                  printDiv.style.padding = '8px';
-                  printDiv.innerHTML = html;
-                  document.body.appendChild(printDiv);
-                  window.print();
-                  setTimeout(() => printDiv?.remove(), 500);
+                  const fechaHoy = new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+                  const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+                    <title>Remitos Pendientes - ${labNombre}</title>
+                    <style>
+                      @page { size: A4; margin: 12mm 10mm; }
+                      * { margin: 0; padding: 0; box-sizing: border-box; }
+                      body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                      .header { text-align: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 3px solid #1a1a1a; }
+                      .header h1 { font-size: 16pt; font-weight: 800; letter-spacing: -0.3px; }
+                      .header .sub { font-size: 11pt; color: #555; margin-top: 2px; }
+                      .header .meta { font-size: 8pt; color: #999; margin-top: 4px; }
+                      .remito { border: 2px solid #1a1a1a; margin-bottom: 14px; page-break-inside: avoid; }
+                      .remito-header { background: #1a1a1a; color: white; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; }
+                      .remito-header .medico { font-size: 13pt; font-weight: 800; }
+                      .remito-header .cargado { font-size: 8pt; color: #d97706; margin-left: 8px; }
+                      .remito-header .nro { font-size: 9pt; opacity: 0.6; margin-left: 8px; }
+                      .remito-header .right { font-size: 8pt; opacity: 0.7; text-align: right; }
+                      .remito-header .urgente { background: #dc2626; color: white; padding: 2px 8px; border-radius: 3px; font-size: 8pt; font-weight: 700; margin-right: 6px; }
+                      table { width: 100%; border-collapse: collapse; }
+                      th { background: #f0f0f0; border-bottom: 2px solid #1a1a1a; padding: 5px 8px; font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #333; }
+                      td { padding: 6px 8px; border-bottom: 1px solid #e0e0e0; font-size: 9pt; vertical-align: top; }
+                      tr.urgent { background: #fff5f5 !important; border-left: 4px solid #dc2626; }
+                      tr:nth-child(even) { background: #fafafa; }
+                      .num { font-weight: 700; font-size: 10pt; }
+                      .tipo-badge { color: white; padding: 2px 8px; border-radius: 3px; font-weight: 700; font-size: 8pt; display: inline-block; }
+                      .cant { font-size: 11pt; font-weight: 800; text-align: center; }
+                      .trozos-detail { font-size: 7pt; color: #888; }
+                      .taco { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 3px; font-size: 7pt; font-weight: 700; border: 1px solid #fbbf24; display: inline-block; margin-top: 3px; }
+                      .svc { font-size: 8pt; color: #333; }
+                      .svc-urgent { color: #dc2626; font-weight: 700; }
+                      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                    </style></head><body>
+                    <div class="header">
+                      <h1>${labNombre}</h1>
+                      <div class="sub">Remitos Pendientes por Entregar</div>
+                      <div class="meta">${fechaHoy} · ${remitosToPrint.length} remito${remitosToPrint.length !== 1 ? 's' : ''} · ${totalPacientes} paciente${totalPacientes !== 1 ? 's' : ''}</div>
+                    </div>
+                    ${htmlParts}
+                  </body></html>`;
+                  const printWindow = window.open('', '_blank');
+                  if (printWindow) {
+                    printWindow.document.write(fullHtml);
+                    printWindow.document.close();
+                    printWindow.onload = () => { printWindow.print(); };
+                  }
                 }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
                   🖨 Imprimir pendientes
                 </button>
