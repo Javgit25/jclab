@@ -99,9 +99,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               if (b.noVino) set.add(`${rn}__${b.numero || b.number}`);
             });
           });
+          console.log('🔴 noVino encontrados:', [...set]);
           if (set.size > 0) setNoVinoPacientes(set);
+        } else {
+          console.log('🔴 noVino: no data from supabase');
         }
-      } catch {}
+      } catch (e) { console.error('🔴 noVino error:', e); }
     };
     loadNoVino();
   }, [doctorInfo.email]);
@@ -544,7 +547,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         // Cruzar con remitoNumber + numero para evitar falsos positivos
         const rn = biopsy._remitoNumber || '';
         const num = biopsy.number || biopsy.numero || '';
-        if (rn && num && noVinoPacientes.has(`${rn}__${num}`)) return 0;
+        if (rn && num && noVinoPacientes.has(`${rn}__${num}`)) { console.log('🔴 Descuentando noVino:', rn, num); return 0; }
+        if (noVinoPacientes.size > 0 && !rn) { console.log('🟡 Biopsia sin _remitoNumber:', num, biopsy); }
         let total = 0;
         const svc = biopsy.servicios || {};
         const cassettes = parseInt(biopsy.cassettes) || 0;
