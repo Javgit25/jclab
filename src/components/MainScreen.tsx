@@ -57,6 +57,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [newAyudantePassword, setNewAyudantePassword] = useState('');
 
   // Solicitudes state
+  const [noVinoPacientes, setNoVinoPacientes] = useState<Set<string>>(new Set());
   const [showSolicitudes, setShowSolicitudes] = useState(false);
   const [solicitudesData, setSolicitudesData] = useState<any[]>([]);
   const [solicitudTab, setSolicitudTab] = useState<'nueva' | 'mis'>('nueva');
@@ -82,6 +83,26 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       if (remote && remote.length > 0) setNotificationsData(remote);
     }).catch(() => {});
   };
+
+  // Cargar biopsias con noVino desde Supabase
+  React.useEffect(() => {
+    const loadNoVino = async () => {
+      try {
+        const { supabase } = await import('../lib/database');
+        const { data } = await supabase.from('remitos').select('biopsias').eq('email', doctorInfo.email?.toLowerCase().trim());
+        if (data) {
+          const set = new Set<string>();
+          data.forEach((r: any) => {
+            (r.biopsias || []).forEach((b: any) => {
+              if (b.noVino) set.add(b.numero || b.number);
+            });
+          });
+          if (set.size > 0) setNoVinoPacientes(set);
+        }
+      } catch {}
+    };
+    loadNoVino();
+  }, [doctorInfo.email]);
 
   // Cargar config de precios desde Supabase al montar
   React.useEffect(() => {
@@ -511,8 +532,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         });
       } catch {}
 
+      // Usar noVinoPacientes cargados desde Supabase al montar
+
       // Función de cálculo IDÉNTICA al AdminPanel
       const calcularBiopsia = (biopsy: any) => {
+        if (biopsy.noVino) return 0;
+        if (noVinoPacientes.has(biopsy.number || biopsy.numero)) return 0;
         let total = 0;
         const svc = biopsy.servicios || {};
         const cassettes = parseInt(biopsy.cassettes) || 0;
