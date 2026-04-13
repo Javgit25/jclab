@@ -2058,10 +2058,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias).toLocaleString()}</td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex flex-col gap-1 items-center">
-                            <button onClick={() => { const snap = JSON.parse(JSON.stringify(remito.biopsias)); setOriginalBiopsiaSnapshot(snap); localStorage.setItem('_editSnapshot', JSON.stringify(snap)); setEditingBiopsias(JSON.parse(JSON.stringify(remito.biopsias))); setEditingRemito(remito.id); }}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1">
-                              <Edit size={12} /> Editar
-                            </button>
+                            {(remito as any).estadoEnvio === 'listo' ? (
+                              <span className="text-xs text-green-600 font-semibold flex items-center gap-1"><CheckCircle size={12} /> Entregado</span>
+                            ) : (
+                              <button onClick={() => { const snap = JSON.parse(JSON.stringify(remito.biopsias)); setOriginalBiopsiaSnapshot(snap); localStorage.setItem('_editSnapshot', JSON.stringify(snap)); setEditingBiopsias(JSON.parse(JSON.stringify(remito.biopsias))); setEditingRemito(remito.id); }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1">
+                                <Edit size={12} /> Editar
+                              </button>
+                            )}
                             {(remito as any).modificadoPorAdmin && (() => {
                               try {
                                 const notifs = JSON.parse(localStorage.getItem('doctorNotifications') || '[]')
