@@ -1541,6 +1541,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       try { const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); const doc = docs.find((d: any) => d.email?.toLowerCase() === (remito.email || (remito as any).doctorEmail || '').toLowerCase()); whatsappNum = doc?.whatsapp || ''; } catch {}
 
                       const marcarBiopsia = (idx: number, valor: boolean) => {
+                        console.log('🟢 marcarBiopsia llamada:', { idx, valor, remitoId: remito.id, biopsiaListas, totalBiopsias });
                         const nuevasListas = [...biopsiaListas];
                         while (nuevasListas.length < totalBiopsias) nuevasListas.push(false);
                         nuevasListas[idx] = valor;
