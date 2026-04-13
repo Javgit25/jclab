@@ -1572,6 +1572,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           }
                           localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
                           db.saveNotification(newNotif).catch(console.error);
+
+                          // Auto-marcar solicitud de taco como entregado
+                          if ((biopsia as any).entregarConTaco) {
+                            const remitoNum = (remito as any).remitoNumber;
+                            const solTaco = solicitudesAdmin.find(s => s.tipo === 'taco' && s.remitoNumber === remitoNum && s.numeroPaciente === biopsia.numero && s.estado !== 'entregado');
+                            if (solTaco) {
+                              const updatedSol = { ...solTaco, estado: 'entregado', entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' };
+                              db.saveSolicitud(updatedSol).catch(console.error);
+                              setSolicitudesAdmin(prev => prev.map(s => s.id === solTaco.id ? updatedSol : s));
+                            }
+                          }
                         }
                       };
 

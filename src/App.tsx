@@ -495,6 +495,38 @@ function App() {
       const adminRemitoWithLabCode = { ...adminRemito, labCode: matchedDoctor?.labCode || '' };
       db.saveRemito(adminRemitoWithLabCode);
 
+      // Auto-generar solicitudes de taco para biopsias con "Entregar con Taco"
+      adminRemito.biopsias.forEach((biopsia: any) => {
+        if (biopsia.entregarConTaco) {
+          const tacosSel = biopsia.tacosSeleccionados || [];
+          const cns = biopsia.cassettesNumbers || [];
+          let cassetteLabels: string[] = [];
+          if (tacosSel.length > 0 && cns.length > 0) {
+            cassetteLabels = tacosSel.map((idx: number) => {
+              const cn = cns[idx];
+              return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`);
+            });
+          } else {
+            cassetteLabels = cns.map((cn: any, idx: number) => idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`));
+          }
+          const sol = {
+            id: `SOL_TACO_${Date.now()}_${biopsia.numero}`,
+            tipo: 'taco',
+            numeroPaciente: biopsia.numero,
+            remitoNumber: adminRemito.remitoNumber,
+            descripcion: `Devolver tacos: ${cassetteLabels.join(', ') || 'todos'}`,
+            tejido: biopsia.tejido || '',
+            cassetteLabels,
+            solicitadoPor: adminRemito.cargadoPor || adminRemito.medico,
+            solicitadoAt: new Date().toISOString(),
+            estado: 'pendiente',
+            doctorEmail: adminRemito.email,
+            labCode: matchedDoctor?.labCode || '',
+          };
+          db.saveSolicitud(sol);
+        }
+      });
+
       console.log('App - Remito guardado para administrador:', adminRemito);
     } catch (error) {
       console.error('App - Error guardando remito para administrador:', error);
