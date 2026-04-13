@@ -446,7 +446,16 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     <td><strong>${cassetteNumbers}</strong></td>
                     <td>${biopsy.tissueType}</td>
                     <td>${biopsy.cassettes}</td>
-                    <td>${biopsy.pieces || 'N/A'}</td>
+                    <td>${(() => {
+                      const tpc = (biopsy as any).trozoPorCassette || [];
+                      const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(biopsy.pieces) || 0);
+                      if (tpc.length > 1) {
+                        const cns = biopsy.cassettesNumbers || [];
+                        const detalle = tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S/' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ');
+                        return `<strong>${totalT}</strong><br><span style="font-size:8px;color:#94a3b8">${detalle}</span>`;
+                      }
+                      return totalT || 'N/A';
+                    })()}</td>
                     <td>
                         <div class="services-list">
                             ${services.join('<br>')}
