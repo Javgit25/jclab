@@ -1271,17 +1271,13 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   </div>
                 </div>
 
-                {/* Tabla de estudios */}
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px' }}>
+                {/* Tabla de estudios - compacta */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px', fontSize: '9pt' }}>
                   <thead>
                     <tr>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>#</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>N° Paciente</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Material</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tipo</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cant.</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'center', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Trozos</th>
-                      <th style={{ padding: '10px 8px', textAlign: 'left', borderBottom: '2px solid #1e3a5f', fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Servicios</th>
+                      {['#', 'Pac.', 'Material', 'Tipo', 'Cant.', 'Trozos'].map(h => (
+                        <th key={h} style={{ padding: '6px 4px', textAlign: h === '#' || h === 'Pac.' ? 'left' : 'center', borderBottom: '2px solid #1e3a5f', fontSize: '7pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -1302,57 +1298,64 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (sv.giemsaOptions?.giemsa) tecnicas.push('Giemsa');
                         if (sv.giemsaOptions?.pas) tecnicas.push('PAS');
                         if (sv.giemsaOptions?.masson) tecnicas.push('Masson');
-                        services.push(tecnicas.length > 0 ? tecnicas.join(', ') : 'Giemsa/PAS/Masson');
+                        services.push(tecnicas.length > 0 ? tecnicas.join(', ') : 'Tinciones');
                       }
-                      if ((sv.profundizacion || 0) > 0) services.push(`Profundización ×${sv.profundizacion}`);
-                      const cassNums = b.cassettesNumbers?.map((c: any) => c.suffix ? `${c.base}/${c.suffix}` : c.base).join(', ') || '';
-
+                      if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
+                      const cassNums = b.cassettesNumbers?.filter((_: any, ci: number) => ci > 0).map((c: any) => c.suffix ? `${c.base}/${c.suffix}` : c.base).join(', ') || '';
                       const tipoBg = tipo === 'PQ' ? '#c2410c' : isPAP ? '#7c3aed' : isCito ? '#475569' : '#166534';
                       const rowBg = isUrgent ? '#fff5f5' : i % 2 === 0 ? 'white' : '#f8fafc';
+                      const hasTaco = b.entregarConTaco;
+                      const hasExtra = services.length > 0 || hasTaco;
 
                       return (
-                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', background: rowBg, borderLeft: isUrgent ? '4px solid #dc2626' : 'none' }}>
-                          <td style={{ padding: '8px', fontSize: '10pt', fontWeight: 600, color: '#64748b' }}>{i + 1}</td>
-                          <td style={{ padding: '8px', fontSize: '10pt' }}>
-                            <div style={{ fontWeight: 700 }}>{b.number || '-'}</div>
-                            {cassNums && <div style={{ fontSize: '8pt', color: '#94a3b8' }}>{cassNums}</div>}
+                        <React.Fragment key={i}>
+                        <tr style={{ background: rowBg, borderLeft: isUrgent ? '3px solid #dc2626' : 'none', borderBottom: hasExtra ? 'none' : '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '5px 4px', fontWeight: 600, color: '#94a3b8', fontSize: '8pt' }}>{i + 1}</td>
+                          <td style={{ padding: '5px 4px' }}>
+                            <span style={{ fontWeight: 700 }}>{b.number || '-'}</span>
+                            {cassNums && <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{cassNums}</div>}
                           </td>
-                          <td style={{ padding: '8px', fontSize: '10pt' }}>
-                            {b.tissueType || '-'}
-                            {b.entregarConTaco && (() => {
-                              const tacosSel = b.tacosSeleccionados || [];
-                              const cns = b.cassettesNumbers || [];
-                              if (tacosSel.length > 0 && cns.length > 0) {
-                                const labels = tacosSel.map((idx: number) => { const cn = cns[idx]; return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`); });
-                                return <div style={{ marginTop: '3px' }}><span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, border: '1px solid #fbbf24' }}>📦 Devolver: {labels.join(', ')}</span></div>;
-                              }
-                              return <div style={{ marginTop: '3px' }}><span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, border: '1px solid #fbbf24' }}>📦 Devolver todos los tacos</span></div>;
-                            })()}
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}>
+                            <span style={{ background: tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span>
                           </td>
-                          <td style={{ padding: '8px', fontSize: '10pt', textAlign: 'center' }}>
-                            <span style={{ background: tipoBg, color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '9pt', fontWeight: 700 }}>{tipo}</span>
-                          </td>
-                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt', fontWeight: 600 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
-                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             {isPAP || isCito ? '-' : (() => {
                               const tpc = b.trozoPorCassette || [];
                               const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(b.pieces) || 0);
                               const cns = b.cassettesNumbers || [];
                               if (tpc.length > 1) {
                                 return <div>
-                                  <div style={{ fontWeight: 700 }}>{totalT}</div>
-                                  <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S/' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                  <span style={{ fontWeight: 700 }}>{totalT}</span>
+                                  <div style={{ fontSize: '6pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S/' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
                                 </div>;
                               }
                               return totalT || '-';
                             })()}
                           </td>
-                          <td style={{ padding: '8px', fontSize: '9pt' }}>
-                            {services.length > 0 ? services.map((s, si) => (
-                              <span key={si} style={{ display: 'inline-block', marginRight: '4px', marginBottom: '2px', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 600, background: s.includes('URGENTE') || s.includes('Urgente') ? '#fee2e2' : '#eff6ff', color: s.includes('URGENTE') || s.includes('Urgente') ? '#dc2626' : '#1e40af' }}>{s}</span>
-                            )) : <span style={{ color: '#94a3b8' }}>-</span>}
-                          </td>
                         </tr>
+                        {hasExtra && (
+                          <tr style={{ background: rowBg, borderBottom: '1px solid #e2e8f0', borderLeft: isUrgent ? '3px solid #dc2626' : 'none' }}>
+                            <td colSpan={6} style={{ padding: '0 4px 5px 24px' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center' }}>
+                                {services.map((s, si) => (
+                                  <span key={si} style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 600, background: s.includes('URGENTE') || s.includes('Urgente') ? '#fee2e2' : '#eff6ff', color: s.includes('URGENTE') || s.includes('Urgente') ? '#dc2626' : '#1e40af' }}>{s}</span>
+                                ))}
+                                {hasTaco && (() => {
+                                  const tacosSel = b.tacosSeleccionados || [];
+                                  const cns = b.cassettesNumbers || [];
+                                  if (tacosSel.length > 0 && cns.length > 0) {
+                                    const labels = tacosSel.map((idx: number) => { const cn = cns[idx]; return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`); });
+                                    return <span style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24' }}>📦 Devolver: {labels.join(', ')}</span>;
+                                  }
+                                  return <span style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24' }}>📦 Devolver todos los tacos</span>;
+                                })()}
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </React.Fragment>
                       );
                     })}
                   </tbody>
