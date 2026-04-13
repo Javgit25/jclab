@@ -296,9 +296,18 @@ function App() {
           localStorage.setItem('adminConfig', JSON.stringify(ac));
           // Sync a Supabase
           try {
+            let labCode = '';
             const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
             const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
-            if (doc?.labCode) db.saveAdminConfig(doc.labCode, ac).catch(() => {});
+            labCode = doc?.labCode || '';
+            if (!labCode && doctorInfo) {
+              db.getDoctors().then(freshDocs => {
+                const fd = freshDocs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+                if (fd?.labCode) db.saveAdminConfig(fd.labCode, ac).catch(() => {});
+              }).catch(() => {});
+            } else if (labCode) {
+              db.saveAdminConfig(labCode, ac).catch(() => {});
+            }
           } catch {}
         }
       }
