@@ -1297,6 +1297,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               { id: 'dashboard', icon: BarChart3, label: 'Dashboard', desc: 'Urgentes, en proceso y listos para retirar', roles: ['admin', 'tecnico'] },
               { id: 'remitos', icon: FileText, label: 'Gestión de Remitos', desc: 'Editar biopsias y agregar servicios adicionales', roles: ['admin', 'tecnico'] },
               { id: 'solicitudes', icon: Package, label: 'Solicitudes', desc: 'Tacos, profundizaciones y servicios adicionales', roles: ['admin', 'tecnico'] },
+              { id: 'buscador-tacos', icon: Search, label: 'Buscar Taco', desc: 'Buscar cassette por número', roles: ['admin', 'tecnico'] },
               { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico', roles: ['admin'] },
               { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos', roles: ['admin'] },
               { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos', roles: ['admin'] }
@@ -3918,6 +3919,127 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               </div>
             </div>
           )}
+
+          {currentView === 'buscador-tacos' && (() => {
+            const [busqueda, setBusqueda] = React.useState('');
+            const [resultados, setResultados] = React.useState<any[]>([]);
+            const [buscado, setBuscado] = React.useState(false);
+
+            const buscarTaco = () => {
+              if (!busqueda.trim()) return;
+              const q = busqueda.trim().toLowerCase();
+              setBuscado(true);
+              const results: any[] = [];
+
+              // Buscar en solicitudes de tipo "taco" entregadas
+              solicitudesAdmin.filter(s => s.tipo === 'taco' && s.estado === 'entregado').forEach(sol => {
+                const labels = (sol.cassetteLabels || []).map((l: string) => l.toLowerCase());
+                if (labels.some((l: string) => l.includes(q))) {
+                  const medicoName = remitos.find(r => r.email?.toLowerCase() === sol.doctorEmail?.toLowerCase())?.medico || sol.doctorEmail;
+                  results.push({
+                    tipo: 'entregado',
+                    medico: medicoName,
+                    fecha: sol.entregadoAt,
+                    paciente: sol.numeroPaciente,
+                    remito: sol.remitoNumber,
+                    cassettes: labels.filter((l: string) => l.includes(q)),
+                    entregadoPor: sol.entregadoPor,
+                  });
+                }
+              });
+
+              // Buscar en biopsias de todos los remitos (cassettesNumbers)
+              remitos.forEach(remito => {
+                remito.biopsias.forEach((b: any) => {
+                  const cassetteNums = (b.cassettesNumbers || []).map((c: any) => `${c.base}-${c.suffix}`.toLowerCase());
+                  if (cassetteNums.some((cn: string) => cn.includes(q))) {
+                    const yaEntregado = results.find(r => r.tipo === 'entregado' && r.remito === (remito as any).remitoNumber && r.paciente === b.numero);
+                    if (!yaEntregado) {
+                      results.push({
+                        tipo: 'en_laboratorio',
+                        medico: remito.medico,
+                        fecha: remito.fecha,
+                        paciente: b.numero,
+                        remito: (remito as any).remitoNumber,
+                        cassettes: cassetteNums.filter((cn: string) => cn.includes(q)),
+                        tejido: b.tissueType || b.type,
+                      });
+                    }
+                  }
+                });
+              });
+
+              setResultados(results);
+            };
+
+            return (
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="flex-shrink-0 px-5 pt-4 pb-3">
+                <h2 className="text-lg font-bold text-gray-900">Buscar Taco / Cassette</h2>
+                <p className="text-xs text-gray-400 mb-4">Ingresá el número de taco o cassette para rastrear su ubicación</p>
+
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={busqueda}
+                    onChange={e => { setBusqueda(e.target.value); setBuscado(false); }}
+                    onKeyDown={e => e.key === 'Enter' && buscarTaco()}
+                    placeholder="Ej: BX26-001, A1, 3..."
+                    className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    autoFocus
+                  />
+                  <button
+                    onClick={buscarTaco}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
+                  >
+                    <Search size={16} /> Buscar
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 pb-4">
+                {buscado && resultados.length === 0 && (
+                  <div className="text-center py-12">
+                    <Package className="h-10 w-10 mx-auto mb-2 text-gray-200" />
+                    <p className="text-gray-400 text-sm">No se encontró ningún cassette con "{busqueda}"</p>
+                  </div>
+                )}
+
+                {resultados.length > 0 && (
+                  <div className="space-y-3 mt-3">
+                    {resultados.map((r, i) => (
+                      <div key={i} className={`p-4 rounded-xl border ${r.tipo === 'entregado' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${r.tipo === 'entregado' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                            {r.tipo === 'entregado' ? '✅ Entregado al médico' : '🏥 En el laboratorio'}
+                          </span>
+                          <span className="text-xs text-gray-500">Remito #{r.remito}</span>
+                        </div>
+                        <div className="text-sm font-semibold text-gray-900">Dr/a. {r.medico}</div>
+                        <div className="text-xs text-gray-600 mt-1">Paciente: {r.paciente}</div>
+                        {r.tejido && <div className="text-xs text-gray-500">Tejido: {r.tejido}</div>}
+                        <div className="text-xs text-gray-500 mt-1">
+                          Cassettes encontrados: <strong>{r.cassettes.join(', ')}</strong>
+                        </div>
+                        {r.tipo === 'entregado' && r.fecha && (
+                          <div className="text-xs text-green-700 mt-1 font-semibold">
+                            Entregado el {new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            {r.entregadoPor && ` por ${r.entregadoPor}`}
+                          </div>
+                        )}
+                        {r.tipo === 'en_laboratorio' && (
+                          <div className="text-xs text-blue-700 mt-1 font-semibold">
+                            Ingresado el {new Date(r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            );
+          })()}
 
           {currentView === 'analytics' && (() => {
             const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
