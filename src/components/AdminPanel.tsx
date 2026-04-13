@@ -2115,8 +2115,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               <th className="text-left py-2 px-3 text-xs text-gray-500">Tejido</th>
                               <th className="text-left py-2 px-3 text-xs text-gray-500">Tipo</th>
                               <th className="text-center py-2 px-3 text-xs text-gray-500">Cassettes</th>
-                              <th className="text-left py-2 px-3 text-xs text-gray-500">Servicios del médico</th>
-                              <th className="text-left py-2 px-3 text-xs text-gray-500">Serv. adicionales (lab)</th>
+                              <th className="text-left py-2 px-3 text-xs text-gray-500">Servicios</th>
+                              <th className="text-center py-2 px-3 text-xs text-gray-500">Estado</th>
                               <th className="text-right py-2 px-3 text-xs text-gray-500">Subtotal</th>
                             </tr>
                           </thead>
@@ -2192,94 +2192,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     {(biopsia.citologiaQuantity || 0) > 0 && <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700">Cito: {biopsia.citologiaQuantity}</span>}
                                   </div>
                                 </td>
-                                {/* Servicios adicionales editables por el lab - NO para PAP/Cito */}
-                                <td className="py-2 px-3">
-                                {isPapCito ? (
-                                  <span className="text-xs text-gray-400 italic">No editable</span>
-                                ) : (
-                                  <div className="flex flex-col gap-2">
-                                    {/* Corte IHQ */}
-                                    <div className="border border-gray-100 rounded p-1.5">
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={(biopsia.servicios?.corteBlancoIHQ || 0) > 0} className="w-3 h-3"
-                                          onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQ: e.target.checked ? 1 : 0 }}; setEditingBiopsias(u); }} />
-                                        <span className="text-xs font-semibold text-gray-700">Corte IHQ</span>
-                                      </label>
-                                      {(biopsia.servicios?.corteBlancoIHQ || 0) > 0 && (
-                                        <div className="mt-1 flex items-center gap-2">
-                                          <span className="text-xs text-gray-500">Cant:</span>
-                                          <input type="number" value={biopsia.servicios?.corteBlancoIHQ || 1} min={1} max={20}
-                                            className="w-12 text-center border border-gray-200 rounded px-1 py-0.5 text-xs"
-                                            onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQ: Math.max(1, Number(e.target.value)) }}; setEditingBiopsias(u); }} />
-                                          {Number(biopsia.cassettes) >= 2 && (
-                                            <div className="flex gap-1 flex-wrap">
-                                              {Array.from({ length: Number(biopsia.cassettes) }, (_, ci) => {
-                                                const sel = (biopsia.servicios as any)?.corteBlancoIHQCassettes || [];
-                                                const isSel = sel.includes(ci);
-                                                return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoIHQCassettes: newSel }}; setEditingBiopsias(u); }}
-                                                  className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[ci]?.suffix || ci); })()}</button>;
-                                              })}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                    {/* Corte Blanco */}
-                                    <div className="border border-gray-100 rounded p-1.5">
-                                      <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="checkbox" checked={(biopsia.servicios?.corteBlanco || 0) > 0} className="w-3 h-3"
-                                          onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlanco: e.target.checked ? 1 : 0 }}; setEditingBiopsias(u); }} />
-                                        <span className="text-xs font-semibold text-gray-700">Corte Blanco</span>
-                                      </label>
-                                      {(biopsia.servicios?.corteBlanco || 0) > 0 && (
-                                        <div className="mt-1 flex items-center gap-2">
-                                          <span className="text-xs text-gray-500">Cant:</span>
-                                          <input type="number" value={biopsia.servicios?.corteBlanco || 1} min={1} max={20}
-                                            className="w-12 text-center border border-gray-200 rounded px-1 py-0.5 text-xs"
-                                            onChange={(e) => { const u = [...editingBiopsias]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlanco: Math.max(1, Number(e.target.value)) }}; setEditingBiopsias(u); }} />
-                                          {Number(biopsia.cassettes) >= 2 && (
-                                            <div className="flex gap-1 flex-wrap">
-                                              {Array.from({ length: Number(biopsia.cassettes) }, (_, ci) => {
-                                                const sel = (biopsia.servicios as any)?.corteBlancoComunCassettes || [];
-                                                const isSel = sel.includes(ci);
-                                                return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, corteBlancoComunCassettes: newSel }}; setEditingBiopsias(u); }}
-                                                  className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                                >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[ci]?.suffix || ci); })()}</button>;
-                                              })}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                    {/* Giemsa/PAS/Masson */}
-                                    <div className="border border-gray-100 rounded p-1.5">
-                                      <div className="flex flex-wrap items-center gap-1 mb-1">
-                                        {['giemsa', 'pas', 'masson'].map(tecnica => {
-                                          const opts = (biopsia.servicios as any)?.giemsaOptions || {};
-                                          return (
-                                            <label key={tecnica} className="flex items-center gap-1 cursor-pointer">
-                                              <input type="checkbox" checked={opts[tecnica] || false} className="w-3 h-3"
-                                                onChange={(e) => { const u = [...editingBiopsias]; const newOpts = { ...(u[index].servicios?.giemsaOptions || {}), [tecnica]: e.target.checked }; const total = Object.values(newOpts).filter(Boolean).length; u[index] = { ...u[index], servicios: { ...u[index].servicios, giemsaOptions: newOpts, giemsaPASMasson: total }}; setEditingBiopsias(u); }} />
-                                              <span className="text-xs font-semibold text-gray-600">{tecnica === 'pas' ? 'PAS' : tecnica.charAt(0).toUpperCase() + tecnica.slice(1)}</span>
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                      {(biopsia.servicios?.giemsaPASMasson || 0) > 0 && Number(biopsia.cassettes) >= 2 && (
-                                        <div className="flex gap-1 flex-wrap mt-1">
-                                          {Array.from({ length: Number(biopsia.cassettes) }, (_, ci) => {
-                                            const sel = (biopsia.servicios as any)?.giemsaCassettes || [];
-                                            const isSel = sel.includes(ci);
-                                            return <button key={ci} onClick={() => { const u = [...editingBiopsias]; const newSel = isSel ? sel.filter((s: number) => s !== ci) : [...sel, ci]; u[index] = { ...u[index], servicios: { ...u[index].servicios, giemsaCassettes: newSel }}; setEditingBiopsias(u); }}
-                                              className={`px-1.5 py-0.5 rounded text-xs font-bold ${isSel ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'}`}
-                                            >{(() => { const cn = (biopsia as any).cassettesNumbers || []; return ci === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[ci]?.suffix || ci); })()}</button>;
-                                          })}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
+                                {/* Estado: NO VINO */}
+                                <td className="py-2 px-3 text-center">
+                                  {(biopsia as any).noVino ? (
+                                    <button onClick={() => { const u = [...editingBiopsias]; u[index] = { ...u[index], noVino: false }; setEditingBiopsias(u); }}
+                                      className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300 hover:bg-red-200">
+                                      ❌ NO VINO
+                                    </button>
+                                  ) : (
+                                    <button onClick={() => { if (confirm(`¿Marcar paciente #${biopsia.numero} como NO VINO?\nEl material no llegó al laboratorio.`)) { const u = [...editingBiopsias]; u[index] = { ...u[index], noVino: true }; setEditingBiopsias(u); } }}
+                                      className="px-2 py-1 rounded text-xs font-semibold bg-gray-100 text-gray-600 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200">
+                                      No vino
+                                    </button>
+                                  )}
                                 </td>
                                 <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">${calcularTotalBiopsia(biopsia).toLocaleString()}</td>
                               </tr>
@@ -2301,8 +2226,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </div>
                       )}
                       <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
-                        <div className="text-sm font-bold text-gray-900">
-                          Total: ${calcularTotalRemito(editingBiopsias as any).toLocaleString()}
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm font-bold text-gray-900">
+                            Total: ${calcularTotalRemito(editingBiopsias as any).toLocaleString()}
+                          </div>
+                          <button onClick={() => {
+                            const numero = prompt('Número de paciente:');
+                            if (!numero?.trim()) return;
+                            const tejido = prompt('Material/Tejido (ej: Gástrica, Piel, Colon):');
+                            if (!tejido?.trim()) return;
+                            const cassettes = prompt('Cantidad de cassettes:', '1');
+                            const newBiopsia = {
+                              numero: numero.trim(),
+                              tejido: tejido.trim(),
+                              tipo: 'BX',
+                              cassettes: parseInt(cassettes || '1') || 1,
+                              trozos: parseInt(cassettes || '1') || 1,
+                              servicios: { cassetteNormal: parseInt(cassettes || '1') || 1 },
+                              cassettesNumbers: [],
+                              papQuantity: 0,
+                              citologiaQuantity: 0,
+                              agregadoPorLab: true,
+                            };
+                            setEditingBiopsias([...editingBiopsias, newBiopsia]);
+                          }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-green-600 hover:bg-green-700 text-white flex items-center gap-1">
+                            <Plus size={12} /> Agregar paciente
+                          </button>
                         </div>
                         <div className="flex gap-2">
                           <button onClick={() => {
