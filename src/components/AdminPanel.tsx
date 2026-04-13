@@ -1080,9 +1080,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
                   : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
 
+                const isNoVino = (biopsia as any).noVino;
                 const isProf = (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
                 const isSA = (remito as any).esServicioAdicional && !isProf;
-                const rowStyle = diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
+                const rowStyle = isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
                 const cargadoPorLabel = (remito as any).cargadoPor || '';
                 const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
                 const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
@@ -1094,7 +1095,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   '<td>' + biopsia.tejido + '</td>' +
                   '<td>' + tipoDisplay + '</td>' +
                   '<td>' + cantLabel + '</td>' +
-                  '<td class="servicios-cell">' + (svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
+                  '<td class="servicios-cell">' + (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
                   '<td class="subtotal">$' + calcularTotalBiopsia(biopsia).toLocaleString() + '</td>' +
                   '</tr>';
               }).join('')
