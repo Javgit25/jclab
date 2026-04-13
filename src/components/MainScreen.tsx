@@ -139,10 +139,18 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const unreadCount = notificationsData.filter(n => !n.leida).length;
 
-  // Load solicitudes on mount
+  // Load solicitudes on mount + polling cada 30 segundos
   React.useEffect(() => {
-    db.getSolicitudes(doctorInfo.email).then(s => setSolicitudesData(s)).catch(() => {});
-  }, []);
+    const fetchSolicitudes = () => {
+      db.getSolicitudes(doctorInfo.email).then(s => setSolicitudesData(prev => {
+        if (JSON.stringify(prev.map(x => x.id + x.estado)) !== JSON.stringify(s.map((x: any) => x.id + x.estado))) return s;
+        return prev;
+      })).catch(() => {});
+    };
+    fetchSolicitudes();
+    const interval = setInterval(fetchSolicitudes, 30000);
+    return () => clearInterval(interval);
+  }, [doctorInfo.email]);
 
   // Detectar notificaciones de "listo para retirar" no leídas
   const [listoAlert, setListoAlert] = useState<any>(null);
