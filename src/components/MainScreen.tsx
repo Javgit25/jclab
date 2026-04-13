@@ -89,12 +89,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     const loadNoVino = async () => {
       try {
         const { supabase } = await import('../lib/supabase');
-        const { data } = await supabase.from('remitos').select('biopsias, email, doctor_email').or(`email.eq.${doctorInfo.email?.toLowerCase().trim()},doctor_email.eq.${doctorInfo.email?.toLowerCase().trim()}`);
+        const email = doctorInfo.email?.toLowerCase().trim();
+        const { data } = await supabase.from('remitos').select('remito_number, biopsias, email, doctor_email').or(`email.eq.${email},doctor_email.eq.${email}`);
         if (data) {
           const set = new Set<string>();
           data.forEach((r: any) => {
+            const rn = r.remito_number || '';
             (r.biopsias || []).forEach((b: any) => {
-              if (b.noVino) set.add(b.numero || b.number);
+              if (b.noVino) set.add(`${rn}__${b.numero || b.number}`);
             });
           });
           if (set.size > 0) setNoVinoPacientes(set);
@@ -451,12 +453,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           entries.forEach((entry: any) => {
             if (entry.biopsies && entry.date) {
               const entryDate = new Date(entry.date);
+              const rn = entry.remitoNumber || '';
+              const tagged = entry.biopsies.map((b: any) => ({ ...b, _remitoNumber: rn }));
               if (entryDate.getMonth() === selectedMonth && entryDate.getFullYear() === selectedYear) {
-                savedBiopsies.push(...entry.biopsies);
+                savedBiopsies.push(...tagged);
               }
-              // También obtener datos del mes anterior para tendencia
               if (entryDate.getMonth() === previousMonth && entryDate.getFullYear() === previousYear) {
-                previousMonthBiopsies.push(...entry.biopsies);
+                previousMonthBiopsies.push(...tagged);
               }
             }
           });
@@ -474,12 +477,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           entries.forEach((entry: any) => {
             if (entry.biopsies && entry.date) {
               const entryDate = new Date(entry.date);
+              const rn = entry.remitoNumber || '';
+              const tagged = entry.biopsies.map((b: any) => ({ ...b, _remitoNumber: rn }));
               if (entryDate.getMonth() === selectedMonth && entryDate.getFullYear() === selectedYear) {
-                savedBiopsies.push(...entry.biopsies);
+                savedBiopsies.push(...tagged);
               }
-              // También obtener datos del mes anterior para tendencia
               if (entryDate.getMonth() === previousMonth && entryDate.getFullYear() === previousYear) {
-                previousMonthBiopsies.push(...entry.biopsies);
+                previousMonthBiopsies.push(...tagged);
               }
             }
           });
@@ -537,7 +541,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       // Función de cálculo IDÉNTICA al AdminPanel
       const calcularBiopsia = (biopsy: any) => {
         if (biopsy.noVino) return 0;
-        if (noVinoPacientes.has(biopsy.number || biopsy.numero)) return 0;
+        // Cruzar con remitoNumber + numero para evitar falsos positivos
+        const rn = biopsy._remitoNumber || '';
+        const num = biopsy.number || biopsy.numero || '';
+        if (rn && num && noVinoPacientes.has(`${rn}__${num}`)) return 0;
         let total = 0;
         const svc = biopsy.servicios || {};
         const cassettes = parseInt(biopsy.cassettes) || 0;
