@@ -1713,7 +1713,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           }
                                           return <span>{totalT || '-'}</span>;
                                         })() : <span className="text-gray-300">-</span>}
-                                        {(b as any).quedaMaterial && <div className="text-amber-600 font-bold" style={{ fontSize: '8px' }}>⚠ Q.Mat</div>}
                                       </td>
                                       <td className="py-1.5 px-2">
                                         {svcList.length > 0 ? (
@@ -1723,11 +1722,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                             ))}
                                           </div>
                                         ) : <span className="text-gray-300">—</span>}
-                                        {(b as any).entregarConTaco && (
-                                          <div className="mt-1">
-                                            <span className="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">📦 Devolver taco{(b as any).tacosSeleccionados?.length > 0 ? ` (${(b as any).tacosSeleccionados.length})` : ' (todos)'}</span>
-                                          </div>
-                                        )}
+                                        {(b as any).entregarConTaco && (() => {
+                                          const tacosSel = (b as any).tacosSeleccionados || [];
+                                          const cns = (b as any).cassettesNumbers || [];
+                                          if (tacosSel.length > 0 && cns.length > 0) {
+                                            const labels = tacosSel.map((idx: number) => {
+                                              const cn = cns[idx];
+                                              return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`);
+                                            });
+                                            return <div className="mt-1"><span className="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">📦 Devolver: {labels.join(', ')}</span></div>;
+                                          }
+                                          return <div className="mt-1"><span className="px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300">📦 Devolver todos los tacos</span></div>;
+                                        })()}
                                       </td>
                                       <td className="py-1.5 px-2 text-center">
                                         {estaLista ? <span className="text-green-600 font-bold">✓ Listo</span> : esUrgente ? <span className="text-red-600 font-bold">⚡ 24hs</span> : <span className="text-gray-400">Proceso</span>}
@@ -1815,13 +1821,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               return name + ':' + (t || 1);
                             }).join(', ');
                           }
-                          const quedaMat = b.quedaMaterial ? ' <span style="color:#d97706;font-weight:700;">⚠ Queda material</span>' : '';
-                          const tacoInfo = b.entregarConTaco ? '<div style="margin-top:3px;"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;border:1px solid #fbbf24;">📦 Devolver taco' + (b.tacosSeleccionados?.length > 0 ? ' (' + b.tacosSeleccionados.length + ')' : ' (todos)') + '</span></div>' : '';
+                          let tacoInfo = '';
+                          if (b.entregarConTaco) {
+                            const tacosSel = b.tacosSeleccionados || [];
+                            const cns = b.cassettesNumbers || [];
+                            if (tacosSel.length > 0 && cns.length > 0) {
+                              const labels = tacosSel.map((idx: number) => {
+                                const cn = cns[idx];
+                                return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? cn.base + '/' + cn.suffix : 'S/' + idx);
+                              });
+                              tacoInfo = '<div style="margin-top:3px;"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;border:1px solid #fbbf24;">📦 Devolver: ' + labels.join(', ') + '</span></div>';
+                            } else {
+                              tacoInfo = '<div style="margin-top:3px;"><span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;border:1px solid #fbbf24;">📦 Devolver todos los tacos</span></div>';
+                            }
+                          }
                           const bg = isUrgent ? '#fff5f5' : i % 2 === 0 ? '#ffffff' : '#fafafa';
                           const borderLeft = isUrgent ? 'border-left:4px solid #dc2626;' : '';
                           return `<tr style="border-bottom:1px solid #e0e0e0;background:${bg};${borderLeft}">
                             <td style="padding:7px 8px;font-size:10pt;font-weight:700;color:#1a1a1a;">${b.numero||i+1}</td>
-                            <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}${quedaMat}${tacoInfo}</td>
+                            <td style="padding:7px 8px;font-size:10pt;color:#1a1a1a;">${b.tejido||'-'}${tacoInfo}</td>
                             <td style="padding:7px 8px;text-align:center;font-size:9pt;"><span style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'};color:white;padding:2px 8px;border-radius:3px;font-weight:700;">${isPAP?'PAP':isCito?citoLabel:b.tipo||'BX'}</span></td>
                             <td style="padding:7px 8px;text-align:center;font-size:11pt;font-weight:800;color:#1a1a1a;">${cant}</td>
                             <td style="padding:7px 8px;text-align:center;font-size:9pt;color:#555;">${trozosDetalle ? '<div style="font-weight:700;font-size:10pt;">' + totalTrozos + '</div><div style="font-size:7pt;color:#888;">' + trozosDetalle + '</div>' : totalTrozos}</td>
