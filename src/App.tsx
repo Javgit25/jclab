@@ -303,10 +303,38 @@ function App() {
   };
 
   // Agregar tejido a la config del admin si no existe (autoaprendizaje)
-  const syncTissueToAdmin = useCallback((tissue: string) => {
+  const syncTissueToAdmin = useCallback(async (tissue: string) => {
     if (!tissue || tissue.trim() === '') return;
     try {
-      const adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}');
+      // Buscar labCode del doctor
+      let labCode = (doctorInfo as any)?.labCode || '';
+      if (!labCode) {
+        try {
+          const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+          const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+          labCode = doc?.labCode || '';
+        } catch {}
+      }
+      if (!labCode) {
+        try {
+          const docs = await db.getDoctors();
+          const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+          labCode = doc?.labCode || '';
+        } catch {}
+      }
+
+      // Cargar config actual desde Supabase primero, luego localStorage como fallback
+      let adminConfig: any = {};
+      if (labCode) {
+        try {
+          const cfg = await db.getAdminConfig(labCode);
+          if (cfg && Object.keys(cfg).length > 0) adminConfig = cfg;
+        } catch {}
+      }
+      if (!adminConfig.tiposTejido) {
+        try { adminConfig = JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch {}
+      }
+
       const existingTissues: string[] = adminConfig.tiposTejido || [
         'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia',
         'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',
@@ -322,30 +350,10 @@ function App() {
         existingTissues.push(capitalized);
         adminConfig.tiposTejido = existingTissues;
         localStorage.setItem('adminConfig', JSON.stringify(adminConfig));
-        // Sincronizar con Supabase para que el admin lo vea
-        const findLabCode = async () => {
-          // 1. Intentar desde doctorInfo
-          if ((doctorInfo as any)?.labCode) return (doctorInfo as any).labCode;
-          // 2. Intentar desde localStorage
-          try {
-            const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
-            const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
-            if (doc?.labCode) return doc.labCode;
-          } catch {}
-          // 3. Intentar desde Supabase
-          try {
-            const docs = await db.getDoctors();
-            const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
-            if (doc?.labCode) return doc.labCode;
-          } catch {}
-          return '';
-        };
-        findLabCode().then(code => {
-          if (code) db.saveAdminConfig(code, adminConfig).catch(() => {});
-        });
+        if (labCode) db.saveAdminConfig(labCode, adminConfig).catch(() => {});
       }
     } catch {}
-  }, []);
+  }, [doctorInfo]);
 
   const updateFrequentTissues = useCallback((tissue: string) => {
     if (!tissue || tissue.trim() === '') return;
