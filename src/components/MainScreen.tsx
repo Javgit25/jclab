@@ -83,6 +83,25 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     }).catch(() => {});
   };
 
+  // Cargar config de precios desde Supabase al montar
+  React.useEffect(() => {
+    const loadAdminConfig = async () => {
+      try {
+        const existing = localStorage.getItem('adminConfig');
+        if (existing) return; // Ya hay config local
+        const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+        const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email?.toLowerCase());
+        if (doc?.labCode) {
+          const cfg = await db.getAdminConfig(doc.labCode);
+          if (cfg && Object.keys(cfg).length > 0) {
+            localStorage.setItem('adminConfig', JSON.stringify(cfg));
+          }
+        }
+      } catch {}
+    };
+    loadAdminConfig();
+  }, [doctorInfo.email]);
+
   // Cargar al montar + polling cada 10 segundos
   useState(() => { loadNotifications(); });
   React.useEffect(() => {
@@ -440,9 +459,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         console.error('Error obteniendo biopsias guardadas:', error);
       }
       
-      // Leer precios de configuración del admin (misma fuente)
+      // Leer precios de configuración del admin (localStorage + Supabase)
       let adminConfig: any = null;
       try { adminConfig = JSON.parse(localStorage.getItem('adminConfig') || 'null'); } catch {}
+      // Si no hay config local, usar defaults (se carga async al montar)
       const precios = {
         cassette: adminConfig?.precioCassette || 300,
         cassetteUrgente: adminConfig?.precioCassetteUrgente || 400,
@@ -453,7 +473,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         citologiaUrgente: adminConfig?.precioCitologiaUrgente || 120,
         corteBlanco: adminConfig?.precioCorteBlanco || 60,
         corteBlancoIHQ: adminConfig?.precioCorteBlancoIHQ || 85,
-        giemsaPASMasson: 75
+        giemsaPASMasson: adminConfig?.precioGiemsaPASMasson || 75
       };
 
       let totalFacturado = 0;
@@ -507,10 +527,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           total += papQty * (esPapUrgente ? precios.papUrgente : precios.pap);
         }
 
-        // Citología
+        // Citología — PAAF/Líquidos cobra 1 paciente, independiente de vidrios
         if (citoQty > 0) {
-          total += citoQty * (esCitoUrgente ? precios.citologiaUrgente : precios.citologia);
+          const citoSubType = biopsy.citologiaSubType || '';
+          const unidadesACobrar = (citoSubType === 'PAAF' || citoSubType === 'Líquidos') ? 1 : citoQty;
+          total += unidadesACobrar * (esCitoUrgente ? precios.citologiaUrgente : precios.citologia);
         }
+
+        // Profundizaciones solicitadas (adicionales a las de cassettes)
+        total += (svc.profundizacion || 0) * precios.profundizacion;
 
         // Cortes en blanco
         const corteBlancoQty = svc.corteBlancoComun ? (svc.corteBlancoComunQuantity || 1) : (svc.corteBlanco || 0);
