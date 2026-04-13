@@ -1223,7 +1223,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
             <div style={{ background: '#1e293b', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>Remito #{((re as any).remitoNumber || ((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase()))}</span>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={handlePrintInline} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#3b82f6', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>🖨 Imprimir</button>
                 <button onClick={() => setShowRemito({ isOpen: false, entry: null })} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #475569', background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}>✕ Cerrar</button>
               </div>
             </div>
