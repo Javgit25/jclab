@@ -2202,7 +2202,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
                   {/* Submit */}
                   <button
-                    disabled={!solicitudPaciente.trim() || !solicitudRemito.trim()}
+                    disabled={!solicitudPaciente.trim() || !solicitudRemito.trim() || (solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim())}
                     onClick={async () => {
                       const doctors = getRegisteredDoctors();
                       const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
