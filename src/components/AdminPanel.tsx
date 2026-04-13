@@ -2245,17 +2245,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </table>
                       </div>
 
-                      {/* Leyenda - solo si algún paciente tiene 2+ cassettes */}
-                      {editingBiopsias.some((b: any) => Number(b.cassettes) >= 2) && (
-                        <div className="px-4 py-2 border-t border-gray-100 bg-blue-50 flex items-center gap-3">
-                          <span className="text-xs font-semibold text-blue-700">Referencia:</span>
-                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">C</span>
-                          <span className="text-xs text-blue-600">= Cassette original</span>
-                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">S1</span>
-                          <span className="bg-blue-600 text-white px-2 py-0.5 rounded text-xs font-bold">S2</span>
-                          <span className="text-xs text-blue-600">= Sub-cassettes adicionales</span>
-                        </div>
-                      )}
                       <div className="flex items-center justify-between p-4 border-t border-gray-200 bg-gray-50">
                         <div className="flex items-center gap-3">
                           <div className="text-sm font-bold text-gray-900">
