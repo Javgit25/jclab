@@ -28,28 +28,49 @@ export const Step1: React.FC<Step1Props> = ({
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [keyboardMode, setKeyboardMode] = useState<'numeric' | 'letters'>('numeric');
 
-  // Generar sugerencia inteligente basada en la última biopsia
+  // Generar sugerencia inteligente basada en la última biopsia o historial
   useEffect(() => {
-    if (todayBiopsies.length > 0) {
-      const lastBiopsy = todayBiopsies[todayBiopsies.length - 1];
-      const lastNumber = lastBiopsy.number;
-      
+    const generateSuggestion = (lastNumber: string) => {
       const numberMatch = lastNumber.match(/(\d+)$/);
       if (numberMatch) {
         const baseNumber = parseInt(numberMatch[1]);
         const prefix = lastNumber.replace(/\d+$/, '');
         const nextNumber = baseNumber + 1;
-        const suggestion = `${prefix}${String(nextNumber).padStart(numberMatch[1].length, '0')}`;
-        setSmartSuggestion(suggestion);
-      } else {
-        setSmartSuggestion(`${lastNumber}1`);
+        return `${prefix}${String(nextNumber).padStart(numberMatch[1].length, '0')}`;
       }
+      return `${lastNumber}1`;
+    };
+
+    if (todayBiopsies.length > 0) {
+      const lastBiopsy = todayBiopsies[todayBiopsies.length - 1];
+      setSmartSuggestion(generateSuggestion(lastBiopsy.number));
     } else {
-      // Si no hay biopsias previas, generar sugerencia basada en fecha
+      // Buscar en el historial el último número usado
+      try {
+        const email = localStorage.getItem('lastDoctorEmail') || '';
+        const normalizedEmail = email.toLowerCase().trim().replace(/\s+/g, '');
+        const histKey = `doctor_${normalizedEmail}_history`;
+        const history = JSON.parse(localStorage.getItem(histKey) || '{}');
+        const entries = Object.values(history) as any[];
+        if (entries.length > 0) {
+          // Ordenar por fecha descendente y tomar el último
+          entries.sort((a: any, b: any) => new Date(b.timestamp || b.date || 0).getTime() - new Date(a.timestamp || a.date || 0).getTime());
+          const lastEntry = entries[0];
+          const biopsies = lastEntry.biopsies || [];
+          if (biopsies.length > 0) {
+            const lastBiopsy = biopsies[biopsies.length - 1];
+            const lastNum = lastBiopsy.number || lastBiopsy.numero || '';
+            if (lastNum) {
+              setSmartSuggestion(generateSuggestion(lastNum));
+              return;
+            }
+          }
+        }
+      } catch {}
+      // Fallback: sugerencia genérica
       const today = new Date();
       const year = today.getFullYear().toString().slice(-2);
-      const suggestion = `BX${year}-${String(todayBiopsiesCount + 1).padStart(3, '0')}`;
-      setSmartSuggestion(suggestion);
+      setSmartSuggestion(`BX${year}-${String(todayBiopsiesCount + 1).padStart(3, '0')}`);
     }
   }, [todayBiopsies, todayBiopsiesCount]);
 
