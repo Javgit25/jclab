@@ -541,6 +541,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       }
     }
     
+    // Profundizaciones solicitadas (adicionales a las de cassettes)
+    total += (servicios.profundizacion || 0) * configuracion.precioProfundizacion;
+
     // Otros estudios
     total += (servicios.corteBlanco || 0) * configuracion.precioCorteBlanco;
     total += (servicios.corteBlancoIHQ || 0) * configuracion.precioCorteBlancoIHQ;
@@ -1039,6 +1042,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
                   svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
                 }
+                if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
                 if ((biopsia.papQuantity || 0) > 0) svcs.push('<span class="badge badge-pap">PAP &times;' + biopsia.papQuantity + '</span>');
                 if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
 
