@@ -1494,21 +1494,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </button>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => setCurrentView('remitos')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
-                    Gestión Remitos
-                  </button>
-                  {userRole === 'admin' && (
-                    <>
-                      <button onClick={() => setCurrentView('facturacion')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
-                        Facturación
-                      </button>
-                      <button onClick={() => setCurrentView('analytics')} className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-200">
-                        Cobros
-                      </button>
-                    </>
-                  )}
-                </div>
               </div>
 
               {/* Tabla de remitos filtrados */}
