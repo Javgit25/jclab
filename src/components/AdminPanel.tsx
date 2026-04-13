@@ -3747,15 +3747,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       // Auto-facturar: agregar servicios al remito original
                       if (nuevoEstado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
                         try {
-                          console.log('🔍 Buscando remito para solicitud:', { remitoNumber: sol.remitoNumber, numeroPaciente: sol.numeroPaciente, tipo: sol.tipo });
-                          console.log('🔍 Remitos disponibles:', remitos.map(r => ({ id: r.id, remitoNumber: (r as any).remitoNumber, biopsias: r.biopsias.map((b: any) => b.numero) })));
                           const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber);
-                          console.log('🔍 Remito encontrado:', remitoOrig ? 'SÍ' : 'NO', remitoOrig?.id);
                           if (remitoOrig) {
                             const desc = sol.descripcion || '';
-                            // Encontrar la biopsia del paciente
                             const biopsiaIdx = remitoOrig.biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
-                            console.log('🔍 Biopsia encontrada en idx:', biopsiaIdx, 'buscando numero:', sol.numeroPaciente);
                             if (biopsiaIdx >= 0) {
                               const biopsia = { ...remitoOrig.biopsias[biopsiaIdx] };
                               const sv = { ...(biopsia.servicios || {}) } as any;
@@ -3774,13 +3769,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               }
 
                               biopsia.servicios = sv;
-                              const updatedBiopsias = [...remitoOrig.biopsias];
-                              updatedBiopsias[biopsiaIdx] = biopsia;
-                              const updatedRemito = { ...remitoOrig, biopsias: updatedBiopsias, modificadoPorSolicitud: true, modificadoAt: new Date().toISOString() };
-                              const updatedRemitos = remitos.map(r => r.id === remitoOrig.id ? updatedRemito : r);
-                              setRemitos(updatedRemitos as any);
-                              localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
-                              db.saveRemito(updatedRemito).catch(console.error);
+
+                              // Verificar si el remito es del mismo mes o de uno anterior
+                              const now = new Date();
+                              const remitoFecha = new Date(remitoOrig.fecha);
+                              const mismoMes = remitoFecha.getMonth() === now.getMonth() && remitoFecha.getFullYear() === now.getFullYear();
+
+                              if (mismoMes) {
+                                // MISMO MES: agregar al remito original
+                                const updatedBiopsias = [...remitoOrig.biopsias];
+                                updatedBiopsias[biopsiaIdx] = biopsia;
+                                const updatedRemito = { ...remitoOrig, biopsias: updatedBiopsias, modificadoPorSolicitud: true, modificadoAt: now.toISOString() };
+                                const updatedRemitos = remitos.map(r => r.id === remitoOrig.id ? updatedRemito : r);
+                                setRemitos(updatedRemitos as any);
+                                localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+                                db.saveRemito(updatedRemito).catch(console.error);
+                              } else {
+                                // MES ANTERIOR: crear remito nuevo en el mes actual
+                                const mesOriginal = remitoFecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                const tipoLabel = sol.tipo === 'profundizacion' ? 'Profundización' : 'Servicio adicional';
+                                const nuevoRemito: any = {
+                                  id: `SOL_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                                  labCode: (remitoOrig as any).labCode || '',
+                                  medico: remitoOrig.medico,
+                                  email: remitoOrig.email,
+                                  doctorEmail: (remitoOrig as any).doctorEmail || remitoOrig.email,
+                                  fecha: now.toISOString(),
+                                  timestamp: now.toISOString(),
+                                  hospital: remitoOrig.hospital,
+                                  estado: 'pendiente',
+                                  biopsias: [biopsia],
+                                  esServicioAdicional: true,
+                                  esProfundizacion: sol.tipo === 'profundizacion',
+                                  remitoOriginalId: remitoOrig.id,
+                                  remitoOriginalFecha: remitoOrig.fecha,
+                                  notaServicioAdicional: `${tipoLabel} por solicitud médico - original de ${mesOriginal}`,
+                                  modificadoPorSolicitud: true,
+                                  remitoNumber: `SOL${Date.now().toString().slice(-6)}`,
+                                };
+                                const updatedRemitos = [...remitos, nuevoRemito];
+                                setRemitos(updatedRemitos as any);
+                                localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
+                                db.saveRemito(nuevoRemito).catch(console.error);
+                              }
                             }
                           }
                         } catch (e) {
