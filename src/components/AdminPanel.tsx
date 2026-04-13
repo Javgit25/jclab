@@ -2884,156 +2884,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   Configuración de Precios
                 </h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-800 border-b border-gray-200 pb-2">Servicios Básicos</h4>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Cassette Normal</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioCassette}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioCassette: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Cassette Urgente (24hs)</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioCassetteUrgente}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioCassetteUrgente: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Profundización</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioProfundizacion}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioProfundizacion: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Precios Normales */}
+                  <div className="border border-gray-200 rounded-xl overflow-hidden">
+                    <div className="bg-blue-600 text-white px-4 py-2.5 text-sm font-bold">Precios Normales</div>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {[
+                          { label: 'Cassette (BX/PQ)', key: 'precioCassette' },
+                          { label: 'PAP', key: 'precioPAP' },
+                          { label: 'Citología', key: 'precioCitologia' },
+                          { label: 'Profundización', key: 'precioProfundizacion' },
+                          { label: 'Corte en Blanco', key: 'precioCorteBlanco' },
+                          { label: 'Corte en Blanco IHQ', key: 'precioCorteBlancoIHQ' },
+                          { label: 'Giemsa/PAS/Masson', key: 'precioGiemsaPASMasson' },
+                        ].map(({ label, key }) => (
+                          <tr key={key} className="border-b border-gray-100">
+                            <td className="px-4 py-2.5 font-medium text-gray-700">{label}</td>
+                            <td className="px-4 py-2.5 w-32">
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
+                                <input type="number" value={(configuracion as any)[key]} min="0"
+                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                                  className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500" />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-800 border-b border-gray-200 pb-2">Citología y PAP</h4>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">PAP Normal</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioPAP}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioPAP: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">PAP Urgente</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioPAPUrgente}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioPAPUrgente: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Citología Normal</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioCitologia}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioCitologia: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Citología Urgente</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioCitologiaUrgente}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioCitologiaUrgente: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="font-medium text-gray-800 border-b border-gray-200 pb-2">Técnicas Especiales</h4>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Corte en Blanco</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioCorteBlanco}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioCorteBlanco: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Corte en Blanco IHQ</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioCorteBlancoIHQ}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioCorteBlancoIHQ: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Giemsa/PAS/Masson</label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          value={configuracion.precioGiemsaPASMasson}
-                          onChange={(e) => setConfiguracion(prev => ({ ...prev, precioGiemsaPASMasson: Number(e.target.value) }))}
-                          className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                          min="0"
-                        />
-                      </div>
+                  {/* Precios Urgentes */}
+                  <div className="border border-red-200 rounded-xl overflow-hidden">
+                    <div className="bg-red-600 text-white px-4 py-2.5 text-sm font-bold flex items-center gap-2">Precios Urgentes (24hs)</div>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {[
+                          { label: 'Cassette Urgente', key: 'precioCassetteUrgente' },
+                          { label: 'PAP Urgente', key: 'precioPAPUrgente' },
+                          { label: 'Citología Urgente', key: 'precioCitologiaUrgente' },
+                        ].map(({ label, key }) => (
+                          <tr key={key} className="border-b border-gray-100">
+                            <td className="px-4 py-2.5 font-medium text-gray-700">{label}</td>
+                            <td className="px-4 py-2.5 w-32">
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
+                                <input type="number" value={(configuracion as any)[key]} min="0"
+                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                                  className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-red-500" />
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="px-4 py-3 bg-red-50 text-xs text-red-700">
+                      El precio urgente reemplaza al normal (no se suma)
                     </div>
                   </div>
                 </div>
