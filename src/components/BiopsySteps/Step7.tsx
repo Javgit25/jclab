@@ -131,8 +131,9 @@ export const Step7: React.FC<Step7Props> = ({
     if (biopsyForm.cassettesNumbers && biopsyForm.cassettesNumbers.length > 0) {
       return biopsyForm.cassettesNumbers.map(cassette => cassette.suffix ? `${cassette.base}/${cassette.suffix}` : cassette.base);
     }
-    
-    return [biopsyForm.number];
+
+    const cass = parseInt(biopsyForm.cassettes) || 1;
+    return [`${cass} cassette${cass > 1 ? 's' : ''}`];
   };
 
   const serviciosActivos = getServiciosActivos();
