@@ -124,7 +124,8 @@ export const Step7: React.FC<Step7Props> = ({
   // Obtener números de cassettes
   const getCassettesNumbers = () => {
     if (isPapOrCitologia) {
-      return [biopsyForm.number];
+      const qty = isPAPSelected ? (biopsyForm.papQuantity || 1) : (biopsyForm.citologiaQuantity || 1);
+      return [`${qty} vidrio${qty > 1 ? 's' : ''}`];
     }
     
     if (biopsyForm.cassettesNumbers && biopsyForm.cassettesNumbers.length > 0) {
@@ -452,8 +453,8 @@ export const Step7: React.FC<Step7Props> = ({
               </div>
             )}
 
-            {/* Tiempo Giemsa - solo para PAP/Citología */}
-            {isPapOrCitologia && (
+            {/* Giemsa/PAS/Masson - solo para BX/PQ con tinciones seleccionadas */}
+            {!isPapOrCitologia && biopsyForm.servicios?.giemsaPASMasson && (
               <div>
                 <p style={{
                   fontSize: '12px',
@@ -461,7 +462,7 @@ export const Step7: React.FC<Step7Props> = ({
                   fontWeight: '500',
                   margin: '0 0 4px 0'
                 }}>
-                  Tiempo Giemsa
+                  Tinciones Especiales
                 </p>
                 <p style={{
                   fontSize: '16px',
