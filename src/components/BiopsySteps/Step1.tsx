@@ -53,13 +53,6 @@ export const Step1: React.FC<Step1Props> = ({
     }
   }, [todayBiopsies, todayBiopsiesCount]);
 
-  // Sincronizar valor del teclado virtual compartido
-  useEffect(() => {
-    if (keyboardValue !== undefined && keyboardValue !== biopsyNumber) {
-      onBiopsyNumberChange(keyboardValue);
-    }
-  }, [keyboardValue]);
-
   const handleKeyboardOpen = () => {
     if (onOpenVirtualKeyboard) {
       onOpenVirtualKeyboard('numeric', 'biopsyNumber', biopsyNumber);

@@ -354,47 +354,44 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   }, []);
 
   const handleVirtualKeyPress = useCallback((key: string) => {
-    const currentValue = virtualKeyboard.targetValue;
-    let newValue = currentValue;
+    setVirtualKeyboard(prev => {
+      const currentValue = prev.targetValue;
+      let newValue = currentValue;
 
-    if (key === 'backspace') {
-      newValue = currentValue.slice(0, -1);
-    } else if (key === 'space') {
-      newValue = currentValue + ' ';
-    } else if (key === 'clear') {
-      newValue = '';
-    } else {
-      newValue = currentValue + key;
-    }
+      if (key === 'backspace') {
+        newValue = currentValue.slice(0, -1);
+      } else if (key === 'space') {
+        newValue = currentValue + ' ';
+      } else if (key === 'clear') {
+        newValue = '';
+      } else {
+        newValue = currentValue + key;
+      }
 
-    setVirtualKeyboard(prev => ({
-      ...prev,
-      targetValue: newValue
-    }));
+      // Manejar diferentes campos usando el state más reciente
+      if (prev.targetField === 'biopsyNumber') {
+        handleBiopsyChange('number', newValue);
+      } else if (prev.targetField === 'tissueType') {
+        handleBiopsyChange('tissueType', newValue);
+        updateAutoComplete(newValue);
+      } else if (prev.targetField === 'observations') {
+        handleBiopsyChange('observations', newValue);
+      } else if (prev.targetField === 'cassettes') {
+        handleBiopsyChange('cassettes', newValue);
+      } else if (prev.targetField === 'pieces') {
+        handleBiopsyChange('pieces', newValue);
+      } else if (prev.targetField === 'papQuantity') {
+        handlePapQuantityChange(parseInt(newValue) || 0);
+      } else if (prev.targetField === 'citologiaQuantity') {
+        handleCitologiaQuantityChange(parseInt(newValue) || 0);
+      } else if (prev.targetField.startsWith('cassetteSuffix_')) {
+        const index = parseInt(prev.targetField.split('_')[1]);
+        updateCassetteSuffix(index, newValue);
+      }
 
-    // Manejar diferentes campos
-    if (virtualKeyboard.targetField === 'biopsyNumber') {
-      handleBiopsyChange('number', newValue);
-    } else if (virtualKeyboard.targetField === 'tissueType') {
-      handleBiopsyChange('tissueType', newValue);
-      updateAutoComplete(newValue);
-    } else if (virtualKeyboard.targetField === 'observations') {
-      handleBiopsyChange('observations', newValue);
-    } else if (virtualKeyboard.targetField === 'cassettes') {
-      handleBiopsyChange('cassettes', newValue);
-    } else if (virtualKeyboard.targetField === 'pieces') {
-      handleBiopsyChange('pieces', newValue);
-    } else if (virtualKeyboard.targetField === 'papQuantity') {
-      const quantity = parseInt(newValue) || 0;
-      handlePapQuantityChange(quantity);
-    } else if (virtualKeyboard.targetField === 'citologiaQuantity') {
-      const quantity = parseInt(newValue) || 0;
-      handleCitologiaQuantityChange(quantity);
-    } else if (virtualKeyboard.targetField.startsWith('cassetteSuffix_')) {
-      const index = parseInt(virtualKeyboard.targetField.split('_')[1]);
-      updateCassetteSuffix(index, newValue);
-    }
-  }, [virtualKeyboard.targetValue, virtualKeyboard.targetField, handleBiopsyChange, updateAutoComplete, updateCassetteSuffix]);
+      return { ...prev, targetValue: newValue };
+    });
+  }, [handleBiopsyChange, updateAutoComplete, updateCassetteSuffix, handlePapQuantityChange, handleCitologiaQuantityChange]);
 
   const selectAutoComplete = useCallback((suggestion: string) => {
     if (virtualKeyboard.targetField === 'tissueType') {
