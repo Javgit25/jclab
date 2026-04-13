@@ -281,8 +281,27 @@ function App() {
       } catch {}
     }
 
-    // Sincronizar tejido con admin
-    syncTissueToAdmin(newBiopsy.tissueType);
+    // Sincronizar tejido con admin (inline para evitar dependencia circular)
+    try {
+      const tissue = newBiopsy.tissueType;
+      if (tissue && tissue.trim()) {
+        const ac = JSON.parse(localStorage.getItem('adminConfig') || '{}');
+        const tissues: string[] = ac.tiposTejido || [];
+        const norm = tissue.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+        if (tissues.length > 0 && !tissues.some(t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() === norm)) {
+          const cap = tissue.trim().charAt(0).toUpperCase() + tissue.trim().slice(1).toLowerCase();
+          tissues.push(cap);
+          ac.tiposTejido = tissues;
+          localStorage.setItem('adminConfig', JSON.stringify(ac));
+          // Sync a Supabase
+          try {
+            const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+            const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+            if (doc?.labCode) db.saveAdminConfig(doc.labCode, ac).catch(() => {});
+          } catch {}
+        }
+      }
+    } catch {}
 
     console.log('App - Biopsias totales después de guardar:', updatedBiopsies.length);
 
@@ -297,7 +316,7 @@ function App() {
     }
     
     // REMOVIDO: alert de confirmación
-  }, [todayBiopsies, doctorInfo, addToSyncQueue, syncTissueToAdmin]);
+  }, [todayBiopsies, doctorInfo, addToSyncQueue]);
 
   // Función para actualizar tejidos frecuentes
   // Normalizar texto: sin tildes, lowercase
