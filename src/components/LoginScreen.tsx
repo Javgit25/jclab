@@ -42,6 +42,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
   const [showPassword, setShowPassword] = useState(false);
   const [existingDoctor, setExistingDoctor] = useState<RegisteredDoctor | null>(savedDoctor);
   const [recoverySuccess, setRecoverySuccess] = useState(false);
+  const [loginModal, setLoginModal] = useState<{ open: boolean; nombre: string; expectedPassword: string; loginFn: (nombre: string) => void } | null>(null);
+  const [loginModalPassword, setLoginModalPassword] = useState('');
 
   // Sincronizar datos desde Supabase después del montaje
   useEffect(() => {
@@ -99,6 +101,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     else if (f === 'whatsapp') { setWhatsapp(newValue.replace(/\D/g, '')); }
     else if (f === 'confirmPassword') { setConfirmPassword(newValue); }
     else if (f === 'newPassword') { setNewPassword(newValue); }
+    else if (f === 'loginModalPassword') { setLoginModalPassword(newValue); setErrors({}); }
   };
 
   const closeKeyboard = () => setKeyboard(prev => ({ ...prev, isOpen: false }));
@@ -388,11 +391,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 {/* Doctor principal */}
                 <button
                   onClick={() => {
-                    const clave = prompt(`Contraseña de Dr/a. ${existingDoctor.firstName}:`);
-                    if (!clave) return;
-                    if (clave === existingDoctor.password) {
-                      loginAsUser(`Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`);
-                    } else { alert('❌ Contraseña incorrecta'); }
+                    setLoginModalPassword('');
+                    setLoginModal({ open: true, nombre: `Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`, expectedPassword: existingDoctor.password, loginFn: loginAsUser });
                   }}
                   disabled={isSubmitting}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all flex items-center justify-center space-x-2 text-base shadow-lg"
@@ -408,10 +408,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                   .map((a: any) => (
                     <button key={a.id}
                       onClick={() => {
-                        const clave = prompt(`Contraseña de ${a.nombre}:`);
-                        if (!clave) return;
-                        if (clave === a.password) { loginAsUser(a.nombre); }
-                        else { alert('❌ Contraseña incorrecta'); }
+                        setLoginModalPassword('');
+                        setLoginModal({ open: true, nombre: a.nombre, expectedPassword: a.password, loginFn: loginAsUser });
                       }}
                       disabled={isSubmitting}
                       className="w-full bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-lg border border-purple-200 transition-all flex items-center justify-center space-x-2 text-base"
@@ -669,6 +667,57 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
       </div>
 
       {/* Teclado Virtual */}
+      {/* Modal de contraseña para doctor/ayudantes */}
+      {loginModal?.open && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-5 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">Contraseña de {loginModal.nombre}</h3>
+            </div>
+            <div className="p-5">
+              <div className="relative mb-4">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={loginModalPassword}
+                  onFocus={() => openKeyboard('loginModalPassword', loginModalPassword)}
+                  onClick={() => openKeyboard('loginModalPassword', loginModalPassword)}
+                  inputMode="none" readOnly
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  placeholder="Ingrese contraseña"
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                  {showPassword ? 'Ocultar' : 'Ver'}
+                </button>
+              </div>
+              {errors.loginModal && (
+                <div className="text-red-600 text-sm mb-3 flex items-center gap-1">
+                  <AlertCircle size={14} /> {errors.loginModal}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2 p-5 border-t border-gray-200">
+              <button onClick={() => { setLoginModal(null); setLoginModalPassword(''); setErrors({}); }}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100">
+                Cancelar
+              </button>
+              <button onClick={() => {
+                if (loginModalPassword === loginModal.expectedPassword) {
+                  setLoginModal(null);
+                  setLoginModalPassword('');
+                  loginModal.loginFn(loginModal.nombre);
+                } else {
+                  setErrors({ loginModal: 'Contraseña incorrecta' });
+                }
+              }}
+                className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold">
+                Ingresar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {keyboard.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
           <div className="bg-white w-full max-w-4xl rounded-t-2xl shadow-2xl">
@@ -681,6 +730,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 {keyboard.targetField === 'hospitalName' && 'Ingrese hospital'}
                 {keyboard.targetField === 'confirmPassword' && 'Confirme contraseña'}
                 {keyboard.targetField === 'newPassword' && 'Nueva contraseña'}
+                {keyboard.targetField === 'loginModalPassword' && 'Ingrese contraseña'}
               </h3>
               <button onClick={closeKeyboard} className="text-gray-500 hover:text-gray-700 text-2xl font-bold">×</button>
             </div>
