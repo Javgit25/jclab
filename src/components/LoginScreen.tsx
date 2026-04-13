@@ -333,7 +333,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
               <input
                 type="email" value={email}
                 onChange={(e) => { setEmail(e.target.value.toLowerCase()); setErrors({}); }}
-                onFocus={() => openKeyboard('email', email)} inputMode="none" readOnly
+                onFocus={() => openKeyboard('email', email)} onClick={() => openKeyboard('email', email)} inputMode="none" readOnly
                 onKeyPress={handleKeyPressNative}
                 className={inputClass('email')}
                 placeholder="doctor@hospital.com"
@@ -441,7 +441,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                     <input
                       type={showPassword ? 'text' : 'password'} value={password}
                       onChange={(e) => { setPassword(e.target.value); setErrors({}); }}
-                      onFocus={() => openKeyboard('password', password)} inputMode="none" readOnly
+                      onFocus={() => openKeyboard('password', password)} onClick={() => openKeyboard('password', password)} inputMode="none" readOnly
                       onKeyPress={handleKeyPressNative}
                       className={inputClass('password')}
                       placeholder="Ingrese su contraseña"
@@ -496,7 +496,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 <label className="block text-xs font-medium text-gray-700 mb-0.5">Nombre *</label>
                 <input type="text" value={firstName}
                   onChange={(e) => { const v = e.target.value; setFirstName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); if (errors.firstName) setErrors(prev => ({...prev, firstName: ''})); }}
-                  onFocus={() => openKeyboard('firstName', firstName)} inputMode="none" readOnly
+                  onFocus={() => openKeyboard('firstName', firstName)} onClick={() => openKeyboard('firstName', firstName)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('firstName')} placeholder="Nombre"
                   style={{ padding: '6px 10px' }}
@@ -507,7 +507,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 <label className="block text-xs font-medium text-gray-700 mb-0.5">Apellido *</label>
                 <input type="text" value={lastName}
                   onChange={(e) => { const v = e.target.value; setLastName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); if (errors.lastName) setErrors(prev => ({...prev, lastName: ''})); }}
-                  onFocus={() => openKeyboard('lastName', lastName)} inputMode="none" readOnly
+                  onFocus={() => openKeyboard('lastName', lastName)} onClick={() => openKeyboard('lastName', lastName)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('lastName')} placeholder="Apellido"
                   style={{ padding: '6px 10px' }}
@@ -521,7 +521,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 <label className="block text-xs font-medium text-gray-700 mb-0.5">Hospital <span className="text-gray-400">(opc.)</span></label>
                 <input type="text" value={hospitalName}
                   onChange={(e) => { const v = e.target.value; setHospitalName(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); }}
-                  onFocus={() => openKeyboard('hospitalName', hospitalName)} inputMode="none" readOnly
+                  onFocus={() => openKeyboard('hospitalName', hospitalName)} onClick={() => openKeyboard('hospitalName', hospitalName)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                   placeholder="Hospital o clínica"
@@ -532,7 +532,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 <label className="block text-xs font-medium text-gray-700 mb-0.5">Cód. laboratorio *</label>
                 <input type="text" value={labCode}
                   onChange={(e) => setLabCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                  onFocus={() => openKeyboard('labCode', labCode)} inputMode="none" readOnly
+                  onFocus={() => openKeyboard('labCode', labCode)} onClick={() => openKeyboard('labCode', labCode)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('labCode')}
                   placeholder="A1B2C3"
@@ -547,7 +547,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
               <label className="block text-xs font-medium text-gray-700 mb-0.5">WhatsApp <span className="text-gray-400">(sin 54 9)</span></label>
               <input type="tel" value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
-                onFocus={() => openKeyboard('whatsapp', whatsapp)} inputMode="none" readOnly
+                onFocus={() => openKeyboard('whatsapp', whatsapp)} onClick={() => openKeyboard('whatsapp', whatsapp)} inputMode="none" readOnly
                 onKeyPress={handleKeyPressNative}
                 className="w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
                 placeholder="Ej: 1155667788"
@@ -560,7 +560,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 <label className="block text-xs font-medium text-gray-700 mb-0.5">Contraseña *</label>
                 <input type={showPassword ? 'text' : 'password'} value={password}
                   onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors(prev => ({...prev, password: ''})); }}
-                  onFocus={() => openKeyboard('password', password)} inputMode="none" readOnly
+                  onFocus={() => openKeyboard('password', password)} onClick={() => openKeyboard('password', password)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('password')} placeholder="Mín. 4 caract."
                   style={{ padding: '6px 10px' }}
@@ -571,7 +571,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                 <label className="block text-xs font-medium text-gray-700 mb-0.5">Confirmar *</label>
                 <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
                   onChange={(e) => { setConfirmPassword(e.target.value); if (errors.confirmPassword) setErrors(prev => ({...prev, confirmPassword: ''})); }}
-                  onFocus={() => openKeyboard('confirmPassword', confirmPassword)} inputMode="none" readOnly
+                  onFocus={() => openKeyboard('confirmPassword', confirmPassword)} onClick={() => openKeyboard('confirmPassword', confirmPassword)} inputMode="none" readOnly
                   onKeyPress={handleKeyPressNative}
                   className={inputClass('confirmPassword')} placeholder="Repetir"
                   style={{ padding: '6px 10px' }}
@@ -621,7 +621,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
                   <input type={showPassword ? 'text' : 'password'} value={newPassword}
                     onChange={(e) => { setNewPassword(e.target.value); setErrors({}); }}
-                    onFocus={() => openKeyboard('newPassword', newPassword)} inputMode="none" readOnly
+                    onFocus={() => openKeyboard('newPassword', newPassword)} onClick={() => openKeyboard('newPassword', newPassword)} inputMode="none" readOnly
                     onKeyPress={handleKeyPressNative}
                     className={inputClass('newPassword')} placeholder="Mínimo 4 caracteres"
                   />
@@ -632,7 +632,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
                   <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar nueva contraseña</label>
                   <input type={showPassword ? 'text' : 'password'} value={confirmPassword}
                     onChange={(e) => { setConfirmPassword(e.target.value); setErrors({}); }}
-                    onFocus={() => openKeyboard('confirmPassword', confirmPassword)} inputMode="none" readOnly
+                    onFocus={() => openKeyboard('confirmPassword', confirmPassword)} onClick={() => openKeyboard('confirmPassword', confirmPassword)} inputMode="none" readOnly
                     onKeyPress={handleKeyPressNative}
                     className={inputClass('confirmPassword')} placeholder="Repita la contraseña"
                   />
