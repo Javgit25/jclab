@@ -483,6 +483,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   };
 
   const calcularTotalBiopsia = (biopsia: AdminBiopsia) => {
+    if ((biopsia as any).noVino) return 0;
     const servicios = biopsia.servicios || {
       cassetteNormal: 0,
       cassetteUrgente: 0,
@@ -2271,8 +2272,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             if (origBiopsias.length === 0) origBiopsias = originalBiopsiaSnapshot || [];
                             editingBiopsias.forEach((curr: any, idx: number) => {
                               const orig = origBiopsias[idx];
-                              if (!orig) return;
+                              // Paciente nuevo agregado por el lab
+                              if (!orig) {
+                                cambiosDetalle.push(`Paciente N° ${curr.numero || 'S/N'} — AGREGADO POR LABORATORIO\nMaterial: ${curr.tejido || '-'}\nCassettes: ${curr.cassettes}`);
+                                return;
+                              }
                               const cambiosPaciente: string[] = [];
+                              // NO VINO
+                              if (curr.noVino && !orig.noVino) {
+                                cambiosPaciente.push('⚠️ NO VINO — El material no llegó al laboratorio');
+                              } else if (!curr.noVino && orig.noVino) {
+                                cambiosPaciente.push('Se revirtió el estado NO VINO');
+                              }
                               const origCass = Number(orig.cassettes) || 0;
                               const currCass = Number(curr.cassettes) || 0;
                               const origPap = Number(orig.papQuantity) || 0;
