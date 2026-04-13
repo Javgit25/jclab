@@ -1337,8 +1337,8 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         </tr>
                         {hasExtra && (
                           <tr style={{ background: rowBg, borderBottom: '1px solid #e2e8f0', borderLeft: isUrgent ? '3px solid #dc2626' : 'none' }}>
-                            <td colSpan={6} style={{ padding: '0 4px 5px 24px' }}>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center' }}>
+                            <td colSpan={6} style={{ padding: '0 4px 5px 4px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center', justifyContent: 'center' }}>
                                 {services.map((s, si) => (
                                   <span key={si} style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 600, background: s.includes('URGENTE') || s.includes('Urgente') ? '#fee2e2' : '#eff6ff', color: s.includes('URGENTE') || s.includes('Urgente') ? '#dc2626' : '#1e40af' }}>{s}</span>
                                 ))}
