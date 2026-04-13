@@ -1907,8 +1907,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       .taco { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 3px; font-size: 7pt; font-weight: 700; border: 1px solid #fbbf24; display: inline-block; margin-top: 3px; }
                       .svc { font-size: 8pt; color: #333; }
                       .svc-urgent { color: #dc2626; font-weight: 700; }
-                      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                      .print-btn { display: inline-block; background: #1e40af; color: white; padding: 10px 24px; border-radius: 8px; font-size: 11pt; font-weight: 700; border: none; cursor: pointer; margin-bottom: 16px; }
+                      .print-btn:hover { background: #1e3a8a; }
+                      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } }
                     </style></head><body>
+                    <div class="no-print" style="text-align:center;padding:12px 0;">
+                      <button class="print-btn" onclick="window.print()">🖨 Imprimir</button>
+                    </div>
                     <div class="header">
                       <h1>${labNombre}</h1>
                       <div class="sub">Remitos Pendientes por Entregar</div>
@@ -1920,7 +1925,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   if (printWindow) {
                     printWindow.document.write(fullHtml);
                     printWindow.document.close();
-                    printWindow.onload = () => { printWindow.print(); };
                   }
                 }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
                   🖨 Imprimir pendientes
