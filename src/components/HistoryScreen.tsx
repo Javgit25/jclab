@@ -1290,14 +1290,13 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       const isCito = b.tissueType === 'Citología';
                       const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : b.type === 'PQ' ? 'PQ' : 'BX';
                       const sv = b.servicios || {};
+                      const isUrgent = sv.cassetteUrgente || sv.papUrgente || sv.citologiaUrgente;
                       const services: string[] = [];
-                      if (sv.cassetteUrgente) services.push('⚡ Urgente 24hs');
-                      if (sv.pap) services.push('PAP');
-                      if (sv.papUrgente) services.push('PAP Urgente');
-                      if (sv.citologia) services.push('Citología');
-                      if (sv.citologiaUrgente) services.push('Cito Urgente');
-                      if (sv.corteBlancoIHQ) services.push(`Corte IHQ (${sv.corteBlancoIHQQuantity || 1})`);
-                      if (sv.corteBlancoComun) services.push(`Corte Blanco (${sv.corteBlancoComunQuantity || 1})`);
+                      if (sv.cassetteUrgente) services.push('⚡ URGENTE 24hs');
+                      if (sv.papUrgente) services.push('⚡ PAP Urgente');
+                      if (sv.citologiaUrgente) services.push('⚡ Cito Urgente');
+                      if (sv.corteBlancoIHQ) services.push(`Corte IHQ ×${sv.corteBlancoIHQQuantity || 1}`);
+                      if (sv.corteBlancoComun) services.push(`Corte Blanco ×${sv.corteBlancoComunQuantity || 1}`);
                       if (sv.giemsaPASMasson) {
                         const tecnicas: string[] = [];
                         if (sv.giemsaOptions?.giemsa) tecnicas.push('Giemsa');
@@ -1305,19 +1304,35 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (sv.giemsaOptions?.masson) tecnicas.push('Masson');
                         services.push(tecnicas.length > 0 ? tecnicas.join(', ') : 'Giemsa/PAS/Masson');
                       }
+                      if ((sv.profundizacion || 0) > 0) services.push(`Profundización ×${sv.profundizacion}`);
                       const cassNums = b.cassettesNumbers?.map((c: any) => c.suffix ? `${c.base}/${c.suffix}` : c.base).join(', ') || '';
+
+                      const tipoBg = tipo === 'PQ' ? '#c2410c' : isPAP ? '#7c3aed' : isCito ? '#475569' : '#166534';
+                      const rowBg = isUrgent ? '#fff5f5' : i % 2 === 0 ? 'white' : '#f8fafc';
+
                       return (
-                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                        <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', background: rowBg, borderLeft: isUrgent ? '4px solid #dc2626' : 'none' }}>
                           <td style={{ padding: '8px', fontSize: '10pt', fontWeight: 600, color: '#64748b' }}>{i + 1}</td>
                           <td style={{ padding: '8px', fontSize: '10pt' }}>
                             <div style={{ fontWeight: 700 }}>{b.number || '-'}</div>
-                            {cassNums && <div style={{ fontSize: '8pt', color: '#94a3b8' }}>SUBs: {cassNums}</div>}
+                            {cassNums && <div style={{ fontSize: '8pt', color: '#94a3b8' }}>{cassNums}</div>}
                           </td>
-                          <td style={{ padding: '8px', fontSize: '10pt' }}>{b.tissueType || '-'}</td>
+                          <td style={{ padding: '8px', fontSize: '10pt' }}>
+                            {b.tissueType || '-'}
+                            {b.entregarConTaco && (() => {
+                              const tacosSel = b.tacosSeleccionados || [];
+                              const cns = b.cassettesNumbers || [];
+                              if (tacosSel.length > 0 && cns.length > 0) {
+                                const labels = tacosSel.map((idx: number) => { const cn = cns[idx]; return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`); });
+                                return <div style={{ marginTop: '3px' }}><span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, border: '1px solid #fbbf24' }}>📦 Devolver: {labels.join(', ')}</span></div>;
+                              }
+                              return <div style={{ marginTop: '3px' }}><span style={{ background: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, border: '1px solid #fbbf24' }}>📦 Devolver todos los tacos</span></div>;
+                            })()}
+                          </td>
                           <td style={{ padding: '8px', fontSize: '10pt', textAlign: 'center' }}>
-                            <span style={{ background: tipo === 'BX' ? '#1e40af' : tipo === 'PQ' ? '#0369a1' : tipo === 'PAP' ? '#4338ca' : '#475569', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '9pt', fontWeight: 700 }}>{tipo}</span>
+                            <span style={{ background: tipoBg, color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '9pt', fontWeight: 700 }}>{tipo}</span>
                           </td>
-                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt', fontWeight: 600 }}>{isPAP ? (b.papQuantity || 1) : isCito ? (b.citologiaQuantity || 1) : (b.cassettes || 0)}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt', fontWeight: 600 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
                           <td style={{ padding: '8px', textAlign: 'center', fontSize: '10pt' }}>
                             {isPAP || isCito ? '-' : (() => {
                               const tpc = b.trozoPorCassette || [];
@@ -1331,9 +1346,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                               }
                               return totalT || '-';
                             })()}
-                            {b.quedaMaterial && <div style={{ fontSize: '7pt', color: '#d97706', fontWeight: 700 }}>⚠ Q.Material</div>}
                           </td>
-                          <td style={{ padding: '8px', fontSize: '9pt', color: '#475569' }}>{services.length > 0 ? services.join(', ') : '-'}</td>
+                          <td style={{ padding: '8px', fontSize: '9pt' }}>
+                            {services.length > 0 ? services.map((s, si) => (
+                              <span key={si} style={{ display: 'inline-block', marginRight: '4px', marginBottom: '2px', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 600, background: s.includes('URGENTE') || s.includes('Urgente') ? '#fee2e2' : '#eff6ff', color: s.includes('URGENTE') || s.includes('Urgente') ? '#dc2626' : '#1e40af' }}>{s}</span>
+                            )) : <span style={{ color: '#94a3b8' }}>-</span>}
+                          </td>
                         </tr>
                       );
                     })}
