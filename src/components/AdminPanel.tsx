@@ -1640,7 +1640,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <td className="py-2 px-3 text-center">
                             <div className="flex gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
                               {!isListo && (
-                                <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Todo ✓</button>
+                                <button onClick={() => { console.log('🔴 CLICK Todo:', { remitoId: remito.id, isListo, pendientesCount, biopsiaListas }); if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Todo ✓</button>
                               )}
                               {isListo && <span className="text-xs text-green-600 font-bold">✓ Completo</span>}
                               {whatsappNum && (
@@ -1703,7 +1703,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   return (
                                     <tr key={bi} className={`border-b border-gray-100 ${estaLista ? 'bg-green-50' : esUrgente ? 'bg-red-50' : ''}`}>
                                       <td className="py-1.5 px-2">
-                                        <button onClick={() => { if (!estaLista && confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO?\n\nNo se puede deshacer.`)) marcarBiopsia(bi, true); }}
+                                        <button onClick={() => { console.log('🔴 CLICK checkbox:', { bi, estaLista, numero: b.numero, biopsiaListas }); if (!estaLista && confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO?\n\nNo se puede deshacer.`)) marcarBiopsia(bi, true); }}
                                           disabled={estaLista}
                                           className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${estaLista ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 hover:border-green-500 cursor-pointer'}`}>
                                           {estaLista && <CheckCircle size={12} />}
