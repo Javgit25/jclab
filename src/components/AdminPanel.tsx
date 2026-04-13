@@ -1576,11 +1576,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           // Auto-marcar solicitud de taco como entregado
                           if ((biopsia as any).entregarConTaco) {
                             const remitoNum = (remito as any).remitoNumber;
-                            const solTaco = solicitudesAdmin.find(s => s.tipo === 'taco' && s.remitoNumber === remitoNum && s.numeroPaciente === biopsia.numero && s.estado !== 'entregado');
+                            // Buscar en solicitudesAdmin cargadas o desde localStorage
+                            let solTaco = solicitudesAdmin.find(s => s.tipo === 'taco' && s.remitoNumber === remitoNum && s.numeroPaciente === biopsia.numero && s.estado !== 'entregado');
+                            if (!solTaco) {
+                              try {
+                                const allSols = JSON.parse(localStorage.getItem('solicitudes') || '[]');
+                                solTaco = allSols.find((s: any) => s.tipo === 'taco' && s.remitoNumber === remitoNum && s.numeroPaciente === biopsia.numero && s.estado !== 'entregado');
+                              } catch {}
+                            }
                             if (solTaco) {
                               const updatedSol = { ...solTaco, estado: 'entregado', entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' };
                               db.saveSolicitud(updatedSol).catch(console.error);
-                              setSolicitudesAdmin(prev => prev.map(s => s.id === solTaco.id ? updatedSol : s));
+                              setSolicitudesAdmin(prev => {
+                                const exists = prev.find(s => s.id === solTaco.id);
+                                if (exists) return prev.map(s => s.id === solTaco.id ? updatedSol : s);
+                                return [...prev, updatedSol];
+                              });
                             }
                           }
                         }
@@ -3907,14 +3918,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 )}
                                 {sol.descripcion && <p className="text-sm text-gray-600 bg-gray-50 rounded p-2 mb-2">{sol.descripcion}</p>}
                                 <div className="flex gap-2 mt-2">
-                                  {sol.estado === 'pendiente' && (
+                                  {sol.tipo === 'taco' && sol.id?.startsWith('SOL_TACO_') ? (
+                                    <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 font-semibold">
+                                      📦 Se entrega automáticamente al marcar el remito como Listo
+                                    </div>
+                                  ) : (
                                     <>
-                                      <button onClick={() => handleUpdateSolicitud(sol, 'en_proceso')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">En proceso</button>
-                                      <button onClick={() => { if (confirm('¿Rechazar esta solicitud?')) handleUpdateSolicitud(sol, 'rechazado'); }} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">Rechazar</button>
+                                      {sol.estado === 'pendiente' && (
+                                        <>
+                                          <button onClick={() => handleUpdateSolicitud(sol, 'en_proceso')} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">En proceso</button>
+                                          <button onClick={() => { if (confirm('¿Rechazar esta solicitud?')) handleUpdateSolicitud(sol, 'rechazado'); }} className="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">Rechazar</button>
+                                        </>
+                                      )}
+                                      {sol.estado === 'en_proceso' && (
+                                        <button onClick={() => handleUpdateSolicitud(sol, 'entregado')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">✓ Marcar Entregado</button>
+                                      )}
                                     </>
-                                  )}
-                                  {sol.estado === 'en_proceso' && (
-                                    <button onClick={() => handleUpdateSolicitud(sol, 'entregado')} className="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-lg text-xs font-semibold">✓ Marcar Entregado</button>
                                   )}
                                 </div>
                               </div>
