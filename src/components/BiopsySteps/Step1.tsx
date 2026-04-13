@@ -9,6 +9,8 @@ interface Step1Props {
   onNext: () => void;
   onFinishDailyReport: () => void;
   onFinishRemito?: () => void;
+  onOpenVirtualKeyboard?: (type: 'numeric' | 'full', field: string, currentValue: string) => void;
+  keyboardValue?: string;
 }
 
 export const Step1: React.FC<Step1Props> = ({
@@ -18,7 +20,9 @@ export const Step1: React.FC<Step1Props> = ({
   onBiopsyNumberChange,
   onNext,
   onFinishDailyReport,
-  onFinishRemito
+  onFinishRemito,
+  onOpenVirtualKeyboard,
+  keyboardValue
 }) => {
   const [smartSuggestion, setSmartSuggestion] = useState<string>('');
   const [showKeyboard, setShowKeyboard] = useState(false);
@@ -49,8 +53,19 @@ export const Step1: React.FC<Step1Props> = ({
     }
   }, [todayBiopsies, todayBiopsiesCount]);
 
+  // Sincronizar valor del teclado virtual compartido
+  useEffect(() => {
+    if (keyboardValue !== undefined && keyboardValue !== biopsyNumber) {
+      onBiopsyNumberChange(keyboardValue);
+    }
+  }, [keyboardValue]);
+
   const handleKeyboardOpen = () => {
-    setShowKeyboard(true);
+    if (onOpenVirtualKeyboard) {
+      onOpenVirtualKeyboard('numeric', 'biopsyNumber', biopsyNumber);
+    } else {
+      setShowKeyboard(true);
+    }
   };
 
   // ✅ NUEVA FUNCIÓN: Aceptar y cerrar teclado

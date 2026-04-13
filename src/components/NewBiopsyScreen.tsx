@@ -610,6 +610,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onNext={nextStep}
             onFinishDailyReport={onGoBackToMainScreen}
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
+            onOpenVirtualKeyboard={openVirtualKeyboard}
+            keyboardValue={virtualKeyboard.targetValue}
           />
         )}
         
