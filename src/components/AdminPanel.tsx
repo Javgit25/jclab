@@ -1591,6 +1591,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       };
 
                       const marcarTodas = () => {
+                        console.log('🟢 marcarTodas ejecutada para remito:', remito.id);
                         const nuevasListas = remito.biopsias.map(() => true);
                         const updated = remitos.map(r => r.id === remito.id ? { ...r, biopsiaListas: nuevasListas, estadoEnvio: 'listo', listoAt: new Date().toISOString() } as any : r);
                         setRemitos(updated);
@@ -1601,6 +1602,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         notifications.push(newNotif);
                         localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
                         db.saveNotification(newNotif).catch(console.error);
+
+                        // Auto-marcar solicitudes de taco como entregadas
+                        try {
+                          const remitoNum = (remito as any).remitoNumber;
+                          const allSols = [...solicitudesAdmin, ...JSON.parse(localStorage.getItem('solicitudes') || '[]')];
+                          remito.biopsias.forEach((biopsia: any) => {
+                            if (biopsia.entregarConTaco) {
+                              const solTaco = allSols.find((s: any) => s.tipo === 'taco' && s.remitoNumber === remitoNum && s.numeroPaciente === biopsia.numero && s.estado !== 'entregado');
+                              if (solTaco) {
+                                const updatedSol = { ...solTaco, estado: 'entregado', entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' };
+                                db.saveSolicitud(updatedSol).catch(console.error);
+                                setSolicitudesAdmin(prev => prev.some(s => s.id === solTaco.id) ? prev.map(s => s.id === solTaco.id ? updatedSol : s) : [...prev, updatedSol]);
+                                console.log('🟢 Taco auto-entregado:', solTaco.id);
+                              }
+                            }
+                          });
+                        } catch (e) { console.error('Error auto-entregando tacos:', e); }
                       };
 
                       return (
