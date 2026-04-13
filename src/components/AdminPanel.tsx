@@ -96,6 +96,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [showChangePass, setShowChangePass] = useState(false);
   const [credForm, setCredForm] = useState({ currentPassword: '', newUser: '', newPassword: '', confirmPassword: '' });
   const [solicitudesAdmin, setSolicitudesAdmin] = useState<any[]>([]);
+  const [tacoBusqueda, setTacoBusqueda] = useState('');
+  const [tacoResultados, setTacoResultados] = useState<any[]>([]);
+  const [tacoBuscado, setTacoBuscado] = useState(false);
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
     precioCassette: 300,
@@ -3921,14 +3924,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           )}
 
           {currentView === 'buscador-tacos' && (() => {
-            const [busqueda, setBusqueda] = React.useState('');
-            const [resultados, setResultados] = React.useState<any[]>([]);
-            const [buscado, setBuscado] = React.useState(false);
-
             const buscarTaco = () => {
-              if (!busqueda.trim()) return;
-              const q = busqueda.trim().toLowerCase();
-              setBuscado(true);
+              if (!tacoBusqueda.trim()) return;
+              const q = tacoBusqueda.trim().toLowerCase();
+              setTacoBuscado(true);
               const results: any[] = [];
 
               // Buscar en solicitudes de tipo "taco" entregadas
@@ -3969,7 +3968,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 });
               });
 
-              setResultados(results);
+              setTacoResultados(results);
             };
 
             return (
@@ -3981,8 +3980,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    value={busqueda}
-                    onChange={e => { setBusqueda(e.target.value); setBuscado(false); }}
+                    value={tacoBusqueda}
+                    onChange={e => { setTacoBusqueda(e.target.value); setTacoBuscado(false); }}
                     onKeyDown={e => e.key === 'Enter' && buscarTaco()}
                     placeholder="Ej: BX26-001, A1, 3..."
                     className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
@@ -3998,16 +3997,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               </div>
 
               <div className="flex-1 overflow-y-auto px-5 pb-4">
-                {buscado && resultados.length === 0 && (
+                {tacoBuscado && tacoResultados.length === 0 && (
                   <div className="text-center py-12">
                     <Package className="h-10 w-10 mx-auto mb-2 text-gray-200" />
-                    <p className="text-gray-400 text-sm">No se encontró ningún cassette con "{busqueda}"</p>
+                    <p className="text-gray-400 text-sm">No se encontró ningún cassette con "{tacoBusqueda}"</p>
                   </div>
                 )}
 
-                {resultados.length > 0 && (
+                {tacoResultados.length > 0 && (
                   <div className="space-y-3 mt-3">
-                    {resultados.map((r, i) => (
+                    {tacoResultados.map((r: any, i: number) => (
                       <div key={i} className={`p-4 rounded-xl border ${r.tipo === 'entregado' ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'}`}>
                         <div className="flex items-center justify-between mb-2">
                           <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${r.tipo === 'entregado' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
