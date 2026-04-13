@@ -1078,7 +1078,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 }
                 const cantLabel = tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
                   : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
-                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ' lab)</span>' : String(currCass);
+                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
 
                 const isProf = (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
                 const isSA = (remito as any).esServicioAdicional && !isProf;
