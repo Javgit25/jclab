@@ -3747,11 +3747,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       // Auto-facturar: agregar servicios al remito original
                       if (nuevoEstado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
                         try {
+                          console.log('🔍 Buscando remito para solicitud:', { remitoNumber: sol.remitoNumber, numeroPaciente: sol.numeroPaciente, tipo: sol.tipo });
+                          console.log('🔍 Remitos disponibles:', remitos.map(r => ({ id: r.id, remitoNumber: (r as any).remitoNumber, biopsias: r.biopsias.map((b: any) => b.numero) })));
                           const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber);
+                          console.log('🔍 Remito encontrado:', remitoOrig ? 'SÍ' : 'NO', remitoOrig?.id);
                           if (remitoOrig) {
                             const desc = sol.descripcion || '';
                             // Encontrar la biopsia del paciente
                             const biopsiaIdx = remitoOrig.biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
+                            console.log('🔍 Biopsia encontrada en idx:', biopsiaIdx, 'buscando numero:', sol.numeroPaciente);
                             if (biopsiaIdx >= 0) {
                               const biopsia = { ...remitoOrig.biopsias[biopsiaIdx] };
                               const sv = { ...(biopsia.servicios || {}) } as any;
