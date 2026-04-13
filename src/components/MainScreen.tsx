@@ -3284,19 +3284,32 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     const cn = result.cassettesNumbers || [];
                     const isUrgent = svc.cassetteUrgente || svc.papUrgente || svc.citologiaUrgente;
 
-                    // Calcular costo
+                    // Calcular costo con precios de configuración
                     let costo = 0;
+                    const ac = (() => { try { return JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch { return {}; } })();
+                    const p = {
+                      cassette: ac.precioCassette || 300, cassetteUrgente: ac.precioCassetteUrgente || 400,
+                      profundizacion: ac.precioProfundizacion || 120, pap: ac.precioPAP || 90,
+                      papUrgente: ac.precioPAPUrgente || 110, citologia: ac.precioCitologia || 90,
+                      citologiaUrgente: ac.precioCitologiaUrgente || 120, corteBlanco: ac.precioCorteBlanco || 60,
+                      corteBlancoIHQ: ac.precioCorteBlancoIHQ || 85, giemsaPASMasson: ac.precioGiemsaPASMasson || 75
+                    };
                     if (cassettes > 0) {
-                      costo += svc.cassetteUrgente ? 400 : 300;
-                      if (cassettes > 1) costo += (cassettes - 1) * 120;
+                      costo += svc.cassetteUrgente ? p.cassetteUrgente : p.cassette;
+                      if (cassettes > 1) costo += (cassettes - 1) * p.profundizacion;
                     }
-                    if (result.papQuantity > 0) costo += result.papQuantity * (svc.papUrgente ? 110 : 90);
-                    if (result.citologiaQuantity > 0) costo += result.citologiaQuantity * (svc.citologiaUrgente ? 120 : 90);
-                    if (svc.corteBlancoComun) costo += (svc.corteBlancoComunQuantity || 1) * 60;
-                    if (svc.corteBlancoIHQ) costo += (svc.corteBlancoIHQQuantity || 1) * 85;
+                    if (result.papQuantity > 0) costo += result.papQuantity * (svc.papUrgente ? p.papUrgente : p.pap);
+                    if (result.citologiaQuantity > 0) {
+                      const citoSub = result.citologiaSubType || '';
+                      const unidades = (citoSub === 'PAAF' || citoSub === 'Líquidos') ? 1 : result.citologiaQuantity;
+                      costo += unidades * (svc.citologiaUrgente ? p.citologiaUrgente : p.citologia);
+                    }
+                    costo += (svc.profundizacion || 0) * p.profundizacion;
+                    if (svc.corteBlancoComun) costo += (svc.corteBlancoComunQuantity || 1) * p.corteBlanco;
+                    if (svc.corteBlancoIHQ) costo += (svc.corteBlancoIHQQuantity || 1) * p.corteBlancoIHQ;
                     if (svc.giemsaPASMasson) {
                       const gc = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : 1;
-                      costo += gc * 75;
+                      costo += gc * p.giemsaPASMasson;
                     }
 
                     // Servicios detallados
