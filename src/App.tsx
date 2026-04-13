@@ -286,9 +286,10 @@ function App() {
       const tissue = newBiopsy.tissueType;
       if (tissue && tissue.trim()) {
         const ac = JSON.parse(localStorage.getItem('adminConfig') || '{}');
-        const tissues: string[] = ac.tiposTejido || [];
+        const defaultTissues = ['Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia', 'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio', 'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'PAP', 'Citología'];
+        const tissues: string[] = ac.tiposTejido || defaultTissues;
         const norm = tissue.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-        if (tissues.length > 0 && !tissues.some(t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() === norm)) {
+        if (!tissues.some(t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim() === norm)) {
           const cap = tissue.trim().charAt(0).toUpperCase() + tissue.trim().slice(1).toLowerCase();
           tissues.push(cap);
           ac.tiposTejido = tissues;
