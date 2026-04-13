@@ -281,8 +281,11 @@ function App() {
       } catch {}
     }
 
+    // Sincronizar tejido con admin
+    updateFrequentTissues(newBiopsy.tissueType);
+
     console.log('App - Biopsias totales después de guardar:', updatedBiopsies.length);
-    
+
     // Agregar a cola de sincronización
     if (doctorInfo) {
       addToSyncQueue({
@@ -294,7 +297,7 @@ function App() {
     }
     
     // REMOVIDO: alert de confirmación
-  }, [todayBiopsies, doctorInfo, addToSyncQueue]);
+  }, [todayBiopsies, doctorInfo, addToSyncQueue, updateFrequentTissues]);
 
   // Función para actualizar tejidos frecuentes
   // Normalizar texto: sin tildes, lowercase
