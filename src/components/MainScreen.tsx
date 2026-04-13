@@ -2256,8 +2256,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     style={{
                       width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
                       fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-                      background: solicitudPaciente.trim() && solicitudRemito.trim() ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#e5e7eb',
-                      color: solicitudPaciente.trim() && solicitudRemito.trim() ? 'white' : '#9ca3af',
+                      background: solicitudPaciente.trim() && solicitudRemito.trim() && !(solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim()) ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#e5e7eb',
+                      color: solicitudPaciente.trim() && solicitudRemito.trim() && !(solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim()) ? 'white' : '#9ca3af',
                       transition: 'all 0.2s'
                     }}
                   >
