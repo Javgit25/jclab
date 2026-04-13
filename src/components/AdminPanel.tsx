@@ -1049,7 +1049,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 // Calcular diferencia si fue editado por el lab
                 const currCass = Number(biopsia.cassettes) || 0;
                 let diff = 0;
-                if ((remito as any).modificadoPorAdmin && tipo !== 'PAP' && tipo !== 'CITO') {
+                if (((remito as any).modificadoPorAdmin || (remito as any).modificadoPorSolicitud) && tipo !== 'PAP' && tipo !== 'CITO') {
                   // Buscar cantidad original del historial del doctor
                   const origCass = (biopsia as any)._originalCassettes;
                   if (origCass !== undefined && origCass !== null && currCass > origCass) {
@@ -1966,14 +1966,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </thead>
                       <tbody>
                     {[...remitosFiltrados].sort((a, b) => { const tA = new Date((a as any).timestamp || a.fecha).getTime(); const tB = new Date((b as any).timestamp || b.fecha).getTime(); return tB - tA; }).map(remito => (
-                      <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${(remito as any).modificadoPorAdmin ? 'bg-amber-50/40' : ''}`}>
+                      <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${(remito as any).modificadoPorAdmin && !(remito as any).modificadoPorSolicitud ? 'bg-amber-50/40' : ''} ${(remito as any).modificadoPorSolicitud ? 'bg-green-50/40' : ''}`}>
                         <td className="py-3 px-4">
                           <div className="text-xs font-mono text-gray-400">#{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</div>
                           {(remito as any).esServicioAdicional && (
                             <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold border ${((remito as any).esProfundizacion || ((remito as any).notaServicioAdicional || '').includes('Profundización')) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>{((remito as any).esProfundizacion || ((remito as any).notaServicioAdicional || '').includes('Profundización')) ? 'Profundización' : 'Serv. Adicional'}</span>
                           )}
-                          {(remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && (
+                          {(remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && !(remito as any).modificadoPorSolicitud && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Editado</span>
+                          )}
+                          {(remito as any).modificadoPorSolicitud && !(remito as any).esServicioAdicional && (
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-200">Solicitud médico</span>
                           )}
                         </td>
                         <td className="py-3 px-4">
@@ -3769,7 +3772,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               biopsia.servicios = sv;
                               const updatedBiopsias = [...remitoOrig.biopsias];
                               updatedBiopsias[biopsiaIdx] = biopsia;
-                              const updatedRemito = { ...remitoOrig, biopsias: updatedBiopsias, modificadoPorAdmin: true, modificadoAt: new Date().toISOString() };
+                              const updatedRemito = { ...remitoOrig, biopsias: updatedBiopsias, modificadoPorSolicitud: true, modificadoAt: new Date().toISOString() };
                               const updatedRemitos = remitos.map(r => r.id === remitoOrig.id ? updatedRemito : r);
                               setRemitos(updatedRemitos as any);
                               localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));

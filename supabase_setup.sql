@@ -77,6 +77,7 @@ CREATE TABLE remitos (
   biopsia_listas JSONB DEFAULT '[]',
   biopsias JSONB NOT NULL DEFAULT '[]',
   modificado_por_admin BOOLEAN DEFAULT false,
+  modificado_por_solicitud BOOLEAN DEFAULT false,
   modificado_at TIMESTAMPTZ,
   es_servicio_adicional BOOLEAN DEFAULT false,
   remito_original_id TEXT,
