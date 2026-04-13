@@ -88,8 +88,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   React.useEffect(() => {
     const loadNoVino = async () => {
       try {
-        const { supabase } = await import('../lib/database');
-        const { data } = await supabase.from('remitos').select('biopsias').eq('email', doctorInfo.email?.toLowerCase().trim());
+        const { supabase } = await import('../lib/supabase');
+        const { data } = await supabase.from('remitos').select('biopsias, email, doctor_email').or(`email.eq.${doctorInfo.email?.toLowerCase().trim()},doctor_email.eq.${doctorInfo.email?.toLowerCase().trim()}`);
         if (data) {
           const set = new Set<string>();
           data.forEach((r: any) => {
