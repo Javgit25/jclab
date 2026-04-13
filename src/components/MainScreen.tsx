@@ -431,74 +431,32 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const stats = getHistoryStats();
 
-  const StatisticsModal = () => {
-    // Calcular datos de facturación y costos filtrados por mes seleccionado
-    const calculateFinancialData = () => {
-      // Obtener datos del historial
-      let savedBiopsies: any[] = [];
-      let previousMonthBiopsies: any[] = [];
-      
+  // State para datos financieros cargados desde Supabase
+  const [financialDataFromDb, setFinancialDataFromDb] = useState<any>(null);
+
+  // Cargar remitos desde Supabase para facturación (fuente de verdad del admin)
+  React.useEffect(() => {
+    const loadRemitosForBilling = async () => {
       try {
-        if (doctorInfo.email) {
-          // Usar nuevo sistema basado en email
-          const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
-          const doctorKey = `doctor_${normalizedEmail}`;
-          const historyKey = `${doctorKey}_history`;
-          
-          const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-          const entries = Object.values(historyData) as any[];
-          
-          // Calcular mes anterior
-          const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
-          const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
-          
-          // Filtrar por mes y año seleccionado
-          entries.forEach((entry: any) => {
-            if (entry.biopsies && entry.date) {
-              const entryDate = new Date(entry.date);
-              const rn = entry.remitoNumber || '';
-              const tagged = entry.biopsies.map((b: any) => ({ ...b, _remitoNumber: rn }));
-              if (entryDate.getMonth() === selectedMonth && entryDate.getFullYear() === selectedYear) {
-                savedBiopsies.push(...tagged);
-              }
-              if (entryDate.getMonth() === previousMonth && entryDate.getFullYear() === previousYear) {
-                previousMonthBiopsies.push(...tagged);
-              }
-            }
-          });
-        } else {
-          // Fallback: usar sistema anterior por nombre
-          const historyKey = `${doctorInfo.name}_history`;
-          const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-          const entries = Object.values(historyData) as any[];
-          
-          // Calcular mes anterior
-          const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
-          const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
-          
-          // Filtrar por mes y año seleccionado
-          entries.forEach((entry: any) => {
-            if (entry.biopsies && entry.date) {
-              const entryDate = new Date(entry.date);
-              const rn = entry.remitoNumber || '';
-              const tagged = entry.biopsies.map((b: any) => ({ ...b, _remitoNumber: rn }));
-              if (entryDate.getMonth() === selectedMonth && entryDate.getFullYear() === selectedYear) {
-                savedBiopsies.push(...tagged);
-              }
-              if (entryDate.getMonth() === previousMonth && entryDate.getFullYear() === previousYear) {
-                previousMonthBiopsies.push(...tagged);
-              }
-            }
-          });
+        const { supabase } = await import('../lib/supabase');
+        const email = doctorInfo.email?.toLowerCase().trim();
+        const { data } = await supabase.from('remitos').select('*').or(`email.eq.${email},doctor_email.eq.${email}`);
+        if (data) {
+          // Guardar en localStorage para acceso sincrónico
+          localStorage.setItem('_remitosFacturacion', JSON.stringify(data));
+          setFinancialDataFromDb(data);
         }
-      } catch (error) {
-        console.error('Error obteniendo biopsias guardadas:', error);
-      }
-      
-      // Leer precios de configuración del admin (localStorage + Supabase)
+      } catch {}
+    };
+    loadRemitosForBilling();
+  }, [doctorInfo.email]);
+
+  const StatisticsModal = () => {
+    // Calcular datos de facturación usando remitos de Supabase (misma fuente que el admin)
+    const calculateFinancialData = () => {
+      // Leer precios de configuración
       let adminConfig: any = null;
       try { adminConfig = JSON.parse(localStorage.getItem('adminConfig') || 'null'); } catch {}
-      // Si no hay config local, usar defaults (se carga async al montar)
       const precios = {
         cassette: adminConfig?.precioCassette || 300,
         cassetteUrgente: adminConfig?.precioCassetteUrgente || 400,
@@ -512,6 +470,59 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         giemsaPASMasson: adminConfig?.precioGiemsaPASMasson || 75
       };
 
+      // Usar remitos de Supabase (misma fuente que el admin)
+      let remitosData: any[] = [];
+      try { remitosData = JSON.parse(localStorage.getItem('_remitosFacturacion') || '[]'); } catch {}
+
+      const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+      const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+
+      let savedBiopsies: any[] = [];
+      let previousMonthBiopsies: any[] = [];
+      let totalRemitosDelMes = 0;
+
+      remitosData.forEach((r: any) => {
+        const fecha = new Date(r.timestamp || r.fecha);
+        const biopsias = (r.biopsias || []);
+        if (fecha.getMonth() === selectedMonth && fecha.getFullYear() === selectedYear) {
+          savedBiopsies.push(...biopsias);
+          totalRemitosDelMes++;
+        }
+        if (fecha.getMonth() === previousMonth && fecha.getFullYear() === previousYear) {
+          previousMonthBiopsies.push(...biopsias);
+        }
+      });
+
+      // Función de cálculo IDÉNTICA al AdminPanel
+      const calcularBiopsia = (biopsy: any) => {
+        if (biopsy.noVino) return 0;
+        let total = 0;
+        const svc = biopsy.servicios || {};
+        const cassettes = parseInt(biopsy.cassettes) || 0;
+        const papQty = biopsy.papQuantity || 0;
+        const citoQty = biopsy.citologiaQuantity || 0;
+        const esCassetteUrgente = (svc.cassetteUrgente || 0) > 0;
+        const esPapUrgente = (svc.papUrgente || 0) > 0;
+        const esCitoUrgente = (svc.citologiaUrgente || 0) > 0;
+
+        if (cassettes > 0) {
+          total += esCassetteUrgente ? precios.cassetteUrgente : precios.cassette;
+          if (cassettes > 1) total += (cassettes - 1) * precios.profundizacion;
+        }
+        if (papQty > 0) total += papQty * (esPapUrgente ? precios.papUrgente : precios.pap);
+        if (citoQty > 0) {
+          const citoSubType = biopsy.citologiaSubType || '';
+          const unidades = (citoSubType === 'PAAF' || citoSubType === 'Líquidos') ? 1 : citoQty;
+          total += unidades * (esCitoUrgente ? precios.citologiaUrgente : precios.citologia);
+        }
+        total += (svc.profundizacion || 0) * precios.profundizacion;
+        total += (svc.corteBlanco || 0) * precios.corteBlanco;
+        total += (svc.corteBlancoIHQ || 0) * precios.corteBlancoIHQ;
+        const giemsaCount = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : (svc.giemsaPASMasson ? 1 : 0);
+        total += giemsaCount * precios.giemsaPASMasson;
+        return total;
+      };
+
       let totalFacturado = 0;
       let totalBiopsias = 0;
       let totalPAP = 0;
@@ -521,86 +532,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       let totalOtros = 0;
       let totalUrgentes = 0;
       let costoPromedio = 0;
-      let totalRemitosDelMes = 0;
 
-      // Contar remitos del mes (no solo biopsias)
-      try {
-        const normalizedEmail = doctorInfo.email?.toLowerCase().trim().replace(/\s+/g, '') || '';
-        const doctorKey = `doctor_${normalizedEmail}`;
-        const historyKey = `${doctorKey}_history`;
-        const historyData2 = JSON.parse(localStorage.getItem(historyKey) || '{}');
-        Object.values(historyData2).forEach((entry: any) => {
-          if (entry.date) {
-            const d = new Date(entry.date);
-            if (d.getMonth() === selectedMonth && d.getFullYear() === selectedYear) {
-              totalRemitosDelMes++;
-            }
-          }
-        });
-      } catch {}
-
-      // Usar noVinoPacientes cargados desde Supabase al montar
-
-      // Función de cálculo IDÉNTICA al AdminPanel
-      const calcularBiopsia = (biopsy: any) => {
-        if (biopsy.noVino) return 0;
-        // Cruzar con remitoNumber + numero para evitar falsos positivos
-        const rn = biopsy._remitoNumber || '';
-        const num = biopsy.number || biopsy.numero || '';
-        if (rn && num && noVinoPacientes.has(`${rn}__${num}`)) { console.log('🔴 Descuentando noVino:', rn, num); return 0; }
-        if (noVinoPacientes.size > 0 && !rn) { console.log('🟡 Biopsia sin _remitoNumber:', num, biopsy); }
-        let total = 0;
-        const svc = biopsy.servicios || {};
-        const cassettes = parseInt(biopsy.cassettes) || 0;
-        const papQty = biopsy.papQuantity || 0;
-        const citoQty = biopsy.citologiaQuantity || 0;
-        const esCassetteUrgente = svc.cassetteUrgente ? true : false;
-        const esPapUrgente = svc.papUrgente ? true : false;
-        const esCitoUrgente = svc.citologiaUrgente ? true : false;
-
-        // Cassettes: primer cassette al precio base, resto profundización
-        if (cassettes > 0) {
-          total += esCassetteUrgente ? precios.cassetteUrgente : precios.cassette;
-          if (cassettes > 1) {
-            total += (cassettes - 1) * precios.profundizacion;
-          }
-        }
-
-        // PAP
-        if (papQty > 0) {
-          total += papQty * (esPapUrgente ? precios.papUrgente : precios.pap);
-        }
-
-        // Citología — PAAF/Líquidos cobra 1 paciente, independiente de vidrios
-        if (citoQty > 0) {
-          const citoSubType = biopsy.citologiaSubType || '';
-          const unidadesACobrar = (citoSubType === 'PAAF' || citoSubType === 'Líquidos') ? 1 : citoQty;
-          total += unidadesACobrar * (esCitoUrgente ? precios.citologiaUrgente : precios.citologia);
-        }
-
-        // Profundizaciones solicitadas (adicionales a las de cassettes)
-        total += (svc.profundizacion || 0) * precios.profundizacion;
-
-        // Cortes en blanco
-        const corteBlancoQty = svc.corteBlancoComun ? (svc.corteBlancoComunQuantity || 1) : (svc.corteBlanco || 0);
-        total += corteBlancoQty * precios.corteBlanco;
-
-        // Cortes IHQ
-        const corteIHQQty = svc.corteBlancoIHQ ? (svc.corteBlancoIHQQuantity || 1) : 0;
-        total += corteIHQQty * precios.corteBlancoIHQ;
-
-        // Giemsa/PAS/Masson
-        const giemsaCount = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : (svc.giemsaPASMasson ? 1 : 0);
-        total += giemsaCount * precios.giemsaPASMasson;
-
-        return total;
-      };
-
-      savedBiopsies.forEach((biopsy) => {
+      savedBiopsies.forEach((biopsy: any) => {
         totalBiopsias++;
-
-        const esPAP = biopsy.papQuantity && biopsy.papQuantity > 0;
-        const esCitologia = biopsy.citologiaQuantity && biopsy.citologiaQuantity > 0;
+        const esPAP = (biopsy.papQuantity || 0) > 0;
+        const esCitologia = (biopsy.citologiaQuantity || 0) > 0;
         const esPQ = biopsy.type === 'PQ' || biopsy.tipo === 'PQ';
         const esBX = !esPAP && !esCitologia && !esPQ;
 
