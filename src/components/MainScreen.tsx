@@ -14,7 +14,7 @@ interface MainScreenProps {
   syncQueueLength: number;
   onStartNewBiopsy: () => void;
   onViewToday: () => void;
-  onViewHistory: (remitoId?: string) => void;
+  onViewHistory: () => void;
   onLogout: () => void;
 }
 
@@ -3380,8 +3380,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           </span>
                           <button
                             onClick={() => {
-                              setShowSearchModal(false);
-                              onViewHistory(result.remitoId);
+                              try {
+                                const email = doctorInfo.email?.toLowerCase().trim().replace(/\s+/g, '') || '';
+                                const hk = `doctor_${email}_history`;
+                                const history = JSON.parse(localStorage.getItem(hk) || '{}');
+                                const entry: any = Object.values(history).find((e: any) => e.id === result.remitoId);
+                                if (entry) setViewingRemitoFromSearch(entry);
+                              } catch {}
                             }}
                             style={{
                               fontSize: '11px', fontWeight: '600', color: '#1e40af',
@@ -3511,6 +3516,118 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       )}
 
       {/* Vista de remito completo desde búsqueda */}
+
+      {/* Modal de remito completo desde búsqueda */}
+      {viewingRemitoFromSearch && (() => {
+        const re = viewingRemitoFromSearch;
+        const bios = re.biopsies || [];
+        const doc = re.doctorInfo || doctorInfo;
+        const labCfg = (() => { try { return JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch { return {}; } })();
+        const fechaRemito = new Date(re.date || re.timestamp).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+        const totalBX = bios.filter((b: any) => b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.type !== 'PQ').length;
+        const totalPQ = bios.filter((b: any) => b.type === 'PQ').length;
+        const totalPAP = bios.reduce((s: number, b: any) => s + (b.papQuantity || 0), 0);
+        const totalCito = bios.reduce((s: number, b: any) => s + (b.citologiaQuantity || 0), 0);
+        const totalCassettes = bios.reduce((s: number, b: any) => s + (parseInt(b.cassettes) || 0), 0);
+
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#f1f5f9', zIndex: 9999, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ background: '#1e293b', padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>Remito #{(re.remitoNumber || (re.id || '').slice(-6).toUpperCase())}</span>
+              <button onClick={() => setViewingRemitoFromSearch(null)} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #475569', background: 'transparent', color: '#94a3b8', fontSize: '13px', cursor: 'pointer' }}>✕ Cerrar</button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
+              <div style={{ maxWidth: '800px', margin: '0 auto', background: 'white', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', padding: '24px', fontSize: '9pt' }}>
+                {/* Header */}
+                <div style={{ borderBottom: '3px solid #1e3a5f', paddingBottom: '12px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '16pt', fontWeight: 700, color: '#1e3a5f' }}>{labCfg.nombre || 'Laboratorio de Anatomía Patológica'}</div>
+                      {(labCfg.direccion || labCfg.telefono || labCfg.email) && <div style={{ fontSize: '8pt', color: '#64748b', marginTop: '4px' }}>{[labCfg.direccion, labCfg.telefono, labCfg.email].filter(Boolean).join(' · ')}</div>}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '2px' }}>Remito</div>
+                      <div style={{ fontSize: '14pt', fontWeight: 700, color: '#1e3a5f' }}>#{(re.remitoNumber || (re.id || '').slice(-6).toUpperCase())}</div>
+                      <div style={{ fontSize: '8pt', color: '#64748b' }}>{fechaRemito}</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Médico + resumen */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '7pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Médico</div>
+                    <div style={{ fontSize: '11pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || `${doc.firstName || ''} ${doc.lastName || ''}`}</div>
+                    {re.cargadoPor && <div style={{ fontSize: '8pt', color: '#d97706', fontWeight: 600 }}>Cargado por: {re.cargadoPor}</div>}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {totalBX > 0 && <span style={{ background: '#166534', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>BX: {totalBX}</span>}
+                    {totalPQ > 0 && <span style={{ background: '#c2410c', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>PQ: {totalPQ}</span>}
+                    {totalPAP > 0 && <span style={{ background: '#7c3aed', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>PAP: {totalPAP}</span>}
+                    {totalCito > 0 && <span style={{ background: '#475569', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>Cito: {totalCito}</span>}
+                  </div>
+                </div>
+                {/* Tabla */}
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '9pt' }}>
+                  <thead><tr>
+                    {['#', 'Pac.', 'Material', 'Tipo', 'Cant.', 'Trozos'].map(h => (
+                      <th key={h} style={{ padding: '6px 4px', textAlign: h === '#' || h === 'Pac.' ? 'left' : 'center', borderBottom: '2px solid #1e3a5f', fontSize: '7pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase' }}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {bios.map((b: any, i: number) => {
+                      const isPAP = b.tissueType === 'PAP';
+                      const isCito = b.tissueType === 'Citología';
+                      const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : b.type === 'PQ' ? 'PQ' : 'BX';
+                      const sv = b.servicios || {};
+                      const isUrgent = sv.cassetteUrgente || sv.papUrgente || sv.citologiaUrgente;
+                      const services: string[] = [];
+                      if (sv.cassetteUrgente) services.push('⚡ URGENTE 24hs');
+                      if (sv.papUrgente) services.push('⚡ PAP Urgente');
+                      if (sv.citologiaUrgente) services.push('⚡ Cito Urgente');
+                      if (sv.corteBlancoIHQ) services.push(`Corte IHQ ×${sv.corteBlancoIHQQuantity || 1}`);
+                      if (sv.corteBlancoComun) services.push(`Corte Blanco ×${sv.corteBlancoComunQuantity || 1}`);
+                      if (sv.giemsaPASMasson) { const t: string[] = []; if (sv.giemsaOptions?.giemsa) t.push('Giemsa'); if (sv.giemsaOptions?.pas) t.push('PAS'); if (sv.giemsaOptions?.masson) t.push('Masson'); services.push(t.length > 0 ? t.join(', ') : 'Tinciones'); }
+                      if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
+                      const hasTaco = b.entregarConTaco;
+                      const hasExtra = services.length > 0 || hasTaco;
+                      const tipoBg = tipo === 'PQ' ? '#c2410c' : isPAP ? '#7c3aed' : isCito ? '#475569' : '#166534';
+                      const rowBg = isUrgent ? '#fff5f5' : i % 2 === 0 ? 'white' : '#f8fafc';
+                      const cassNums = b.cassettesNumbers?.filter((_: any, ci: number) => ci > 0).map((c: any) => c.suffix ? `${c.base}/${c.suffix}` : c.base).join(', ') || '';
+                      return (
+                        <React.Fragment key={i}>
+                        <tr style={{ background: rowBg, borderLeft: isUrgent ? '3px solid #dc2626' : 'none', borderBottom: hasExtra ? 'none' : '1px solid #e2e8f0' }}>
+                          <td style={{ padding: '5px 4px', fontWeight: 600, color: '#94a3b8', fontSize: '8pt' }}>{i + 1}</td>
+                          <td style={{ padding: '5px 4px' }}><span style={{ fontWeight: 700 }}>{b.number || '-'}</span>{cassNums && <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{cassNums}</div>}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}><span style={{ background: tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span></td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}>{isPAP || isCito ? '-' : (() => { const tpc = b.trozoPorCassette || []; const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(b.pieces) || 0); return totalT || '-'; })()}</td>
+                        </tr>
+                        {hasExtra && <tr style={{ background: rowBg, borderBottom: '1px solid #e2e8f0', borderLeft: isUrgent ? '3px solid #dc2626' : 'none' }}>
+                          <td colSpan={6} style={{ padding: '0 4px 5px 4px', textAlign: 'center' }}>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center', justifyContent: 'center' }}>
+                              {services.map((s, si) => <span key={si} style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 600, background: s.includes('URGENTE') || s.includes('Urgente') ? '#fee2e2' : '#eff6ff', color: s.includes('URGENTE') || s.includes('Urgente') ? '#dc2626' : '#1e40af' }}>{s}</span>)}
+                              {hasTaco && (() => { const ts = b.tacosSeleccionados || []; const cns = b.cassettesNumbers || []; if (ts.length > 0 && cns.length > 0) { const labels = ts.map((idx: number) => { const cn = cns[idx]; return idx === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `S/${idx}`); }); return <span style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24' }}>📦 Devolver: {labels.join(', ')}</span>; } return <span style={{ padding: '1px 5px', borderRadius: '3px', fontSize: '7pt', fontWeight: 700, background: '#fef3c7', color: '#92400e', border: '1px solid #fbbf24' }}>📦 Devolver todos</span>; })()}
+                            </div>
+                          </td>
+                        </tr>}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                {/* Observaciones */}
+                {bios.some((b: any) => b.observations) && (
+                  <div style={{ marginTop: '16px', padding: '10px', background: '#fffbeb', border: '1px solid #fbbf24', borderRadius: '6px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '8pt', color: '#92400e', textTransform: 'uppercase', marginBottom: '4px' }}>Observaciones</div>
+                    {bios.filter((b: any) => b.observations).map((b: any, i: number) => <div key={i} style={{ fontSize: '9pt', marginBottom: '2px' }}>• <strong>#{b.number}:</strong> {b.observations}</div>)}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Teclado Virtual para Búsqueda y Solicitudes */}
       {showKeyboard && (showSearchModal || showSolicitudes) && (

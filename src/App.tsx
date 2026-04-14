@@ -747,9 +747,8 @@ function App() {
           console.log('App - Viendo remito del día');
           setCurrentScreen('todayList');
         }}
-        onViewHistory={(remitoId?: string) => {
-          console.log('App - Viendo historial', remitoId);
-          setOpenRemitoId(remitoId || null);
+        onViewHistory={() => {
+          console.log('App - Viendo historial');
           setCurrentScreen('history');
         }}
         onLogout={() => {
@@ -820,8 +819,7 @@ function App() {
         isOnline={isOnline}
         backupStatus={backupStatus === 'success' ? 'synced' : backupStatus === 'syncing' ? 'pending' : backupStatus === 'idle' ? 'synced' : 'error'}
         syncQueueLength={syncQueue.length}
-        openRemitoId={openRemitoId}
-        onGoBack={() => { setCurrentScreen('main'); setOpenRemitoId(null); }}
+        onGoBack={() => setCurrentScreen('main')}
         onUpdateEntry={(updatedEntry: HistoryEntry) => {
           if (!doctorInfo || !doctorInfo.email) return;
           const doctorKey = generateDoctorKey(doctorInfo.email);
