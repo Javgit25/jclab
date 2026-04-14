@@ -225,6 +225,18 @@ export const Step4: React.FC<Step4Props> = ({
   const isPapOrCitologia = tissueType === 'PAP' || tissueType === 'Citología';
   const materialType = isPapOrCitologia ? 'Vidrios' : 'Cassettes';
 
+  // Auto-inicializar trozos cuando hay 2+ cassettes y pieces está vacío
+  React.useEffect(() => {
+    const numCass = parseInt(cassettes) || 0;
+    if (numCass >= 2 && (!pieces || parseInt(pieces) === 0)) {
+      const defaultTrozos = Array(numCass).fill(1);
+      onTrozoPorCassetteChange?.(defaultTrozos);
+      onPiecesChange(String(numCass));
+    } else if (numCass === 1 && (!pieces || parseInt(pieces) === 0)) {
+      onPiecesChange('1');
+    }
+  }, [cassettes]);
+
   const isValid = cassettes && parseInt(cassettes) > 0 && pieces && parseInt(pieces) > 0;
 
   return (
