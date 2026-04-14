@@ -520,6 +520,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         total += (svc.corteBlancoIHQ || 0) * precios.corteBlancoIHQ;
         const giemsaCount = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : (svc.giemsaPASMasson ? 1 : 0);
         total += giemsaCount * precios.giemsaPASMasson;
+        if (svc.incluyeCitologia) total += precios.citologia;
         return total;
       };
 
@@ -3291,6 +3292,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       const gc = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : 1;
                       costo += gc * p.giemsaPASMasson;
                     }
+                    if (svc.incluyeCitologia) costo += p.citologia;
 
                     // Servicios detallados
                     const serviciosDetail: string[] = [];
