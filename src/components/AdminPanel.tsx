@@ -1052,6 +1052,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
                 }
                 if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
+                if ((biopsia.servicios as any)?.incluyeCitologia) {
+                  const fmt = (biopsia.servicios as any).citologiaFormato === 'jeringa' ? 'Jeringa' : (biopsia.servicios as any).citologiaFormato === 'frasco' ? 'Frasco' : ((biopsia.servicios as any).citologiaVidriosQty || 1) + ' vid.';
+                  svcs.push('<span class="badge badge-servicio" style="background:#f3e8ff;color:#7c3aed;">Citología (' + fmt + ')</span>');
+                }
                 if ((biopsia.papQuantity || 0) > 0) svcs.push('<span class="badge badge-pap">PAP &times;' + biopsia.papQuantity + '</span>');
                 if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
 
@@ -1704,6 +1708,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     if (opts.masson) t.push('Masson');
                                     svcList.push(t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson');
                                   }
+                                  if (sv.incluyeCitologia) {
+                                    const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
+                                    svcList.push(`🧪 Cito (${fmt})`);
+                                  }
 
                                   const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : `${cass} cass.`;
 
@@ -1825,6 +1833,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             if (opts.pas) t.push('PAS');
                             if (opts.masson) t.push('Masson');
                             svc.push(t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson');
+                          }
+                          if (sv.incluyeCitologia) {
+                            const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : (sv.citologiaVidriosQty || 1) + ' vid.';
+                            svc.push('Citología (' + fmt + ')');
                           }
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
@@ -2243,20 +2255,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <button onClick={() => {
                             const numero = prompt('Número de paciente:');
                             if (!numero?.trim()) return;
-                            const tejido = prompt('Material/Tejido (ej: Gástrica, Piel, Colon):');
-                            if (!tejido?.trim()) return;
-                            const cassettes = prompt('Cantidad de cassettes:', '1');
                             const newBiopsia = {
                               numero: numero.trim(),
-                              tejido: tejido.trim(),
+                              tejido: 'No vino',
                               tipo: 'BX',
-                              cassettes: parseInt(cassettes || '1') || 1,
-                              trozos: parseInt(cassettes || '1') || 1,
-                              servicios: { cassetteNormal: parseInt(cassettes || '1') || 1 },
+                              cassettes: 0,
+                              trozos: 0,
+                              servicios: { cassetteNormal: 0 },
                               cassettesNumbers: [],
                               papQuantity: 0,
                               citologiaQuantity: 0,
                               agregadoPorLab: true,
+                              noVino: true,
                             };
                             setEditingBiopsias([...editingBiopsias, newBiopsia]);
                           }}

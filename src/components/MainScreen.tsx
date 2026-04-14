@@ -3588,6 +3588,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       if (sv.corteBlancoComun) services.push(`Corte Blanco ×${sv.corteBlancoComunQuantity || 1}`);
                       if (sv.giemsaPASMasson) { const t: string[] = []; if (sv.giemsaOptions?.giemsa) t.push('Giemsa'); if (sv.giemsaOptions?.pas) t.push('PAS'); if (sv.giemsaOptions?.masson) t.push('Masson'); services.push(t.length > 0 ? t.join(', ') : 'Tinciones'); }
                       if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
+                      if (sv.incluyeCitologia) {
+                        const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
+                        services.push(`🧪 Citología (${fmt})`);
+                      }
                       const hasTaco = b.entregarConTaco;
                       const hasExtra = services.length > 0 || hasTaco;
                       const tipoBg = tipo === 'PQ' ? '#c2410c' : isPAP ? '#7c3aed' : isCito ? '#475569' : '#166534';
