@@ -80,11 +80,94 @@ function getDoctorName(sol: Solicitud): string {
   return 'Desconocido';
 }
 
+interface UrgenteBiopsia {
+  id: string;
+  numero: string;
+  tejido: string;
+  tipo: string;
+  medico: string;
+  remitoNumber: string;
+  fecha: string;
+  listo: boolean;
+  remitoId: string;
+  biopsiaIdx: number;
+}
+
 const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
+  const [urgentes, setUrgentes] = useState<UrgenteBiopsia[]>([]);
   const [loading, setLoading] = useState(true);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(true);
+
+  // Cargar urgentes desde remitos
+  const fetchUrgentes = useCallback(async () => {
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.from('remitos').select('*').eq('lab_code', labCode);
+      if (data) {
+        const urgs: UrgenteBiopsia[] = [];
+        data.forEach((r: any) => {
+          const biopsiaListas = r.biopsia_listas || [];
+          (r.biopsias || []).forEach((b: any, idx: number) => {
+            const sv = b.servicios || {};
+            if (sv.cassetteUrgente || sv.papUrgente || sv.citologiaUrgente) {
+              urgs.push({
+                id: `${r.id}_${idx}`,
+                numero: b.numero || '',
+                tejido: b.tejido || '',
+                tipo: b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'Cito' : b.tipo === 'PQ' ? 'PQ' : 'BX',
+                medico: r.medico || '',
+                remitoNumber: r.remito_number || '',
+                fecha: r.timestamp || r.fecha || '',
+                listo: biopsiaListas[idx] || false,
+                remitoId: r.id,
+                biopsiaIdx: idx,
+              });
+            }
+          });
+        });
+        setUrgentes(urgs);
+      }
+    } catch (e) { console.error('Error cargando urgentes:', e); }
+  }, [labCode]);
+
+  // Marcar urgente como listo
+  const handleMarcarUrgenteListo = useCallback(async (urg: UrgenteBiopsia) => {
+    if (urg.listo) return;
+    // Optimistic update
+    setUrgentes(prev => prev.map(u => u.id === urg.id ? { ...u, listo: true } : u));
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.from('remitos').select('*').eq('id', urg.remitoId).single();
+      if (data) {
+        const biopsiaListas = data.biopsia_listas || [];
+        while (biopsiaListas.length < (data.biopsias || []).length) biopsiaListas.push(false);
+        biopsiaListas[urg.biopsiaIdx] = true;
+        const todasListas = biopsiaListas.every(Boolean);
+        await supabase.from('remitos').update({
+          biopsia_listas: biopsiaListas,
+          estado_envio: todasListas ? 'listo' : data.estado_envio,
+          listo_at: todasListas ? new Date().toISOString() : data.listo_at,
+          updated_at: new Date().toISOString(),
+        }).eq('id', urg.remitoId);
+
+        // Notificar al médico
+        const biopsia = data.biopsias[urg.biopsiaIdx];
+        const totalBiopsias = data.biopsias.length;
+        const listasCount = biopsiaListas.filter(Boolean).length;
+        const remitoNum = data.remito_number || data.id.slice(-6).toUpperCase();
+        const medicoEmail = data.doctor_email || data.email;
+        const notif = todasListas
+          ? { id: `NOTIF_LISTO_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Su remito #${remitoNum} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' }
+          : { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Paciente #${biopsia.numero} (${urg.tipo} - ${biopsia.tejido}) está LISTO.\nProgreso: ${listasCount}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' };
+        db.saveNotification(notif).catch(console.error);
+      }
+    } catch (e) {
+      console.error('Error marcando urgente:', e);
+      setUrgentes(prev => prev.map(u => u.id === urg.id ? { ...u, listo: false } : u));
+    }
+  }, []);
 
   const fetchSolicitudes = useCallback(async () => {
     try {
@@ -114,9 +197,10 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
 
   useEffect(() => {
     fetchSolicitudes();
-    const interval = setInterval(fetchSolicitudes, 15000);
+    fetchUrgentes();
+    const interval = setInterval(() => { fetchSolicitudes(); fetchUrgentes(); }, 15000);
     return () => clearInterval(interval);
-  }, [fetchSolicitudes]);
+  }, [fetchSolicitudes, fetchUrgentes]);
 
   const handleTap = useCallback(async (sol: Solicitud) => {
     let updated: Solicitud;
@@ -359,6 +443,39 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           Lab: {labCode}
         </div>
       </div>
+
+      {/* Urgentes */}
+      {urgentes.filter(u => !u.listo).length > 0 && (
+        <div style={{ padding: '8px 12px', flexShrink: 0 }}>
+          <div style={{ background: '#450a0a', border: '2px solid #dc2626', borderRadius: '12px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fca5a5', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              ⚡ URGENTES ({urgentes.filter(u => !u.listo).length}) — Toque para marcar listo
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {urgentes.filter(u => !u.listo).map(urg => (
+                <div key={urg.id}
+                  onClick={() => handleMarcarUrgenteListo(urg)}
+                  style={{
+                    background: '#1a1a1a', border: '2px solid #dc2626', borderRadius: '10px',
+                    padding: '10px 14px', cursor: 'pointer', minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
+                    transition: 'transform 0.1s',
+                  }}
+                  onTouchStart={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.96)'; }}
+                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fca5a5' }}>#{urg.numero}</span>
+                    <span style={{ background: '#dc2626', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>{urg.tipo}</span>
+                  </div>
+                  <div style={{ fontSize: '1rem', color: '#e2e8f0' }}>{urg.tejido}</div>
+                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>Dr/a. {urg.medico} · Remito #{urg.remitoNumber}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(urg.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Kanban Board */}
       <div style={boardStyle}>
