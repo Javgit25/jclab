@@ -1710,7 +1710,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   }
                                   if (sv.incluyeCitologia) {
                                     const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
-                                    svcList.push(`🧪 Cito (${fmt})`);
+                                    svcList.push(`+ Cito (${fmt})`);
                                   }
 
                                   const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : `${cass} cass.`;
@@ -2255,18 +2255,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <button onClick={() => {
                             const numero = prompt('Número de paciente:');
                             if (!numero?.trim()) return;
+                            const cassettes = prompt('Cantidad de cassettes:', '1');
                             const newBiopsia = {
                               numero: numero.trim(),
-                              tejido: 'No vino',
+                              tejido: 'No anotado',
                               tipo: 'BX',
-                              cassettes: 0,
-                              trozos: 0,
-                              servicios: { cassetteNormal: 0 },
+                              cassettes: parseInt(cassettes || '1') || 1,
+                              trozos: parseInt(cassettes || '1') || 1,
+                              servicios: { cassetteNormal: parseInt(cassettes || '1') || 1 },
                               cassettesNumbers: [],
                               papQuantity: 0,
                               citologiaQuantity: 0,
                               agregadoPorLab: true,
-                              noVino: true,
                             };
                             setEditingBiopsias([...editingBiopsias, newBiopsia]);
                           }}

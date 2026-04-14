@@ -506,7 +506,10 @@ function App() {
             giemsaOptions: biopsy.servicios?.giemsaOptions || undefined,
             corteBlancoIHQCassettes: biopsy.servicios?.corteBlancoIHQCassettes || undefined,
             corteBlancoComunCassettes: biopsy.servicios?.corteBlancoComunCassettes || undefined,
-            giemsaCassettes: biopsy.servicios?.giemsaCassettes || undefined
+            giemsaCassettes: biopsy.servicios?.giemsaCassettes || undefined,
+            incluyeCitologia: biopsy.servicios?.incluyeCitologia || false,
+            citologiaFormato: biopsy.servicios?.citologiaFormato || undefined,
+            citologiaVidriosQty: biopsy.servicios?.citologiaVidriosQty || undefined
           };
 
           return {

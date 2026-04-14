@@ -3590,7 +3590,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
                       if (sv.incluyeCitologia) {
                         const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
-                        services.push(`🧪 Citología (${fmt})`);
+                        services.push(`+ Citología (${fmt})`);
                       }
                       const hasTaco = b.entregarConTaco;
                       const hasExtra = services.length > 0 || hasTaco;

@@ -1305,7 +1305,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
                       if (sv.incluyeCitologia) {
                         const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
-                        services.push(`🧪 Citología (${fmt})`);
+                        services.push(`+ Citología (${fmt})`);
                       }
                       const cassNums = b.cassettesNumbers?.filter((_: any, ci: number) => ci > 0).map((c: any) => c.suffix ? `${c.base}/${c.suffix}` : c.base).join(', ') || '';
                       const tipoBg = tipo === 'PQ' ? '#c2410c' : isPAP ? '#7c3aed' : isCito ? '#475569' : '#166534';
