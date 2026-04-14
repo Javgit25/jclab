@@ -14,7 +14,7 @@ interface MainScreenProps {
   syncQueueLength: number;
   onStartNewBiopsy: () => void;
   onViewToday: () => void;
-  onViewHistory: () => void;
+  onViewHistory: (remitoId?: string) => void;
   onLogout: () => void;
 }
 
@@ -3381,7 +3381,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           <button
                             onClick={() => {
                               setShowSearchModal(false);
-                              onViewHistory();
+                              onViewHistory(result.remitoId);
                             }}
                             style={{
                               fontSize: '11px', fontWeight: '600', color: '#1e40af',

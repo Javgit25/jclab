@@ -13,6 +13,7 @@ interface HistoryScreenProps {
   onGoBack: () => void;
   onDeleteEntry: (entryId: string) => void;
   onUpdateEntry?: (entry: HistoryEntry) => void;
+  openRemitoId?: string | null;
 }
 
 export const HistoryScreen: React.FC<HistoryScreenProps> = ({
@@ -23,8 +24,19 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   syncQueueLength,
   onGoBack,
   onDeleteEntry,
-  onUpdateEntry
+  onUpdateEntry,
+  openRemitoId
 }) => {
+  // Abrir remito directamente si viene openRemitoId
+  React.useEffect(() => {
+    if (openRemitoId) {
+      const entry = historyEntries.find(e => e.id === openRemitoId);
+      if (entry) {
+        setShowRemito({ isOpen: true, entry });
+      }
+    }
+  }, [openRemitoId, historyEntries]);
+
   // Limpiar notificaciones de "revisado sin cambios" (legacy)
   useState(() => {
     try {

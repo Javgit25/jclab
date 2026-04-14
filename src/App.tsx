@@ -14,6 +14,7 @@ type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'ad
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
+  const [openRemitoId, setOpenRemitoId] = useState<string | null>(null);
   const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
   const [todayBiopsies, setTodayBiopsies] = useState<BiopsyForm[]>([]);
   const [frequentTissues, setFrequentTissues] = useState<string[]>([]);
@@ -746,8 +747,9 @@ function App() {
           console.log('App - Viendo remito del día');
           setCurrentScreen('todayList');
         }}
-        onViewHistory={() => {
-          console.log('App - Viendo historial');
+        onViewHistory={(remitoId?: string) => {
+          console.log('App - Viendo historial', remitoId);
+          setOpenRemitoId(remitoId || null);
           setCurrentScreen('history');
         }}
         onLogout={() => {
@@ -818,7 +820,8 @@ function App() {
         isOnline={isOnline}
         backupStatus={backupStatus === 'success' ? 'synced' : backupStatus === 'syncing' ? 'pending' : backupStatus === 'idle' ? 'synced' : 'error'}
         syncQueueLength={syncQueue.length}
-        onGoBack={() => setCurrentScreen('main')}
+        openRemitoId={openRemitoId}
+        onGoBack={() => { setCurrentScreen('main'); setOpenRemitoId(null); }}
         onUpdateEntry={(updatedEntry: HistoryEntry) => {
           if (!doctorInfo || !doctorInfo.email) return;
           const doctorKey = generateDoctorKey(doctorInfo.email);
