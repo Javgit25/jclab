@@ -9,8 +9,9 @@ import TodayListScreen from './components/TodayListScreen';
 import HistoryScreen from './components/HistoryScreen';
 import AdminPanel from './components/AdminPanel';
 import SuperAdminPanel from './components/SuperAdminPanel';
+import LabBoard from './components/LabBoard';
 
-type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin';
+type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
@@ -20,6 +21,9 @@ function App() {
   const [frequentTissues, setFrequentTissues] = useState<string[]>([]);
   const [historyData, setHistoryData] = useState<Record<string, HistoryEntry>>({});
   
+  // Lab Board state
+  const [labBoardCode, setLabBoardCode] = useState<string | null>(null);
+
   // Estado de conectividad y sincronización
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncQueue, setSyncQueue] = useState<SyncAction[]>([]);
@@ -37,6 +41,16 @@ function App() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
+  }, []);
+
+  // Check for ?lab=LABCODE URL param to show LabBoard directly
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const labParam = params.get('lab');
+    if (labParam) {
+      setLabBoardCode(labParam);
+      setCurrentScreen('labboard');
+    }
   }, []);
 
   // Cargar datos guardados al iniciar
@@ -723,6 +737,22 @@ function App() {
   }, [historyData, debugHistoryData]);
 
   // Renderizado condicional de pantallas
+  if (currentScreen === 'labboard' && labBoardCode) {
+    return (
+      <LabBoard
+        labCode={labBoardCode}
+        onGoBack={() => {
+          setCurrentScreen('login');
+          setLabBoardCode(null);
+          // Remove ?lab param from URL
+          const url = new URL(window.location.href);
+          url.searchParams.delete('lab');
+          window.history.replaceState({}, '', url.toString());
+        }}
+      />
+    );
+  }
+
   if (currentScreen === 'login') {
     return <LoginScreen onLogin={handleLogin} onGoToAdmin={goToAdmin} onGoToSuperAdmin={() => setCurrentScreen('superadmin')} />;
   }
