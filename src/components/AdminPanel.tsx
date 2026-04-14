@@ -2228,9 +2228,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     {(biopsia.citologiaQuantity || 0) > 0 && <span className="px-1.5 py-0.5 rounded text-xs font-semibold bg-purple-50 text-purple-700">Cito: {biopsia.citologiaQuantity}</span>}
                                   </div>
                                 </td>
-                                {/* Estado: NO VINO */}
+                                {/* Estado: NO VINO (solo para pacientes del médico, no agregados por el lab) */}
                                 <td className="py-2 px-3 text-center">
-                                  {(biopsia as any).noVino ? (
+                                  {(biopsia as any).agregadoPorLab ? (
+                                    <span className="px-2 py-1 rounded text-xs font-semibold bg-green-100 text-green-700 border border-green-200">Agregado</span>
+                                  ) : (biopsia as any).noVino ? (
                                     <button onClick={() => { const u = [...editingBiopsias]; u[index] = { ...u[index], noVino: false }; setEditingBiopsias(u); }}
                                       className="px-2 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300 hover:bg-red-200">
                                       ❌ NO VINO
