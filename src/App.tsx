@@ -782,6 +782,7 @@ function App() {
         }}
         onViewHistory={() => {
           console.log('App - Viendo historial');
+          loadHistoryData();
           setCurrentScreen('history');
         }}
         onLogout={() => {
@@ -831,16 +832,7 @@ function App() {
 
   if (currentScreen === 'history') {
     // Recargar historial fresco desde localStorage cada vez que se entra
-    const freshHistory = (() => {
-      try {
-        if (!doctorInfo?.email) return historyData;
-        const doctorKey = generateDoctorKey(doctorInfo.email);
-        const saved = localStorage.getItem(`${doctorKey}_history`);
-        return saved ? JSON.parse(saved) : historyData;
-      } catch { return historyData; }
-    })();
-
-    const historyEntries = Object.values(freshHistory).map((entry: any) => ({
+    const historyEntries = Object.values(historyData).map((entry: any) => ({
       ...entry,
       id: entry.id || `${entry.date}_${entry.timestamp}` // Asegurar que tenga ID
     }));
