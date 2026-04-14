@@ -12,6 +12,7 @@ interface Step6Props {
   onGiemsaTotalChange: (total: number) => void;
   onCorteBlancoQuantityChange: (type: 'ihq' | 'comun', quantity: number) => void;
   onCassetteSelectionChange?: (service: string, cassettes: number[]) => void;
+  onServicioFieldChange?: (field: string, value: any) => void;
   onNext: () => void;
   onPrev: () => void;
   tissueType?: string;
@@ -28,6 +29,7 @@ export const Step6: React.FC<Step6Props> = ({
   onGiemsaTotalChange,
   onCorteBlancoQuantityChange,
   onCassetteSelectionChange,
+  onServicioFieldChange,
   onNext,
   onPrev,
   onFinishRemito,
@@ -904,6 +906,78 @@ export const Step6: React.FC<Step6Props> = ({
             </div>
           </div>
 
+
+          {/* INCLUYE CITOLOGÍA */}
+          <div style={{
+            background: servicios.incluyeCitologia ? '#f5f3ff' : 'white',
+            border: `2px solid ${servicios.incluyeCitologia ? '#7c3aed' : '#e5e7eb'}`,
+            borderRadius: '12px', padding: '14px', marginTop: '12px',
+            transition: 'all 0.2s'
+          }}>
+            <div
+              onClick={() => {
+                if (onServicioFieldChange) {
+                  const newVal = !servicios.incluyeCitologia;
+                  onServicioFieldChange('incluyeCitologia', newVal);
+                  if (newVal && !servicios.citologiaFormato) onServicioFieldChange('citologiaFormato', 'vidrios');
+                  if (newVal && !servicios.citologiaVidriosQty) onServicioFieldChange('citologiaVidriosQty', 1);
+                }
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+            >
+              <div style={{
+                width: '24px', height: '24px', borderRadius: '6px',
+                border: `2px solid ${servicios.incluyeCitologia ? '#7c3aed' : '#d1d5db'}`,
+                background: servicios.incluyeCitologia ? '#7c3aed' : 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}>
+                {servicios.incluyeCitologia && <Check size={14} color="white" />}
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: servicios.incluyeCitologia ? '#5b21b6' : '#374151' }}>
+                  🧪 Incluye Citología
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b' }}>Este paciente tiene biopsia + citología</div>
+              </div>
+            </div>
+
+            {servicios.incluyeCitologia && (
+              <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Formato de la citología:</div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  {[
+                    { key: 'vidrios', label: '🔬 Vidrios' },
+                    { key: 'jeringa', label: '💉 Jeringa' },
+                    { key: 'frasco', label: '🧴 Frasco' },
+                  ].map(fmt => {
+                    const isSelected = servicios.citologiaFormato === fmt.key;
+                    return (
+                      <button key={fmt.key}
+                        onClick={() => onServicioFieldChange && onServicioFieldChange('citologiaFormato', fmt.key)}
+                        style={{
+                          flex: 1, padding: '10px 8px', borderRadius: '8px', border: `2px solid ${isSelected ? '#7c3aed' : '#e5e7eb'}`,
+                          background: isSelected ? '#f5f3ff' : 'white', cursor: 'pointer', textAlign: 'center',
+                          fontSize: '12px', fontWeight: isSelected ? 700 : 500, color: isSelected ? '#5b21b6' : '#374151'
+                        }}
+                      >
+                        {fmt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {servicios.citologiaFormato === 'vidrios' && (
+                  <QuantityCounter
+                    value={servicios.citologiaVidriosQty || 1}
+                    onChange={(val) => onServicioFieldChange && onServicioFieldChange('citologiaVidriosQty', val)}
+                    label="Cantidad de vidrios"
+                    unit="vidrio"
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Validación: si hay servicios con 2+ cassettes, deben seleccionar a cuáles */}
           {(() => {

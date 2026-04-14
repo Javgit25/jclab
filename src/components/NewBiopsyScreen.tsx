@@ -708,6 +708,12 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
                 servicios: { ...prev.servicios, [service]: cassettes } as any
               }));
             }}
+            onServicioFieldChange={(field, value) => {
+              setBiopsyForm(prev => ({
+                ...prev,
+                servicios: { ...prev.servicios, [field]: value } as any
+              }));
+            }}
             onNext={nextStep}
             onPrev={prevStep}
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}

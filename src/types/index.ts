@@ -101,6 +101,9 @@ export interface BiopsyServices {
   corteBlancoIHQCassettes?: number[];
   corteBlancoComunCassettes?: number[];
   giemsaCassettes?: number[];
+  incluyeCitologia?: boolean;
+  citologiaFormato?: 'vidrios' | 'jeringa' | 'frasco';
+  citologiaVidriosQty?: number;
 }
 
 export interface CassetteNumber {

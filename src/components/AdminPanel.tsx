@@ -552,11 +552,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     total += (servicios.corteBlanco || 0) * configuracion.precioCorteBlanco;
     total += (servicios.corteBlancoIHQ || 0) * configuracion.precioCorteBlancoIHQ;
     
-    const giemsaCount = typeof servicios.giemsaPASMasson === 'number' 
-      ? servicios.giemsaPASMasson 
+    const giemsaCount = typeof servicios.giemsaPASMasson === 'number'
+      ? servicios.giemsaPASMasson
       : (servicios.giemsaPASMasson ? 1 : 0);
     total += giemsaCount * configuracion.precioGiemsaPASMasson;
-    
+
+    // Citología incluida en biopsia (cobra 1 paciente)
+    if ((servicios as any).incluyeCitologia) {
+      total += configuracion.precioCitologia;
+    }
+
     return Number(total) || 0;
   };
 
