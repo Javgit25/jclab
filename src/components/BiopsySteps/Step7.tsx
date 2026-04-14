@@ -220,7 +220,7 @@ export const Step7: React.FC<Step7Props> = ({
             }}>
               <Save size={14} /> Guardar
             </button>
-            <button onClick={onFinishDailyReport} style={{
+            <button onClick={() => { if (confirm('¿Está seguro que desea FINALIZAR el remito?\n\nEste remito será enviado al laboratorio y no podrá agregar más pacientes.\n\nSi le faltan pacientes por cargar, presione "Cancelar" y use "Guardar" para seguir cargando.')) onFinishDailyReport(); }} style={{
               background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', border: 'none', padding: '8px 14px', borderRadius: '8px',
               color: 'white', fontSize: '11px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
               display: 'flex', alignItems: 'center', gap: '4px'
