@@ -3380,13 +3380,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           </span>
                           <button
                             onClick={() => {
-                              try {
-                                const email = doctorInfo.email?.toLowerCase().trim().replace(/\s+/g, '') || '';
-                                const hk = `doctor_${email}_history`;
-                                const history = JSON.parse(localStorage.getItem(hk) || '{}');
-                                const entry: any = Object.values(history).find((e: any) => e.id === result.remitoId);
-                                if (entry) setViewingRemitoFromSearch(entry);
-                              } catch {}
+                              setShowSearchModal(false);
+                              onViewHistory();
                             }}
                             style={{
                               fontSize: '11px', fontWeight: '600', color: '#1e40af',
@@ -3516,96 +3511,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       )}
 
       {/* Vista de remito completo desde búsqueda */}
-      {viewingRemitoFromSearch && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '700px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            {/* Header */}
-            <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e40af 100%)', padding: '14px 18px', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <div>
-                <div style={{ fontSize: '16px', fontWeight: '700' }}>Remito #{((viewingRemitoFromSearch as any).remitoNumber || (viewingRemitoFromSearch.id || '').slice(-6).toUpperCase())}</div>
-                <div style={{ fontSize: '12px', opacity: 0.8 }}>
-                  {new Date(viewingRemitoFromSearch.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  {' · '}{(viewingRemitoFromSearch.biopsies || []).length} pacientes
-                </div>
-              </div>
-              <button onClick={() => setViewingRemitoFromSearch(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', borderRadius: '8px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Cerrar</button>
-            </div>
-            {/* Tabla */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '12px' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>N°</th>
-                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Tejido</th>
-                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Tipo</th>
-                    <th style={{ textAlign: 'center', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Cass.</th>
-                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Descalcif.</th>
-                    <th style={{ textAlign: 'left', padding: '8px', color: '#64748b', fontSize: '10px', textTransform: 'uppercase' }}>Servicios</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(viewingRemitoFromSearch.biopsies || []).map((b: any, i: number) => {
-                    const t = b.type === 'PQ' ? 'PQ' : b.tissueType === 'PAP' ? 'PAP' : b.tissueType === 'Citología' ? 'CITO' : 'BX';
-                    const s = b.servicios || {};
-                    const svcs: string[] = [];
-                    if (s.cassetteUrgente) svcs.push('URGENTE 24hs');
-                    if (s.papUrgente) svcs.push('PAP Urgente');
-                    if (s.citologiaUrgente) svcs.push('Cito Urgente');
-                    if (s.corteBlancoIHQ) svcs.push('Corte IHQ ×' + (s.corteBlancoIHQQuantity || 1));
-                    if (s.corteBlancoComun) svcs.push('Corte Blanco ×' + (s.corteBlancoComunQuantity || 1));
-                    if (s.giemsaPASMasson) {
-                      const o = s.giemsaOptions || {};
-                      const ts: string[] = [];
-                      if (o.giemsa) ts.push('Giemsa');
-                      if (o.pas) ts.push('PAS');
-                      if (o.masson) ts.push('Masson');
-                      svcs.push(ts.length > 0 ? ts.join(', ') : 'Tinciones');
-                    }
-                    if ((b.papQuantity || 0) > 0) svcs.push('PAP ×' + b.papQuantity);
-                    if ((b.citologiaQuantity || 0) > 0) svcs.push('Cito ×' + b.citologiaQuantity);
-                    const cassNum = parseInt(b.cassettes) || 0;
-                    const cnArr = b.cassettesNumbers || [];
-
-                    return (
-                      <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '8px', fontWeight: '700', color: '#1e40af' }}>{b.number || '-'}</td>
-                        <td style={{ padding: '8px' }}>{b.tissueType}</td>
-                        <td style={{ padding: '8px' }}>
-                          <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700',
-                            background: t === 'PQ' ? '#fed7aa' : t === 'PAP' ? '#fce7f3' : t === 'CITO' ? '#ede9fe' : '#dcfce7',
-                            color: t === 'PQ' ? '#c2410c' : t === 'PAP' ? '#be185d' : t === 'CITO' ? '#7c3aed' : '#166534'
-                          }}>{t}</span>
-                        </td>
-                        <td style={{ padding: '8px', textAlign: 'center', fontWeight: '600' }}>
-                          {cassNum > 0 ? cassNum : '-'}
-                          {cassNum > 1 && cnArr.length > 1 && (
-                            <div style={{ fontSize: '9px', color: '#64748b', marginTop: '2px' }}>
-                              {cnArr.slice(1).map((c: any, si: number) => 'S/' + (typeof c === 'object' ? (c.suffix || (si+1)) : (c && c !== '0' ? c : (si+1)))).join(', ')}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ padding: '8px', fontSize: '11px', color: b.declassify === 'Sí' ? '#92400e' : '#94a3b8' }}>{b.declassify || 'No'}</td>
-                        <td style={{ padding: '8px' }}>
-                          {svcs.length > 0 ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
-                              {svcs.map((sv, si) => (
-                                <span key={si} style={{ fontSize: '9px', fontWeight: '600', padding: '2px 6px', borderRadius: '4px',
-                                  background: sv.includes('URGENTE') || sv.includes('Urgente') ? '#fee2e2' : '#eff6ff',
-                                  color: sv.includes('URGENTE') || sv.includes('Urgente') ? '#dc2626' : '#1e40af'
-                                }}>{sv}</span>
-                              ))}
-                            </div>
-                          ) : <span style={{ fontSize: '11px', color: '#94a3b8' }}>Estándar</span>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Teclado Virtual para Búsqueda y Solicitudes */}
       {showKeyboard && (showSearchModal || showSolicitudes) && (
