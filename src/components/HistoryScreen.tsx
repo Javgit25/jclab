@@ -1241,45 +1241,35 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 
             {/* Área imprimible */}
             <div style={{ flex: 1, overflow: 'auto', padding: '16px' }}>
-              <div id="remito-print-area" style={{ maxWidth: '800px', margin: '0 auto', background: 'white', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', padding: '32px', fontFamily: 'Georgia, serif', color: '#1a1a1a', fontSize: '11pt', lineHeight: 1.5 }}>
+              <div id="remito-print-area" style={{ maxWidth: '800px', margin: '0 auto', background: 'white', borderRadius: '8px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', padding: '24px', fontSize: '9pt' }}>
 
-                {/* Encabezado institucional */}
-                <div style={{ borderBottom: '3px solid #1e3a5f', paddingBottom: '16px', marginBottom: '20px' }}>
+                {/* Header */}
+                <div style={{ borderBottom: '3px solid #1e3a5f', paddingBottom: '12px', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '20pt', fontWeight: 700, color: '#1e3a5f', letterSpacing: '-0.5px' }}>{labCfg.nombre || 'Laboratorio de Anatomía Patológica'}</div>
-                      {(labCfg.direccion || labCfg.telefono || labCfg.email) && (
-                        <div style={{ fontSize: '9pt', color: '#64748b', marginTop: '4px' }}>
-                          {[labCfg.direccion, labCfg.telefono, labCfg.email].filter(Boolean).join(' · ')}
-                        </div>
-                      )}
+                      <div style={{ fontSize: '16pt', fontWeight: 700, color: '#1e3a5f' }}>{labCfg.nombre || 'Laboratorio de Anatomía Patológica'}</div>
+                      {(labCfg.direccion || labCfg.telefono || labCfg.email) && <div style={{ fontSize: '8pt', color: '#64748b', marginTop: '4px' }}>{[labCfg.direccion, labCfg.telefono, labCfg.email].filter(Boolean).join(' · ')}</div>}
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '2px' }}>Remito</div>
-                      <div style={{ fontSize: '18pt', fontWeight: 700, color: '#1e3a5f' }}>#{((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase())}</div>
-                      <div style={{ fontSize: '9pt', color: '#64748b' }}>{fechaRemito}</div>
+                      <div style={{ fontSize: '8pt', fontWeight: 700, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '2px' }}>Remito</div>
+                      <div style={{ fontSize: '14pt', fontWeight: 700, color: '#1e3a5f' }}>#{((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase())}</div>
+                      <div style={{ fontSize: '8pt', color: '#64748b' }}>{fechaRemito}</div>
                     </div>
                   </div>
                 </div>
 
-                {/* Datos del médico */}
-                <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '8pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Médico Solicitante</div>
-                    <div style={{ fontSize: '13pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || 'N/A'}</div>
-                    <div style={{ fontSize: '10pt', color: '#475569' }}>{doc.email || ''}</div>
-                    {doc.hospital && <div style={{ fontSize: '10pt', color: '#475569' }}>{doc.hospital}</div>}
-                    {(re as any).cargadoPor && <div style={{ fontSize: '9pt', color: '#d97706', fontWeight: 600, marginTop: '4px' }}>Cargado por: {(re as any).cargadoPor}</div>}
+                {/* Médico + resumen */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                  <div>
+                    <div style={{ fontSize: '7pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Médico</div>
+                    <div style={{ fontSize: '11pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || 'N/A'}</div>
+                    {(re as any).cargadoPor && <div style={{ fontSize: '8pt', color: '#d97706', fontWeight: 600 }}>Cargado por: {(re as any).cargadoPor}</div>}
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '8pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>Resumen</div>
-                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                      {totalBX > 0 && <div style={{ background: '#1e40af', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>BX: {totalBX}</div>}
-                      {totalPQ > 0 && <div style={{ background: '#0369a1', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>PQ: {totalPQ}</div>}
-                      {totalPAP > 0 && <div style={{ background: '#4338ca', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>PAP: {totalPAP}</div>}
-                      {totalCito > 0 && <div style={{ background: '#475569', color: 'white', borderRadius: '6px', padding: '4px 10px', fontSize: '10pt', fontWeight: 700 }}>Cito: {totalCito}</div>}
-                    </div>
-                    <div style={{ fontSize: '9pt', color: '#64748b', marginTop: '4px' }}>{totalCassettes} cassette{totalCassettes !== 1 ? 's' : ''} total</div>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    {totalBX > 0 && <span style={{ background: '#166534', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>BX: {totalBX}</span>}
+                    {totalPQ > 0 && <span style={{ background: '#c2410c', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>PQ: {totalPQ}</span>}
+                    {totalPAP > 0 && <span style={{ background: '#7c3aed', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>PAP: {totalPAP}</span>}
+                    {totalCito > 0 && <span style={{ background: '#475569', color: 'white', borderRadius: '4px', padding: '2px 8px', fontSize: '8pt', fontWeight: 700 }}>Cito: {totalCito}</span>}
                   </div>
                 </div>
 
