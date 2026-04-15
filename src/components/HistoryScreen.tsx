@@ -49,36 +49,34 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     } catch {}
   });
 
-  // Cargar tiempos de admin remitos desde Supabase directamente
-  const [adminTimesMap, setAdminTimesMap] = useState<Record<string, any>>({});
+  // Cargar tiempos de admin remitos: cache localStorage + Supabase de fondo
+  const [adminTimesMap, setAdminTimesMap] = useState<Record<string, any>>(() => {
+    try { return JSON.parse(localStorage.getItem('adminTimesCache') || '{}'); } catch { return {}; }
+  });
   useEffect(() => {
-    const loadTimes = async () => {
-      try {
-        // Obtener todos los remitoNumbers del historial
-        const remitoNumbers = historyEntries.map(e => (e as any).remitoNumber).filter(Boolean);
-        if (remitoNumbers.length === 0) return;
-        // Query directo a Supabase por estos remitoNumbers
-        const { data } = await (await import('../lib/supabase')).supabase
-          .from('remitos')
-          .select('remito_number,material_recibido,fecha_material_recibido,listo_at,timestamp')
-          .in('remito_number', remitoNumbers);
-        if (data && data.length > 0) {
-          const map: Record<string, any> = {};
-          data.forEach((r: any) => {
-            map[r.remito_number] = {
-              materialRecibido: r.material_recibido,
-              fechaMaterialRecibido: r.fecha_material_recibido,
-              listoAt: r.listo_at,
-              timestamp: r.timestamp,
-            };
-          });
-          console.log('📊 Tiempos cargados para', Object.keys(map).length, 'remitos, con material:', Object.values(map).filter((v: any) => v.materialRecibido).length);
-          setAdminTimesMap(map);
-        }
-      } catch (e) { console.error('Error cargando tiempos:', e); }
-    };
-    loadTimes();
-  }, [historyEntries, doctorInfo.email]);
+    const remitoNumbers = historyEntries.map(e => (e as any).remitoNumber).filter(Boolean);
+    if (remitoNumbers.length === 0) return;
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('remitos')
+        .select('remito_number,material_recibido,fecha_material_recibido,listo_at,timestamp')
+        .in('remito_number', remitoNumbers)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            const map: Record<string, any> = {};
+            data.forEach((r: any) => {
+              map[r.remito_number] = {
+                materialRecibido: r.material_recibido,
+                fechaMaterialRecibido: r.fecha_material_recibido,
+                listoAt: r.listo_at,
+                timestamp: r.timestamp,
+              };
+            });
+            setAdminTimesMap(map);
+            localStorage.setItem('adminTimesCache', JSON.stringify(map));
+          }
+        });
+    }).catch(() => {});
+  }, [historyEntries]);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; entryId: string | null }>({
     isOpen: false,
