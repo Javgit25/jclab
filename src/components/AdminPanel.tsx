@@ -1662,7 +1662,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         const biopsia = remito.biopsias[idx];
                         const esPAP = biopsia.tejido === 'PAP' || (biopsia.papQuantity || 0) > 0;
                         const esCito = biopsia.tejido === 'Citología' || (biopsia.citologiaQuantity || 0) > 0;
-                        const tipoB = esPAP ? 'PAP' : esCito ? ((biopsia as any).citologiaSubType || 'Citología') : (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
+                        const tipoB = esPAP ? 'PAP' : esCito ? ((biopsia as any).citologiaSubType || 'Citología') : (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica' ? 'IHQ' : 'BX';
                         if (valor) {
                           const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                           let newNotif: any;
@@ -1831,7 +1831,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
                                   const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
                                   const citoST = (b as any).citologiaSubType || '';
-                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Cito') : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Cito') : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : 'BX';
                                   const cass = parseInt(String(b.cassettes)) || 0;
                                   const esUrgente = biopsiaEsUrgente(b);
                                   const estaLista = biopsiaListas[bi] || false;

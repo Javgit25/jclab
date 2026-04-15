@@ -38,6 +38,7 @@ export const serviciosAdicionales: ServiceOption[] = [
 export const tissueTypes = [
   'PAP',
   'Citología',
+  'Inmunohistoquímica',
   'Taco en Consulta',
   'Gastrica',
   'Endometrio',
@@ -67,6 +68,7 @@ export const giemsaOptions = [
 export const allTissueTypes = [
   'PAP',
   'Citología',
+  'Inmunohistoquímica',
   'Taco en Consulta',
   'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia', 
   'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',

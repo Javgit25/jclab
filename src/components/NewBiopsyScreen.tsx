@@ -93,7 +93,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       
       // ✅ LÓGICA MEJORADA: Resetear cantidades cuando cambia el tipo de tejido
       if (field === 'tissueType') {
-        // Normalizar "Taco en Consulta" (el autocompletado puede cambiar mayúsculas)
+        // Normalizar nombres especiales (el autocompletado puede cambiar mayúsculas)
+        if (typeof value === 'string' && value.toLowerCase() === 'inmunohistoquímica') {
+          value = 'Inmunohistoquímica';
+          updated.tissueType = value;
+        }
         if (typeof value === 'string' && value.toLowerCase() === 'taco en consulta') {
           value = 'Taco en Consulta';
           updated.tissueType = value;
@@ -105,6 +109,19 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         if (value !== 'Citología') {
           updated.citologiaQuantity = 0;
           updated.citologiaUrgente = false;
+        }
+        // Auto-asignar tipo IHQ para Inmunohistoquímica
+        if (value === 'Inmunohistoquímica') {
+          updated.type = 'IHQ';
+        } else if (updated.type === 'IHQ') {
+          updated.type = '';
+          updated.ihqTejido = '';
+          updated.ihqVidriosQty = 0;
+        }
+        // Limpiar IHQ si cambia de tejido
+        if (value !== 'Inmunohistoquímica') {
+          updated.ihqTejido = '';
+          updated.ihqVidriosQty = 0;
         }
         // Auto-asignar tipo TC y entregarConTaco para Taco en Consulta
         if (value === 'Taco en Consulta') {
@@ -392,6 +409,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         handleCitologiaQuantityChange(parseInt(newValue) || 0);
       } else if (prev.targetField === 'numeroExterno') {
         setBiopsyForm(f => ({ ...f, numeroExterno: newValue }));
+      } else if (prev.targetField === 'ihqTejido') {
+        setBiopsyForm(f => ({ ...f, ihqTejido: newValue }));
+        updateAutoComplete(newValue);
+      } else if (prev.targetField === 'ihqVidriosQty') {
+        setBiopsyForm(f => ({ ...f, ihqVidriosQty: parseInt(newValue) || 0 }));
       } else if (prev.targetField.startsWith('cassetteSuffix_')) {
         const index = parseInt(prev.targetField.split('_')[1]);
         updateCassetteSuffix(index, newValue);
@@ -406,6 +428,10 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       handleBiopsyChange('tissueType', suggestion);
       setVirtualKeyboard(prev => ({ ...prev, targetValue: suggestion }));
       onUpdateFrequentTissues(suggestion);
+      setAutoCompleteOptions([]);
+    } else if (virtualKeyboard.targetField === 'ihqTejido') {
+      setBiopsyForm(prev => ({ ...prev, ihqTejido: suggestion }));
+      setVirtualKeyboard(prev => ({ ...prev, targetValue: suggestion }));
       setAutoCompleteOptions([]);
     }
   }, [virtualKeyboard.targetField, handleBiopsyChange, onUpdateFrequentTissues]);
@@ -520,7 +546,9 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       papUrgente: false,
       citologiaQuantity: 0,
       citologiaUrgente: false,
-      numeroExterno: ''
+      numeroExterno: '',
+      ihqTejido: '',
+      ihqVidriosQty: 0
     });
     setCurrentStep(1);
   }, [biopsyForm.tissueType, generateFinalBiopsy, onSaveBiopsy, onUpdateFrequentTissues]);
@@ -533,6 +561,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   // Helper para Taco en Consulta
   const isTacoConsulta = useCallback(() => {
     return biopsyForm.tissueType === 'Taco en Consulta';
+  }, [biopsyForm.tissueType]);
+
+  // Helper para Inmunohistoquímica
+  const isIHQ = useCallback(() => {
+    return biopsyForm.tissueType === 'Inmunohistoquímica';
   }, [biopsyForm.tissueType]);
 
   // ✅ FUNCIÓN MEJORADA PARA VALIDACIÓN Y NAVEGACIÓN CON FLUJO ESPECIAL
@@ -553,9 +586,9 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         return;
       }
       
-      // ✅ FLUJO ESPECIAL: PAP/Citología van directo a Step 7 (confirmación)
-      if (isPapOrCitologia()) {
-        console.log('🎯 Flujo especial: PAP/Citología va directo a Step 7');
+      // ✅ FLUJO ESPECIAL: PAP/Citología/IHQ van directo a Step 7 (confirmación)
+      if (isPapOrCitologia() || isIHQ()) {
+        console.log('🎯 Flujo especial: PAP/Citología/IHQ va directo a Step 7');
         setCurrentStep(7);
         return;
       }
@@ -590,14 +623,14 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     if (currentStep < 7) {
       setCurrentStep(currentStep + 1);
     }
-  }, [currentStep, biopsyForm.tissueType, biopsyForm.papQuantity, biopsyForm.citologiaQuantity, biopsyForm.numeroExterno, isPapOrCitologia, isTacoConsulta]);
+  }, [currentStep, biopsyForm.tissueType, biopsyForm.papQuantity, biopsyForm.citologiaQuantity, biopsyForm.numeroExterno, isPapOrCitologia, isTacoConsulta, isIHQ]);
 
   const prevStep = useCallback(() => {
     console.log('⬅️ prevStep called', { currentStep, tissueType: biopsyForm.tissueType, isPapOrCitologia: isPapOrCitologia() });
 
-    // ✅ FLUJO ESPECIAL: Si estamos en Step 7 y es PAP/Citología, volver a Step 2
-    if (currentStep === 7 && isPapOrCitologia()) {
-      console.log('🎯 Flujo especial: Desde Step 7 PAP/Citología volver a Step 2');
+    // ✅ FLUJO ESPECIAL: Si estamos en Step 7 y es PAP/Citología/IHQ, volver a Step 2
+    if (currentStep === 7 && (isPapOrCitologia() || isIHQ())) {
+      console.log('🎯 Flujo especial: Desde Step 7 PAP/Citología/IHQ volver a Step 2');
       setCurrentStep(2);
       return;
     }
@@ -640,7 +673,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  }, [currentStep, biopsyForm.tissueType, isPapOrCitologia, isTacoConsulta]);
+  }, [currentStep, biopsyForm.tissueType, isPapOrCitologia, isTacoConsulta, isIHQ]);
 
   return (
     <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -681,6 +714,10 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onCitologiaSubTypeChange={handleCitologiaSubTypeChange}
             numeroExterno={biopsyForm.numeroExterno || ''}
             onNumeroExternoChange={(value) => setBiopsyForm(prev => ({ ...prev, numeroExterno: value }))}
+            ihqTejido={biopsyForm.ihqTejido || ''}
+            ihqVidriosQty={biopsyForm.ihqVidriosQty || 0}
+            onIhqTejidoChange={(value) => setBiopsyForm(prev => ({ ...prev, ihqTejido: value }))}
+            onIhqVidriosQtyChange={(value) => setBiopsyForm(prev => ({ ...prev, ihqVidriosQty: value }))}
             onNext={nextStep}
             onPrev={prevStep}
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}

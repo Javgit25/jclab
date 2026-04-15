@@ -3640,7 +3640,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     {bios.map((b: any, i: number) => {
                       const isPAP = b.tissueType === 'PAP';
                       const isCito = b.tissueType === 'Citología';
-                      const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : (b.type === 'TC' || b.tissueType === 'Taco en Consulta') ? 'TACO' : b.type === 'PQ' ? 'PQ' : 'BX';
+                      const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : (b.type === 'TC' || b.tissueType === 'Taco en Consulta') ? 'TACO' : b.type === 'PQ' ? 'PQ' : (b.type === 'IHQ' || b.tissueType === 'Inmunohistoquímica') ? 'IHQ' : 'BX';
                       const sv = b.servicios || {};
                       const isUrgent = sv.cassetteUrgente || sv.papUrgente || sv.citologiaUrgente;
                       const services: string[] = [];

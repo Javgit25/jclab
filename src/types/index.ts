@@ -133,6 +133,8 @@ export interface BiopsyForm {
   cargadoPor?: string;        // Nombre de quien cargó (médico o ayudante)
   trozoPorCassette?: number[]; // Trozos por cada cassette individual
   quedaMaterial?: boolean;     // Si queda material sin procesar
+  ihqTejido?: string;          // Sub-tejido para Inmunohistoquímica
+  ihqVidriosQty?: number;      // Cantidad de vidrios para IHQ
   entregarConTaco?: boolean;   // Si se solicita devolver tacos/cassettes
   tacosSeleccionados?: number[]; // Índices de cassettes a devolver (vacío = todos)
   numeroExterno?: string;       // Número externo del taco (para Taco en Consulta)

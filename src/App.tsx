@@ -520,7 +520,9 @@ function App() {
             quedaMaterial: biopsy.quedaMaterial || false,
             entregarConTaco: biopsy.entregarConTaco || false,
             tacosSeleccionados: biopsy.tacosSeleccionados || [],
-            numeroExterno: biopsy.numeroExterno || ''
+            numeroExterno: biopsy.numeroExterno || '',
+            ihqTejido: biopsy.ihqTejido || '',
+            ihqVidriosQty: biopsy.ihqVidriosQty || 0
           };
         }),
         estado: 'pendiente',

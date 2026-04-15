@@ -116,7 +116,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                 id: `${r.id}_${idx}`,
                 numero: b.numero || '',
                 tejido: b.tejido || '',
-                tipo: b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'Cito' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : 'BX',
+                tipo: b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'Cito' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : 'BX',
                 medico: r.medico || '',
                 remitoNumber: r.remito_number || '',
                 fecha: r.timestamp || r.fecha || '',
