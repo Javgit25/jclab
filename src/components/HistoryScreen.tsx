@@ -49,11 +49,15 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     } catch {}
   });
 
-  // Cargar tiempos de admin remitos: cache localStorage + Supabase de fondo
-  const [adminTimesMap, setAdminTimesMap] = useState<Record<string, any>>(() => {
-    try { return JSON.parse(localStorage.getItem('adminTimesCache') || '{}'); } catch { return {}; }
-  });
+  // Tiempos: leer cache sincrónicamente, actualizar de Supabase en background sin re-render visible
+  const adminTimesCacheRef = React.useRef<Record<string, any>>(
+    (() => { try { return JSON.parse(localStorage.getItem('adminTimesCache') || '{}'); } catch { return {}; } })()
+  );
+  const [adminTimesMap, setAdminTimesMap] = useState<Record<string, any>>(adminTimesCacheRef.current);
+  const timesLoadedRef = React.useRef(false);
   useEffect(() => {
+    if (timesLoadedRef.current) return;
+    timesLoadedRef.current = true;
     const remitoNumbers = historyEntries.map(e => (e as any).remitoNumber).filter(Boolean);
     if (remitoNumbers.length === 0) return;
     import('../lib/supabase').then(({ supabase }) => {
@@ -62,17 +66,21 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         .in('remito_number', remitoNumbers)
         .then(({ data }) => {
           if (data && data.length > 0) {
-            const map: Record<string, any> = {};
+            const merged = { ...adminTimesCacheRef.current };
+            let changed = false;
             data.forEach((r: any) => {
-              map[r.remito_number] = {
-                materialRecibido: r.material_recibido,
-                fechaMaterialRecibido: r.fecha_material_recibido,
-                listoAt: r.listo_at,
-                timestamp: r.timestamp,
-              };
+              const prev = merged[r.remito_number];
+              const next = { materialRecibido: r.material_recibido, fechaMaterialRecibido: r.fecha_material_recibido, listoAt: r.listo_at, timestamp: r.timestamp };
+              if (!prev || prev.listoAt !== next.listoAt || prev.materialRecibido !== next.materialRecibido) {
+                merged[r.remito_number] = next;
+                changed = true;
+              }
             });
-            setAdminTimesMap(map);
-            localStorage.setItem('adminTimesCache', JSON.stringify(map));
+            if (changed) {
+              adminTimesCacheRef.current = merged;
+              localStorage.setItem('adminTimesCache', JSON.stringify(merged));
+              setAdminTimesMap(merged);
+            }
           }
         });
     }).catch(() => {});
