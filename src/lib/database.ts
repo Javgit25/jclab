@@ -205,6 +205,10 @@ export const db = {
           remitoOriginalId: r.remito_original_id,
           remitoOriginalFecha: r.remito_original_fecha,
           notaServicioAdicional: r.nota_servicio_adicional,
+          materialRecibido: r.material_recibido,
+          fechaMaterialRecibido: r.fecha_material_recibido,
+          impreso: r.impreso,
+          fechaImpreso: r.fecha_impreso,
         }));
         localStorage.setItem('adminRemitos', JSON.stringify(remitos));
         return remitos;
@@ -243,6 +247,10 @@ export const db = {
         remito_original_id: remito.remitoOriginalId,
         remito_original_fecha: remito.remitoOriginalFecha,
         nota_servicio_adicional: remito.notaServicioAdicional,
+        material_recibido: remito.materialRecibido || false,
+        fecha_material_recibido: remito.fechaMaterialRecibido || null,
+        impreso: remito.impreso || false,
+        fecha_impreso: remito.fechaImpreso || null,
         updated_at: new Date().toISOString(),
       });
     } catch (e) { console.error('Error saving remito:', e); }
