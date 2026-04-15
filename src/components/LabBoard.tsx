@@ -356,20 +356,33 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           )}
         </div>
 
-        {/* Patient + Tissue */}
-        <div style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '6px', lineHeight: 1.2 }}>
-          #{sol.numeroPaciente || '---'}
-          {sol.tejido && (
-            <span style={{ color: '#94a3b8', fontWeight: 500 }}> - {sol.tejido}</span>
-          )}
+        {/* Doctor name - BIG */}
+        <div style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '4px', lineHeight: 1.2, color: '#f1f5f9' }}>
+          Dr/a. {(() => {
+            try {
+              const remitosLocal = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+              const r = remitosLocal.find((rem: any) => rem.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
+              const nombre = r?.medico || '';
+              if (nombre) {
+                const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
+                return nombre + cargado;
+              }
+            } catch {}
+            return getDoctorName(sol);
+          })()}
+        </div>
+
+        {/* Patient + Tissue + Remito */}
+        <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>
+          Pac. #{sol.numeroPaciente || '---'}{sol.tejido ? ` · ${sol.tejido}` : ''} · Remito #{sol.remitoNumber || '---'}
         </div>
 
         {/* Description (truncated) */}
         {sol.descripcion && (
           <div style={{
-            fontSize: '1rem',
-            color: '#94a3b8',
-            marginBottom: '6px',
+            fontSize: '0.9rem',
+            color: '#64748b',
+            marginBottom: '4px',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -378,19 +391,9 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           </div>
         )}
 
-        {/* Doctor + Time */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-          <span style={{ fontSize: '1rem', color: '#64748b' }}>
-            {getDoctorName(sol)}
-          </span>
-          <span style={{ fontSize: '1rem', color: '#64748b' }}>
-            {formatTime(sol.solicitadoAt)} ({timeAgo(sol.solicitadoAt)})
-          </span>
-        </div>
-
-        {/* Remito */}
-        <div style={{ fontSize: '0.9rem', color: '#475569', marginTop: '4px' }}>
-          Remito #{sol.remitoNumber || '---'}
+        {/* Time */}
+        <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '2px' }}>
+          {formatTime(sol.solicitadoAt)} ({timeAgo(sol.solicitadoAt)})
         </div>
       </div>
     );
@@ -423,7 +426,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                 fontWeight: 600,
               }}
             >
-              \u2190 Volver
+              ← Volver
             </button>
           )}
           <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
@@ -433,9 +436,9 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
 
         <div style={counterStyle}>
           <span style={{ color: '#fbbf24' }}>{pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''}</span>
-          <span style={{ color: '#475569' }}> \u00B7 </span>
+          <span style={{ color: '#475569' }}> · </span>
           <span style={{ color: '#60a5fa' }}>{enProceso.length} en proceso</span>
-          <span style={{ color: '#475569' }}> \u00B7 </span>
+          <span style={{ color: '#475569' }}> · </span>
           <span style={{ color: '#34d399' }}>{listosHoy.length} listo{listosHoy.length !== 1 ? 's' : ''} hoy</span>
         </div>
 
