@@ -464,10 +464,10 @@ export const Step4: React.FC<Step4Props> = ({
                     gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                     gap: '6px'
                   }}>
-                    {/* Mostrar solo los cassettes adicionales (desde index 1) */}
-                    {cassettesNumbers.slice(1).map((cassette, index) => {
-                      const realIndex = index + 1; // El índice real en el array
-                      const defaultSuffix = cassette.suffix || (realIndex).toString();
+                    {/* Mostrar todos los cassettes para cambio de nombre */}
+                    {cassettesNumbers.map((cassette, index) => {
+                      const realIndex = index;
+                      const defaultSuffix = cassette.suffix || (index + 1).toString();
                       return (
                         <div key={realIndex} style={{
                           backgroundColor: 'white',
