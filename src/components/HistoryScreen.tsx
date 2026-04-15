@@ -495,7 +495,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(biopsy.pieces) || 0);
                       if (tpc.length > 1) {
                         const cns = biopsy.cassettesNumbers || [];
-                        const detalle = tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S/' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ');
+                        const detalle = tpc.map((t: number, ci: number) => (() => { const c = cns[ci]; return (c?.suffix ? c.base + '/' + c.suffix : (ci === 0 ? (c?.base || 'C1') : 'S/' + ci)); })() + ':' + (t || 1)).join(' · ');
                         return `<strong>${totalT}</strong><br><span style="font-size:8px;color:#94a3b8">${detalle}</span>`;
                       }
                       return totalT || 'N/A';
@@ -1434,7 +1434,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                               if (tpc.length > 1) {
                                 return <div>
                                   <span style={{ fontWeight: 700 }}>{totalT}</span>
-                                  <div style={{ fontSize: '6pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cns[0]?.base || 'C1') : ('S/' + (cns[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                  <div style={{ fontSize: '6pt', color: '#94a3b8' }}>{tpc.map((t: number, ci: number) => (() => { const c = cns[ci]; return (c?.suffix ? c.base + '/' + c.suffix : (ci === 0 ? (c?.base || 'C1') : 'S/' + ci)); })() + ':' + (t || 1)).join(' · ')}</div>
                                 </div>;
                               }
                               return totalT || '-';

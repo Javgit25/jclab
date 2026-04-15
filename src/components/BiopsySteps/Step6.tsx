@@ -54,14 +54,12 @@ export const Step6: React.FC<Step6Props> = ({
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {Array.from({ length: cassettesCount }, (_, i) => {
-            const isFirst = i === 0;
-            const base = cassettesNumbers[i]?.base || 'C';
-            const suffix = cassettesNumbers[i]?.suffix || `${i + 1}`;
-            const cassetteLabel = isFirst ? `${base}${suffix}` : `${base}-${suffix}`;
+            const cn = cassettesNumbers[i];
+            const cassetteLabel = cn?.suffix ? `${cn.base}/${cn.suffix}` : `C${i + 1}`;
             const isSelected = selected.includes(i);
             return (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                <span style={{ fontSize: '8px', fontWeight: '700', color: isFirst ? 'transparent' : '#1e40af', letterSpacing: '0.5px' }}>{isFirst ? '\u00A0' : 'SUB'}</span>
+                <span style={{ fontSize: '8px', fontWeight: '700', color: 'transparent', letterSpacing: '0.5px' }}>{'\u00A0'}</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

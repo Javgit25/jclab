@@ -423,7 +423,7 @@ export const Step4: React.FC<Step4Props> = ({
                 </div>
                 {Array.from({ length: parseInt(cassettes) || 0 }, (_, i) => {
                   const cn = cassettesNumbers[i];
-                  const label = i === 0 ? (cn?.base || `Cassette ${i+1}`) : (cn?.suffix ? `SUB ${cn.suffix}` : `SUB ${i}`);
+                  const label = cn?.suffix ? `${cn.base}/${cn.suffix}` : `Cassette ${i+1}`;
                   const val = trozoPorCassette[i] || 1;
                   return (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: i % 2 === 0 ? 'white' : '#f8fafc', borderRadius: '6px', marginBottom: '2px' }}>

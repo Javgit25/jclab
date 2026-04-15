@@ -1884,7 +1884,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           if (tpc.length > 1) {
                                             return <div>
                                               <div className="font-bold">{totalT}</div>
-                                              <div className="text-gray-400" style={{ fontSize: '8px' }}>{tpc.map((t: number, ci: number) => (ci === 0 ? (cn[0]?.base || 'C1') : ('S/' + (cn[ci]?.suffix || ci))) + ':' + (t || 1)).join(' · ')}</div>
+                                              <div className="text-gray-400" style={{ fontSize: '8px' }}>{tpc.map((t: number, ci: number) => { const c = cn[ci]; return (c?.suffix ? c.base + '/' + c.suffix : (ci === 0 ? (c?.base || 'C1') : 'S/' + ci)) + ':' + (t || 1); }).join(' · ')}</div>
                                             </div>;
                                           }
                                           return <span>{totalT || '-'}</span>;
@@ -2022,7 +2022,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           if (!isPAP && !isCito && !isTacoC && trozoPorCass.length > 1) {
                             trozosDetalle = trozoPorCass.map((t: number, ci: number) => {
                               const cn = cassNums[ci];
-                              const name = ci === 0 ? (cn?.base || 'C1') : (cn?.suffix ? 'S/' + cn.suffix : 'S/' + ci);
+                              const name = cn?.suffix ? cn.base + '/' + cn.suffix : (ci === 0 ? (cn?.base || 'C1') : 'S/' + ci);
                               return name + ':' + (t || 1);
                             }).join(', ');
                           }

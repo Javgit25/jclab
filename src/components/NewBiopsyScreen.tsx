@@ -126,32 +126,21 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         if (count > 0 && prev.number) {
           const numbers: CassetteNumber[] = [];
           for (let i = 0; i < count; i++) {
-            if (i === 0) {
-              // El primer cassette es el número original sin sufijo
-              numbers.push({ base: prev.number, suffix: '' });
-            } else {
-              // Los cassettes adicionales tienen sufijo correlativo empezando desde 1
-              numbers.push({ base: prev.number, suffix: i.toString() });
-            }
+            // Todos los cassettes tienen sufijo correlativo: /1, /2, /3...
+            numbers.push({ base: prev.number, suffix: (i + 1).toString() });
           }
           updated.cassettesNumbers = numbers;
         } else {
           updated.cassettesNumbers = [];
         }
       }
-      
+
       if (field === 'number' && prev.cassettes) {
         const count = parseInt(prev.cassettes) || 0;
         if (count > 0 && value) {
           const numbers: CassetteNumber[] = [];
           for (let i = 0; i < count; i++) {
-            if (i === 0) {
-              // El primer cassette es el número original sin sufijo
-              numbers.push({ base: value as string, suffix: '' });
-            } else {
-              // Los cassettes adicionales tienen sufijo correlativo empezando desde 1
-              numbers.push({ base: value as string, suffix: i.toString() });
-            }
+            numbers.push({ base: value as string, suffix: (i + 1).toString() });
           }
           updated.cassettesNumbers = numbers;
         }

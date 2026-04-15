@@ -533,7 +533,7 @@ export const Step7: React.FC<Step7Props> = ({
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {Array.from({ length: parseInt(biopsyForm.cassettes) }, (_, i) => {
                         const cn = biopsyForm.cassettesNumbers?.[i];
-                        const label = i === 0 ? (cn?.base || 'C1') : (cn?.suffix ? `${cn.base}/${cn.suffix}` : `SUB ${i}`);
+                        const label = cn?.suffix ? `${cn.base}/${cn.suffix}` : `C${i+1}`;
                         const selected = (biopsyForm.tacosSeleccionados || []).includes(i);
                         return (
                           <button key={i}

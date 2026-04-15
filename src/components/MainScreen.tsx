@@ -3370,7 +3370,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           {(result as any).trozoPorCassette && (result as any).trozoPorCassette.length > 1 && (
                             <span style={{ fontSize: '10px', background: '#f0f4ff', color: '#1e3a5f', padding: '2px 8px', borderRadius: '4px', fontWeight: '500' }}>
                               {(result as any).trozoPorCassette.map((t: number, ci: number) => {
-                                const cname = ci === 0 ? (cn[0]?.base || 'C1') : ('S/' + (cn[ci]?.suffix || ci));
+                                const c = cn[ci]; const cname = c?.suffix ? c.base + '/' + c.suffix : (ci === 0 ? (c?.base || 'C1') : 'S/' + ci);
                                 return cname + ':' + (t || 1);
                               }).join(', ')}
                             </span>
