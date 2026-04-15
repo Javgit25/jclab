@@ -889,25 +889,23 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (!hasAnyTime) return null;
 
                         return (
-                          <div style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '10px', padding: '10px', marginBottom: '10px' }}>
-                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>⏱ Tiempos de procesamiento</div>
-                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                              {tRecibido && (
-                                <div style={{ background: '#fef3c7', border: '1.5px solid #fbbf24', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#92400e', fontWeight: '700' }}>
-                                  📦 Recibido: {formatDiff(tRecibido.getTime() - tCargado.getTime())}
-                                </div>
-                              )}
-                              {tRecibido && tListo && (
-                                <div style={{ background: '#dbeafe', border: '1.5px solid #93c5fd', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#1e40af', fontWeight: '700' }}>
-                                  ⚙️ Lab: {formatDiff(tListo.getTime() - tRecibido.getTime())}
-                                </div>
-                              )}
-                              {tListo && (
-                                <div style={{ background: '#dcfce7', border: '1.5px solid #86efac', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#166534', fontWeight: '700' }}>
-                                  ✅ Total: {formatDiff(tListo.getTime() - tCargado.getTime())}
-                                </div>
-                              )}
-                            </div>
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '600' }}>⏱</span>
+                            {tRecibido && (
+                              <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#92400e', fontWeight: '600' }}>
+                                📦 {formatDiff(tRecibido.getTime() - tCargado.getTime())}
+                              </span>
+                            )}
+                            {tRecibido && tListo && (
+                              <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#1e40af', fontWeight: '600' }}>
+                                ⚙️ {formatDiff(tListo.getTime() - tRecibido.getTime())}
+                              </span>
+                            )}
+                            {tListo && (
+                              <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#166534', fontWeight: '600' }}>
+                                ✅ {formatDiff(tListo.getTime() - tCargado.getTime())}
+                              </span>
+                            )}
                           </div>
                         );
                       } catch { return null; }
@@ -1365,12 +1363,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   if (!tR && !tL) return null;
                   const fmt2 = (ms: number) => { const m = Math.floor(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); if (h < 24) return h + 'h ' + (m % 60) + 'm'; return Math.floor(h / 24) + 'd ' + (h % 24) + 'h'; };
                   return (
-                    <div style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '10px', padding: '12px', marginBottom: '16px' }}>
-                      <div style={{ fontSize: '11pt', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>⏱ Tiempos de procesamiento</div>
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {tR && <div style={{ background: '#fef3c7', border: '2px solid #fbbf24', borderRadius: '8px', padding: '8px 12px', fontSize: '11pt', color: '#92400e', fontWeight: 700 }}>📦 Recibido: {fmt2(tR - tC)}</div>}
-                        {tR && tL && <div style={{ background: '#dbeafe', border: '2px solid #93c5fd', borderRadius: '8px', padding: '8px 12px', fontSize: '11pt', color: '#1e40af', fontWeight: 700 }}>⚙️ Lab: {fmt2(tL - tR)}</div>}
-                        {tL && <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: '8px', padding: '8px 12px', fontSize: '11pt', color: '#166534', fontWeight: 700 }}>✅ Total: {fmt2(tL - tC)}</div>}
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', marginBottom: '12px' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: '9pt', color: '#64748b', fontWeight: 600 }}>⏱ Tiempos:</span>
+                        {tR && <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#92400e', fontWeight: 700 }}>📦 Recibido: {fmt2(tR - tC)}</span>}
+                        {tR && tL && <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#1e40af', fontWeight: 700 }}>⚙️ Lab: {fmt2(tL - tR)}</span>}
+                        {tL && <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#166534', fontWeight: 700 }}>✅ Total: {fmt2(tL - tC)}</span>}
                       </div>
                     </div>
                   );
