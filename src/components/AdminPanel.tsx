@@ -2457,13 +2457,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               try {
                                 const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim();
                                 const remitoNum = (remito as any).remitoNumber || '';
+                                console.log('🔵 SYNC historial - email:', doctorEmail, 'remitoNum:', remitoNum);
                                 if (doctorEmail) {
                                   db.getDoctorHistory(doctorEmail).then(history => {
+                                    console.log('🔵 Historial cargado de Supabase:', Object.keys(history).length, 'entries');
+                                    console.log('🔵 Buscando remitoNumber:', remitoNum, 'en:', Object.values(history).map((e: any) => e.remitoNumber));
                                     let matched = false;
                                     Object.keys(history).forEach(key => {
                                       if (matched) return;
                                       const entry = history[key];
                                       if (!entry?.biopsies) return;
+                                      console.log('🔵 Comparando entry:', entry.remitoNumber, 'con:', remitoNum, 'id:', entry.id);
                                       if (entry.remitoNumber === remitoNum || entry.id?.includes(remitoNum)) {
                                         // Actualizar biopsias existentes
                                         entry.biopsies.forEach((biopsy: any, i: number) => {
