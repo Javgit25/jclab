@@ -152,7 +152,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const interval = setInterval(() => {
       db.getRemitos(currentLabCode).then((remote: any[]) => {
         if (remote && remote.length > 0) {
-          setRemitos(remote);
+          // Merge: preservar materialRecibido/impreso locales
+          setRemitos(prev => {
+            const localMap = new Map(prev.map(r => [r.id, r]));
+            const merged = remote.map((r: any) => {
+              const local = localMap.get(r.id);
+              if (local) {
+                return {
+                  ...r,
+                  materialRecibido: r.materialRecibido ?? local.materialRecibido,
+                  fechaMaterialRecibido: r.fechaMaterialRecibido ?? local.fechaMaterialRecibido,
+                  impreso: r.impreso ?? local.impreso,
+                  fechaImpreso: r.fechaImpreso ?? local.fechaImpreso
+                };
+              }
+              return r;
+            });
+            return merged;
+          });
           const medicosUnicos = [...new Set(remote.map((r: any) => r.medico))];
           setMedicos(medicosUnicos);
         }
@@ -1692,7 +1709,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               {(remito as any).impreso ? (
                                 <span className="text-xs text-blue-600 font-semibold">🖨 Impreso</span>
                               ) : (remito as any).materialRecibido ? (
-                                <span className="text-xs text-emerald-600 font-semibold">📦 Material OK</span>
+                                <span className="text-xs text-emerald-600 font-semibold">📦 Material recibido ✓</span>
                               ) : (
                                 <span className="text-xs text-gray-400">⏳ Espera material</span>
                               )}
@@ -1700,17 +1717,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           </td>
                           <td className="py-2 px-3 text-center">
                             <div className="flex flex-col gap-1 items-center" onClick={(e) => e.stopPropagation()}>
+                              <div className="flex gap-1">
                               {/* Botón Material Recibido */}
                               {!(remito as any).materialRecibido ? (
                                 <button onClick={() => { if (confirm(`¿Confirmar que el MATERIAL FÍSICO del remito de Dr/a. ${remito.medico} fue recibido en el laboratorio?`)) toggleMaterialRecibido(remito.id); }}
-                                  className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">📦 Recibir</button>
+                                  className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">📦 RECIBIDO</button>
                               ) : (
                                 <button onClick={() => { if (confirm(`¿Desmarcar material recibido del remito de Dr/a. ${remito.medico}?`)) toggleMaterialRecibido(remito.id); }}
                                   className="bg-gray-200 hover:bg-gray-300 text-gray-600 px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">↩ Desmarcar</button>
                               )}
-                              <div className="flex gap-1">
+                              {/* Botón Entregar Todo */}
                               {!isListo && (
-                                <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Todo ✓</button>
+                                <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">ENTREGAR TODO</button>
                               )}
                               {isListo && <span className="text-xs text-green-600 font-bold">✓ Completo</span>}
                               {whatsappNum && (
