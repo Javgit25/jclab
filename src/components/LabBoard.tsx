@@ -233,7 +233,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   const enProceso = solicitudes.filter(s => s.estado === 'en_proceso');
   const listosHoy = solicitudes.filter(s => s.estado === 'entregado' && isToday(s.entregadoAt || ''));
 
-  const isUrgent = (sol: Solicitud) => sol.id.startsWith('SOL_TACO_');
+  const isUrgent = (sol: Solicitud) => (sol as any).urgente === true;
 
   // Styles
   const containerStyle: React.CSSProperties = {
