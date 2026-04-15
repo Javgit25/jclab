@@ -1319,11 +1319,12 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           <td style={{ padding: '5px 4px', fontWeight: 600, color: '#94a3b8', fontSize: '8pt' }}>{i + 1}</td>
                           <td style={{ padding: '5px 4px' }}>
                             <span style={{ fontWeight: 700 }}>{b.number || '-'}</span>
+                            {b.numeroExterno && <span style={{ color: '#b45309', fontSize: '7pt', marginLeft: '2px' }}>(Ext: {b.numeroExterno})</span>}
                             {cassNums && <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{cassNums}</div>}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            <span style={{ background: tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span>
+                            <span style={{ background: tipo === 'TACO' ? '#d97706' : tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span>
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
