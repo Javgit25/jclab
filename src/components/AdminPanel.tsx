@@ -1735,7 +1735,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       </td>
                                       <td className="py-1.5 px-2 text-center font-bold">{cant}</td>
                                       <td className="py-1.5 px-2 text-center">
-                                        {!esPAP && !esCito ? (() => {
+                                        {!esPAP && !esCito && tipo !== 'TACO' ? (() => {
                                           const tpc = (b as any).trozoPorCassette || [];
                                           const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(String(b.trozos || (b as any).pieces)) || 0);
                                           const cn = (b as any).cassettesNumbers || [];
