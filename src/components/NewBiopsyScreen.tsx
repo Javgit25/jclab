@@ -93,6 +93,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       
       // ✅ LÓGICA MEJORADA: Resetear cantidades cuando cambia el tipo de tejido
       if (field === 'tissueType') {
+        // Normalizar "Taco en Consulta" (el autocompletado puede cambiar mayúsculas)
+        if (typeof value === 'string' && value.toLowerCase() === 'taco en consulta') {
+          value = 'Taco en Consulta';
+          updated.tissueType = value;
+        }
         if (value !== 'PAP') {
           updated.papQuantity = 0;
           updated.papUrgente = false;
@@ -101,11 +106,13 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           updated.citologiaQuantity = 0;
           updated.citologiaUrgente = false;
         }
-        // Auto-asignar tipo TC para Taco en Consulta
+        // Auto-asignar tipo TC y entregarConTaco para Taco en Consulta
         if (value === 'Taco en Consulta') {
           updated.type = 'TC';
+          updated.entregarConTaco = true;
         } else if (updated.type === 'TC') {
           updated.type = '';
+          updated.entregarConTaco = false;
         }
         // Limpiar número externo si cambia de tejido
         if (value !== 'Taco en Consulta') {

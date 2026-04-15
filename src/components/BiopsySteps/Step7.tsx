@@ -492,6 +492,7 @@ export const Step7: React.FC<Step7Props> = ({
                 }}>
                   <input type="checkbox"
                     checked={biopsyForm.entregarConTaco || false}
+                    disabled={biopsyForm.tissueType === 'Taco en Consulta'}
                     onChange={(e) => {
                       const checked = e.target.checked;
                       if (onBiopsyFieldChange) {
@@ -504,6 +505,7 @@ export const Step7: React.FC<Step7Props> = ({
                   <div>
                     <span style={{ fontSize: '14px', fontWeight: '700', color: biopsyForm.entregarConTaco ? '#92400e' : '#374151' }}>
                       📦 Entregar con Taco
+                      {biopsyForm.tissueType === 'Taco en Consulta' && <span style={{ fontSize: '10px', color: '#d97706', marginLeft: '6px' }}>(siempre para Taco en Consulta)</span>}
                     </span>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>
                       El laboratorio devolverá los cassettes/tacos junto a los vidrios
