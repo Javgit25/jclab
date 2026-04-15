@@ -1358,6 +1358,30 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   </div>
                 </div>
 
+                {/* Tiempos de procesamiento en vista detalle */}
+                {(() => {
+                  const entryRNT2 = (re as any).remitoNumber;
+                  const adminR2 = adminRemitosDB.find((ar: any) =>
+                    ar.id === re.id || ((ar as any).remitoNumber && (ar as any).remitoNumber === entryRNT2)
+                  );
+                  if (!adminR2) return null;
+                  const tC = new Date(re.timestamp || re.date).getTime();
+                  const tR = adminR2.fechaMaterialRecibido ? new Date(adminR2.fechaMaterialRecibido).getTime() : null;
+                  const tL = adminR2.listoAt ? new Date(adminR2.listoAt).getTime() : null;
+                  if (!tR && !tL) return null;
+                  const fmt2 = (ms: number) => { const m = Math.floor(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); if (h < 24) return h + 'h ' + (m % 60) + 'm'; return Math.floor(h / 24) + 'd ' + (h % 24) + 'h'; };
+                  return (
+                    <div style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '10px', padding: '12px', marginBottom: '16px' }}>
+                      <div style={{ fontSize: '11pt', fontWeight: 700, color: '#475569', marginBottom: '8px' }}>⏱ Tiempos de procesamiento</div>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {tR && <div style={{ background: '#fef3c7', border: '2px solid #fbbf24', borderRadius: '8px', padding: '8px 12px', fontSize: '11pt', color: '#92400e', fontWeight: 700 }}>📦 Recibido: {fmt2(tR - tC)}</div>}
+                        {tR && tL && <div style={{ background: '#dbeafe', border: '2px solid #93c5fd', borderRadius: '8px', padding: '8px 12px', fontSize: '11pt', color: '#1e40af', fontWeight: 700 }}>⚙️ Lab: {fmt2(tL - tR)}</div>}
+                        {tL && <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: '8px', padding: '8px 12px', fontSize: '11pt', color: '#166534', fontWeight: 700 }}>✅ Total: {fmt2(tL - tC)}</div>}
+                      </div>
+                    </div>
+                  );
+                })()}
+
                 {/* Tabla de estudios - compacta */}
                 <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '24px', fontSize: '9pt' }}>
                   <thead>
