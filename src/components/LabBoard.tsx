@@ -411,39 +411,15 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
     <div style={containerStyle}>
       {/* Header */}
       <div style={headerStyle}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {onGoBack && (
-            <button
-              onClick={onGoBack}
-              style={{
-                background: '#334155',
-                border: 'none',
-                color: '#e2e8f0',
-                fontSize: '1.2rem',
-                padding: '8px 16px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}
-            >
-              ← Volver
-            </button>
-          )}
-          <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>
-            Pizarron del Laboratorio
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>Pizarrón del Laboratorio</div>
+          <div style={counterStyle}>
+            <span style={{ color: '#fbbf24' }}>{pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''}</span>
+            <span style={{ color: '#475569' }}> · </span>
+            <span style={{ color: '#60a5fa' }}>{enProceso.length} en proceso</span>
+            <span style={{ color: '#475569' }}> · </span>
+            <span style={{ color: '#34d399' }}>{listosHoy.length} listo{listosHoy.length !== 1 ? 's' : ''} hoy</span>
           </div>
-        </div>
-
-        <div style={counterStyle}>
-          <span style={{ color: '#fbbf24' }}>{pendientes.length} pendiente{pendientes.length !== 1 ? 's' : ''}</span>
-          <span style={{ color: '#475569' }}> · </span>
-          <span style={{ color: '#60a5fa' }}>{enProceso.length} en proceso</span>
-          <span style={{ color: '#475569' }}> · </span>
-          <span style={{ color: '#34d399' }}>{listosHoy.length} listo{listosHoy.length !== 1 ? 's' : ''} hoy</span>
-        </div>
-
-        <div style={{ fontSize: '1rem', color: '#475569' }}>
-          Lab: {labCode}
         </div>
       </div>
 
