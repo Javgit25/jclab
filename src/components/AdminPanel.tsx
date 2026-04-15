@@ -18,6 +18,10 @@ interface AdminRemito {
   hospital: string;
   biopsias: AdminBiopsia[];
   estado: 'pendiente' | 'facturado';
+  materialRecibido?: boolean;
+  fechaMaterialRecibido?: string;
+  impreso?: boolean;
+  fechaImpreso?: string;
 }
 
 interface AdminBiopsia {
@@ -595,6 +599,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       return updated;
     });
   };
+
+  // Marcar material recibido en un remito
+  const toggleMaterialRecibido = (remitoId: string) => {
+    setRemitos(prev => {
+      const updated = prev.map(r =>
+        r.id === remitoId ? {
+          ...r,
+          materialRecibido: !r.materialRecibido,
+          fechaMaterialRecibido: !r.materialRecibido ? new Date().toISOString() : undefined
+        } : r
+      );
+      localStorage.setItem('adminRemitos', JSON.stringify(updated));
+      db.saveRemitos(updated).catch(console.error);
+      return updated;
+    });
+  };
+
+  // Marcar remitos como impresos
+  const marcarRemitosImpresos = (remitoIds: string[]) => {
+    setRemitos(prev => {
+      const updated = prev.map(r =>
+        remitoIds.includes(r.id) ? { ...r, impreso: true, fechaImpreso: new Date().toISOString() } : r
+      );
+      localStorage.setItem('adminRemitos', JSON.stringify(updated));
+      db.saveRemitos(updated).catch(console.error);
+      return updated;
+    });
+  };
+
+  // Estado para modal de selección de impresión
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [printSelection, setPrintSelection] = useState<Set<string>>(new Set());
 
   // Función para determinar qué campos mostrar en edición según lo que tiene la biopsia
   const getCamposEditables = (biopsia: AdminBiopsia) => {
@@ -1651,9 +1687,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             ) : (
                               <span className="text-xs font-semibold text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded">En proceso</span>
                             )}
+                            {/* Indicador material / impreso */}
+                            <div className="mt-0.5">
+                              {(remito as any).impreso ? (
+                                <span className="text-xs text-blue-600 font-semibold">🖨 Impreso</span>
+                              ) : (remito as any).materialRecibido ? (
+                                <span className="text-xs text-emerald-600 font-semibold">📦 Material OK</span>
+                              ) : (
+                                <span className="text-xs text-gray-400">⏳ Espera material</span>
+                              )}
+                            </div>
                           </td>
                           <td className="py-2 px-3 text-center">
-                            <div className="flex gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex flex-col gap-1 items-center" onClick={(e) => e.stopPropagation()}>
+                              {/* Botón Material Recibido */}
+                              {!(remito as any).materialRecibido ? (
+                                <button onClick={() => { if (confirm(`¿Confirmar que el MATERIAL FÍSICO del remito de Dr/a. ${remito.medico} fue recibido en el laboratorio?`)) toggleMaterialRecibido(remito.id); }}
+                                  className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">📦 Recibir</button>
+                              ) : (
+                                <button onClick={() => { if (confirm(`¿Desmarcar material recibido del remito de Dr/a. ${remito.medico}?`)) toggleMaterialRecibido(remito.id); }}
+                                  className="bg-gray-200 hover:bg-gray-300 text-gray-600 px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">↩ Desmarcar</button>
+                              )}
+                              <div className="flex gap-1">
                               {!isListo && (
                                 <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">Todo ✓</button>
                               )}
@@ -1664,6 +1719,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   className="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs font-semibold">WA</a>
                               )}
                               <span className="text-gray-400 text-xs ml-1">{isExpanded ? '▲' : '▼'}</span>
+                              </div>
                             </div>
                           </td>
                         </tr>
@@ -1789,11 +1845,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </table>
               </div>
 
-              {/* Botón imprimir remitos para técnicos */}
+              {/* Botón abrir modal de selección para imprimir */}
               <div className="flex gap-2 mt-3">
                 <button onClick={() => {
                   const remitosToPrint = filteredRemitos.filter(r => !(r as any).estadoEnvio || (r as any).estadoEnvio !== 'listo');
                   if (remitosToPrint.length === 0) { alert('No hay remitos pendientes para imprimir'); return; }
+                  // Pre-seleccionar: material recibido y no impresos
+                  const preSelected = new Set<string>();
+                  remitosToPrint.forEach(r => {
+                    if ((r as any).materialRecibido && !(r as any).impreso) preSelected.add(r.id);
+                  });
+                  // Si ninguno tiene materialRecibido, seleccionar todos los no impresos
+                  if (preSelected.size === 0) {
+                    remitosToPrint.forEach(r => { if (!(r as any).impreso) preSelected.add(r.id); });
+                  }
+                  setPrintSelection(preSelected);
+                  setShowPrintModal(true);
+                }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
+                  🖨 Imprimir pendientes
+                </button>
+              </div>
+
+              {/* Modal de selección de remitos para imprimir */}
+              {showPrintModal && (() => {
+                const allPrintable = filteredRemitos.filter(r => !(r as any).estadoEnvio || (r as any).estadoEnvio !== 'listo');
+                const selectedCount = allPrintable.filter(r => printSelection.has(r.id)).length;
+                const totalPacSel = allPrintable.filter(r => printSelection.has(r.id)).reduce((s, r) => s + r.biopsias.length, 0);
+
+                const executePrint = () => {
+                  const remitosToPrint = allPrintable.filter(r => printSelection.has(r.id));
+                  if (remitosToPrint.length === 0) { alert('Seleccione al menos un remito'); return; }
                   const labNombre = labConfig.nombre || 'Laboratorio';
                   const totalPacientes = remitosToPrint.reduce((s: number, r: any) => s + r.biopsias.length, 0);
                   const htmlParts = remitosToPrint.map((r: any, ri: number) => {
@@ -1950,10 +2031,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     frameDoc.close();
                     setTimeout(() => { printFrame.contentWindow?.print(); }, 300);
                   }
-                }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
-                  🖨 Imprimir pendientes
-                </button>
-              </div>
+                  // Marcar como impresos
+                  marcarRemitosImpresos(remitosToPrint.map((r: any) => r.id));
+                  setShowPrintModal(false);
+                };
+
+                return (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center" onClick={() => setShowPrintModal(false)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col m-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="p-4 border-b border-gray-200">
+                        <div className="flex justify-between items-center">
+                          <h3 className="text-lg font-bold text-gray-900">🖨 Seleccionar remitos para imprimir</h3>
+                          <button onClick={() => setShowPrintModal(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold">✕</button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">{selectedCount} remito{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''} · {totalPacSel} paciente{totalPacSel !== 1 ? 's' : ''}</p>
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => { const all = new Set<string>(); allPrintable.forEach(r => all.add(r.id)); setPrintSelection(all); }}
+                            className="text-xs text-blue-600 font-semibold hover:underline">Seleccionar todos</button>
+                          <button onClick={() => setPrintSelection(new Set())}
+                            className="text-xs text-gray-500 font-semibold hover:underline">Deseleccionar todos</button>
+                          <button onClick={() => { const s = new Set<string>(); allPrintable.forEach(r => { if ((r as any).materialRecibido && !(r as any).impreso) s.add(r.id); }); setPrintSelection(s); }}
+                            className="text-xs text-amber-600 font-semibold hover:underline">Solo material recibido</button>
+                        </div>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-3">
+                        {allPrintable.map(r => {
+                          const nro = (r as any).remitoNumber || r.id.slice(-6).toUpperCase();
+                          const isSelected = printSelection.has(r.id);
+                          const matRecibido = (r as any).materialRecibido;
+                          const yaImpreso = (r as any).impreso;
+                          return (
+                            <label key={r.id} className={`flex items-center gap-3 p-2.5 rounded-lg mb-1.5 cursor-pointer border-2 transition-all ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white hover:bg-gray-50'}`}>
+                              <input type="checkbox" checked={isSelected}
+                                onChange={() => { const next = new Set(printSelection); if (next.has(r.id)) next.delete(r.id); else next.add(r.id); setPrintSelection(next); }}
+                                className="w-5 h-5 accent-blue-600 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-sm text-gray-900">Dr/a. {r.medico}</span>
+                                  <span className="text-xs text-gray-400 font-mono">#{nro}</span>
+                                </div>
+                                <div className="text-xs text-gray-500">{r.biopsias.length} pac. · {new Date((r as any).timestamp || r.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>
+                              </div>
+                              <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                                {yaImpreso && <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-semibold">🖨 Impreso</span>}
+                                {matRecibido ? <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">📦 Recibido</span>
+                                  : <span className="text-xs bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">⏳ Espera</span>}
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      <div className="p-4 border-t border-gray-200 flex gap-2">
+                        <button onClick={() => setShowPrintModal(false)}
+                          className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50">Cancelar</button>
+                        <button onClick={executePrint} disabled={selectedCount === 0}
+                          className={`flex-1 py-2 rounded-lg text-white font-semibold text-sm ${selectedCount > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'}`}>
+                          🖨 Imprimir {selectedCount} remito{selectedCount !== 1 ? 's' : ''}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Solicitudes movidas a sección propia */}
               {(() => {

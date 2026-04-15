@@ -168,6 +168,10 @@ export interface AdminRemito {
   recibidoAt?: string;
   recibidoPor?: string;
   observacionRecepcion?: string;
+  materialRecibido?: boolean;
+  fechaMaterialRecibido?: string;
+  impreso?: boolean;
+  fechaImpreso?: string;
 }
 
 export interface AdminBiopsia {
