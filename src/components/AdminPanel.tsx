@@ -2453,47 +2453,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
                               db.saveNotification(newNotif).catch(console.error);
 
-                              // SINCRONIZAR con historial del médico
+                              // SINCRONIZAR con historial del médico (desde Supabase)
                               try {
                                 const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim();
                                 const remitoNum = (remito as any).remitoNumber || '';
                                 if (doctorEmail) {
-                                  const doctorKey = `doctor_${doctorEmail}`;
-                                  const historyKey = `${doctorKey}_history`;
-                                  const history = JSON.parse(localStorage.getItem(historyKey) || '{}');
-
-                                  let matched = false;
-                                  Object.keys(history).forEach(key => {
-                                    if (matched) return;
-                                    const entry = history[key];
-                                    if (!entry?.biopsies) return;
-                                    if (entry.remitoNumber === remitoNum || entry.id?.includes(remitoNum)) {
-                                      // Actualizar biopsias existentes
-                                      entry.biopsies.forEach((biopsy: any, i: number) => {
-                                        const edited = editingBiopsias[i];
-                                        if (edited) {
-                                          biopsy.cassettes = String(edited.cassettes ?? biopsy.cassettes);
-                                          biopsy.noVino = edited.noVino || false;
-                                          if (edited.servicios) biopsy.servicios = { ...biopsy.servicios, ...edited.servicios };
-                                        }
-                                      });
-                                      // Agregar pacientes nuevos (agregados por el lab)
-                                      for (let i = entry.biopsies.length; i < editingBiopsias.length; i++) {
-                                        const newB = editingBiopsias[i];
-                                        entry.biopsies.push({
-                                          number: newB.numero, tissueType: newB.tejido, type: newB.tipo || 'BX',
-                                          cassettes: String(newB.cassettes || 0), pieces: String(newB.trozos || newB.cassettes || 0),
-                                          servicios: newB.servicios || {}, agregadoPorLab: true,
-                                          noVino: newB.noVino || false
+                                  db.getDoctorHistory(doctorEmail).then(history => {
+                                    let matched = false;
+                                    Object.keys(history).forEach(key => {
+                                      if (matched) return;
+                                      const entry = history[key];
+                                      if (!entry?.biopsies) return;
+                                      if (entry.remitoNumber === remitoNum || entry.id?.includes(remitoNum)) {
+                                        // Actualizar biopsias existentes
+                                        entry.biopsies.forEach((biopsy: any, i: number) => {
+                                          const edited = editingBiopsias[i];
+                                          if (edited) {
+                                            biopsy.cassettes = String(edited.cassettes ?? biopsy.cassettes);
+                                            biopsy.noVino = edited.noVino || false;
+                                            if (edited.servicios) biopsy.servicios = { ...biopsy.servicios, ...edited.servicios };
+                                          }
                                         });
+                                        // Agregar pacientes nuevos (agregados por el lab)
+                                        for (let i = entry.biopsies.length; i < editingBiopsias.length; i++) {
+                                          const newB = editingBiopsias[i];
+                                          entry.biopsies.push({
+                                            number: newB.numero, tissueType: newB.tejido, type: newB.tipo || 'BX',
+                                            cassettes: String(newB.cassettes || 0), pieces: String(newB.trozos || newB.cassettes || 0),
+                                            servicios: newB.servicios || {}, agregadoPorLab: true,
+                                            noVino: newB.noVino || false
+                                          });
+                                        }
+                                        entry.totalCount = entry.biopsies.length;
+                                        matched = true;
+                                        db.saveDoctorHistoryEntry(doctorEmail, currentLabCode, entry).catch(console.error);
                                       }
-                                      entry.totalCount = entry.biopsies.length;
-                                      matched = true;
-                                      // Sincronizar a Supabase
-                                      db.saveDoctorHistoryEntry(doctorEmail, currentLabCode, entry).catch(console.error);
-                                    }
-                                  });
-                                  localStorage.setItem(historyKey, JSON.stringify(history));
+                                    });
+                                  }).catch(console.error);
                                 }
                               } catch (e) {
                                 console.error('Error sincronizando historial del médico:', e);
