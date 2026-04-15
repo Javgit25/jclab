@@ -52,17 +52,30 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
   // Cargar admin remitos desde Supabase para tiempos de procesamiento
   const [adminRemitosDB, setAdminRemitosDB] = useState<any[]>([]);
   useEffect(() => {
-    // Obtener labCode del doctor registrado
-    try {
-      const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
-      const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
-      const labCode = doc?.labCode || '';
-      if (labCode) {
-        db.getRemitos(labCode).then((remitos: any[]) => {
+    const loadAdminRemitos = async () => {
+      try {
+        // Intentar obtener labCode de localStorage
+        let labCode = '';
+        try {
+          const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+          const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
+          labCode = doc?.labCode || '';
+        } catch {}
+        // Fallback: buscar en Supabase
+        if (!labCode) {
+          try {
+            const docs = await db.getDoctors();
+            const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
+            labCode = (doc as any)?.labCode || '';
+          } catch {}
+        }
+        if (labCode) {
+          const remitos = await db.getRemitos(labCode);
           if (remitos && remitos.length > 0) setAdminRemitosDB(remitos);
-        }).catch(() => {});
-      }
-    } catch {}
+        }
+      } catch {}
+    };
+    loadAdminRemitos();
   }, [doctorInfo.email]);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; entryId: string | null }>({

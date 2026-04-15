@@ -1788,6 +1788,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               {!(remito as any).materialRecibido ? (
                                 <button onClick={() => { if (confirm(`¿Confirmar que el MATERIAL FÍSICO del remito de Dr/a. ${remito.medico} fue recibido en el laboratorio?`)) toggleMaterialRecibido(remito.id); }}
                                   className="bg-amber-500 hover:bg-amber-600 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">📦 RECIBIDO</button>
+                              ) : listasCount > 0 ? (
+                                <span className="text-xs text-emerald-600 font-bold px-2 py-1">📦 ✓</span>
                               ) : (
                                 <button onClick={() => { if (confirm(`¿Desmarcar material recibido del remito de Dr/a. ${remito.medico}?`)) toggleMaterialRecibido(remito.id); }}
                                   className="bg-gray-200 hover:bg-gray-300 text-gray-600 px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">↩ Desmarcar</button>
