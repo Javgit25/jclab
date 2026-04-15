@@ -467,11 +467,10 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                   onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fca5a5' }}>#{urg.numero}</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fca5a5' }}>Dr/a. {urg.medico}</span>
                     <span style={{ background: '#dc2626', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>{urg.tipo}</span>
                   </div>
-                  <div style={{ fontSize: '1rem', color: '#e2e8f0' }}>{urg.tejido}</div>
-                  <div style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '2px' }}>Dr/a. {urg.medico} · Remito #{urg.remitoNumber}</div>
+                  <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Pac. #{urg.numero} · {urg.tejido} · Remito #{urg.remitoNumber}</div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(urg.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>
                 </div>
               ))}
