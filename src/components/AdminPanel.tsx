@@ -1104,7 +1104,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
                   '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
                   '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
-                  '<td><strong>' + biopsia.numero + '</strong></td>' +
+                  '<td><strong>' + biopsia.numero + '</strong>' + (biopsia.numeroExterno ? ' <span style="color:#b45309;font-size:10px;">(Ext: ' + biopsia.numeroExterno + ')</span>' : '') + '</td>' +
                   '<td>' + biopsia.tejido + '</td>' +
                   '<td>' + tipoDisplay + '</td>' +
                   '<td>' + cantLabel + '</td>' +
