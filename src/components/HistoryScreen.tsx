@@ -1419,7 +1419,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           <td style={{ padding: '5px 4px' }}>
                             <span style={{ fontWeight: 700 }}>{b.number || '-'}</span>
                             {b.numeroExterno && <span style={{ color: '#b45309', fontSize: '7pt', marginLeft: '2px' }}>(Ext: {b.numeroExterno})</span>}
-                            {cassNums && <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{cassNums}</div>}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
