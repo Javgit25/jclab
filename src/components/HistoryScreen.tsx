@@ -889,7 +889,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (!hasAnyTime) return null;
 
                         return (
-                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
                             {tRecibido && (
                               <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#92400e', fontWeight: '600' }}>
                                 📦 Llegó al lab en {formatDiff(tRecibido.getTime() - tCargado.getTime())}
