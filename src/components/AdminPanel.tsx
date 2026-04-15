@@ -617,9 +617,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     });
   };
 
-  // Marcar material recibido en un remito
+  // Marcar material recibido en un remito + notificar al médico
   const toggleMaterialRecibido = (remitoId: string) => {
     setRemitos(prev => {
+      const remito = prev.find(r => r.id === remitoId);
+      const wasRecibido = remito?.materialRecibido;
       const updated = prev.map(r =>
         r.id === remitoId ? {
           ...r,
@@ -629,6 +631,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       );
       localStorage.setItem('adminRemitos', JSON.stringify(updated));
       db.saveRemitos(updated).catch(console.error);
+
+      // Notificar al médico solo cuando se MARCA como recibido (no al desmarcar)
+      if (!wasRecibido && remito) {
+        const nro = (remito as any).remitoNumber || remito.id.slice(-6).toUpperCase();
+        const labNombre = labConfig.nombre || 'Laboratorio';
+        const newNotif = {
+          id: `NOTIF_MATERIAL_${Date.now()}`,
+          remitoId: remito.id,
+          medicoEmail: (remito as any).doctorEmail || remito.email,
+          mensaje: `${labNombre} confirma que recibió el material de su remito #${nro} (${remito.biopsias.length} paciente${remito.biopsias.length !== 1 ? 's' : ''}).\nEl material está siendo procesado.`,
+          fecha: new Date().toISOString(),
+          leida: false,
+          tipo: 'material_recibido'
+        };
+        const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
+        notifications.push(newNotif);
+        localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
+        db.saveNotification(newNotif).catch(console.error);
+      }
+
       return updated;
     });
   };
@@ -1493,13 +1515,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               return tienePendientes(r);
             });
 
-            // Tiempo promedio de procesamiento
+            // Tiempo promedio total (carga → listo)
             const tiemposProc = listos.map(r => {
               const inicio = new Date((r as any).timestamp || r.fecha).getTime();
               const fin = new Date((r as any).listoAt || Date.now()).getTime();
               return (fin - inicio) / (1000 * 60 * 60);
             });
             const tiempoPromedio = tiemposProc.length > 0 ? Math.round(tiemposProc.reduce((a, b) => a + b, 0) / tiemposProc.length) : 0;
+
+            // Tiempo promedio de procesamiento en lab (recibido → listo)
+            const tiemposLab = listos.filter(r => (r as any).fechaMaterialRecibido && (r as any).listoAt).map(r => {
+              const recibido = new Date((r as any).fechaMaterialRecibido).getTime();
+              const listo = new Date((r as any).listoAt).getTime();
+              return (listo - recibido) / (1000 * 60 * 60);
+            });
+            const tiempoLab = tiemposLab.length > 0 ? Math.round(tiemposLab.reduce((a, b) => a + b, 0) / tiemposLab.length) : 0;
+
+            // Remitos esperando material
+            const esperanMaterial = enProceso.filter(r => !(r as any).materialRecibido).length;
 
             return (
             <div className="p-4 space-y-3 h-full overflow-auto">
@@ -1524,13 +1557,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               )}
 
               {/* KPIs compactos */}
-              <div className="grid grid-cols-5 gap-3">
+              <div className="grid grid-cols-4 gap-3">
                 {[
-                  { label: 'Total Remitos', value: remitos.length, icon: <FileText size={18} />, bg: '#1e40af' },
                   { label: 'En proceso', value: enProceso.length, icon: <Clock size={18} />, bg: '#d97706' },
+                  { label: 'Espera material', value: esperanMaterial, icon: <Package size={18} />, bg: '#9333ea' },
                   { label: 'Listos', value: listos.length, icon: <CheckCircle size={18} />, bg: '#059669' },
                   { label: 'Urgentes', value: urgentes.length, icon: <Activity size={18} />, bg: '#dc2626' },
-                  { label: 'Tiempo prom.', value: tiempoPromedio > 24 ? Math.round(tiempoPromedio / 24) + 'd' : tiempoPromedio + 'h', icon: <Clock size={18} />, bg: '#7c3aed' }
+                ].map((kpi, i) => (
+                  <div key={i} style={{ backgroundColor: kpi.bg }} className="rounded-xl p-3 text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xl font-bold">{kpi.value}</div>
+                        <div className="text-xs opacity-80">{kpi.label}</div>
+                      </div>
+                      <div className="opacity-60">{kpi.icon}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* KPIs de tiempos */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: 'Total remitos', value: remitos.length, icon: <FileText size={18} />, bg: '#1e40af' },
+                  { label: 'Tiempo total prom.', value: tiempoPromedio > 24 ? Math.round(tiempoPromedio / 24) + 'd' : tiempoPromedio + 'h', icon: <Clock size={18} />, bg: '#7c3aed' },
+                  { label: 'Tiempo lab prom.', value: tiemposLab.length > 0 ? (tiempoLab > 24 ? Math.round(tiempoLab / 24) + 'd' : tiempoLab + 'h') : 'S/D', icon: <Activity size={18} />, bg: '#0891b2' }
                 ].map((kpi, i) => (
                   <div key={i} style={{ backgroundColor: kpi.bg }} className="rounded-xl p-3 text-white">
                     <div className="flex items-center justify-between">

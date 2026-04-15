@@ -183,12 +183,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [modifAlert, setModifAlert] = useState<any>(null);
   const [shownAlertIds] = useState<Set<string>>(() => new Set());
   React.useEffect(() => {
-    const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida && !shownAlertIds.has(n.id));
+    const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida && !shownAlertIds.has(n.id));
     if (listoNotif && !listoAlert) {
       shownAlertIds.add(listoNotif.id);
       setListoAlert(listoNotif);
       // Marcar TODAS las no leídas como leídas inmediatamente en Supabase
-      notificationsData.filter(n => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida).forEach(n => {
+      notificationsData.filter(n => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida).forEach(n => {
         shownAlertIds.add(n.id);
         db.markNotificationRead(n.id).catch(() => {});
       });
@@ -2383,10 +2383,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 // Marcar TODAS las de listo/parcial como leídas
                 try {
                   const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                  const updated = all.map((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida ? { ...n, leida: true } : n);
+                  const updated = all.map((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida ? { ...n, leida: true } : n);
                   localStorage.setItem('doctorNotifications', JSON.stringify(updated));
                   // Sync todas a Supabase
-                  all.filter((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial') && !n.leida).forEach((n: any) => {
+                  all.filter((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida).forEach((n: any) => {
                     db.markNotificationRead(n.id).catch(() => {});
                   });
                   setNotificationsData(updated.filter((n: any) => n.medicoEmail === doctorInfo.email));
@@ -2495,7 +2495,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                       {!n.leida && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1e40af', flexShrink: 0 }} />}
-                      <span style={{ fontWeight: '600', color: n.tipo === 'listo' || n.tipo === 'parcial' ? '#059669' : '#1e40af', fontSize: '12px' }}>{n.tipo === 'listo' ? '✅ Listo para retirar' : n.tipo === 'parcial' ? '🟢 Material listo (parcial)' : '📝 Remito modificado por el Laboratorio'}</span>
+                      <span style={{ fontWeight: '600', color: n.tipo === 'listo' || n.tipo === 'parcial' ? '#059669' : n.tipo === 'material_recibido' ? '#d97706' : '#1e40af', fontSize: '12px' }}>{n.tipo === 'listo' ? '✅ Listo para retirar' : n.tipo === 'parcial' ? '🟢 Material listo (parcial)' : n.tipo === 'material_recibido' ? '📦 Material recibido en el laboratorio' : '📝 Remito modificado por el Laboratorio'}</span>
                     </div>
                     <div style={{ color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '11px' }}>{n.mensaje || n.message || 'Se realizaron cambios en un remito'}</div>
                     <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>

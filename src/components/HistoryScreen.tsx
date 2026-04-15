@@ -832,6 +832,55 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       ))}
                     </div>
 
+                    {/* Tracking de tiempos del remito */}
+                    {(() => {
+                      try {
+                        const adminRemitosAll = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+                        const entryRNT = (entry as any).remitoNumber;
+                        const adminR = adminRemitosAll.find((ar: any) =>
+                          ar.id === entry.id || ((ar as any).remitoNumber && (ar as any).remitoNumber === entryRNT)
+                        );
+                        if (!adminR) return null;
+                        const tCargado = new Date(entry.timestamp || entry.date);
+                        const tRecibido = adminR.fechaMaterialRecibido ? new Date(adminR.fechaMaterialRecibido) : null;
+                        const tListo = adminR.listoAt ? new Date(adminR.listoAt) : null;
+
+                        const formatDiff = (ms: number) => {
+                          const mins = Math.floor(ms / 60000);
+                          if (mins < 60) return `${mins} min`;
+                          const hrs = Math.floor(mins / 60);
+                          const remMins = mins % 60;
+                          if (hrs < 24) return `${hrs}h ${remMins}m`;
+                          const days = Math.floor(hrs / 24);
+                          const remHrs = hrs % 24;
+                          return `${days}d ${remHrs}h`;
+                        };
+
+                        const hasAnyTime = tRecibido || tListo;
+                        if (!hasAnyTime) return null;
+
+                        return (
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                            {tRecibido && (
+                              <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#92400e', fontWeight: '600' }}>
+                                📦 Recibido: {formatDiff(tRecibido.getTime() - tCargado.getTime())} después
+                              </div>
+                            )}
+                            {tRecibido && tListo && (
+                              <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#1e40af', fontWeight: '600' }}>
+                                ⚙️ Procesamiento: {formatDiff(tListo.getTime() - tRecibido.getTime())}
+                              </div>
+                            )}
+                            {tListo && (
+                              <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#166534', fontWeight: '600' }}>
+                                ✅ Total: {formatDiff(tListo.getTime() - tCargado.getTime())}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      } catch { return null; }
+                    })()}
+
                     {/* Detalle de modificaciones del laboratorio */}
                     {isModified && (() => {
                       try {
