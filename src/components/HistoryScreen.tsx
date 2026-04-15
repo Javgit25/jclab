@@ -893,22 +893,25 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (!hasAnyTime) return null;
 
                         return (
-                          <div style={{ display: 'flex', gap: '4px', marginBottom: '10px', flexWrap: 'wrap' }}>
-                            {tRecibido && (
-                              <div style={{ background: '#fef3c7', border: '1px solid #fbbf24', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#92400e', fontWeight: '600' }}>
-                                📦 Recibido: {formatDiff(tRecibido.getTime() - tCargado.getTime())} después
-                              </div>
-                            )}
-                            {tRecibido && tListo && (
-                              <div style={{ background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#1e40af', fontWeight: '600' }}>
-                                ⚙️ Procesamiento: {formatDiff(tListo.getTime() - tRecibido.getTime())}
-                              </div>
-                            )}
-                            {tListo && (
-                              <div style={{ background: '#dcfce7', border: '1px solid #86efac', borderRadius: '6px', padding: '3px 8px', fontSize: '10px', color: '#166534', fontWeight: '600' }}>
-                                ✅ Total: {formatDiff(tListo.getTime() - tCargado.getTime())}
-                              </div>
-                            )}
+                          <div style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '10px', padding: '10px', marginBottom: '10px' }}>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#475569', marginBottom: '8px' }}>⏱ Tiempos de procesamiento</div>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {tRecibido && (
+                                <div style={{ background: '#fef3c7', border: '1.5px solid #fbbf24', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#92400e', fontWeight: '700' }}>
+                                  📦 Recibido: {formatDiff(tRecibido.getTime() - tCargado.getTime())}
+                                </div>
+                              )}
+                              {tRecibido && tListo && (
+                                <div style={{ background: '#dbeafe', border: '1.5px solid #93c5fd', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#1e40af', fontWeight: '700' }}>
+                                  ⚙️ Lab: {formatDiff(tListo.getTime() - tRecibido.getTime())}
+                                </div>
+                              )}
+                              {tListo && (
+                                <div style={{ background: '#dcfce7', border: '1.5px solid #86efac', borderRadius: '8px', padding: '6px 10px', fontSize: '12px', color: '#166534', fontWeight: '700' }}>
+                                  ✅ Total: {formatDiff(tListo.getTime() - tCargado.getTime())}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       } catch { return null; }
