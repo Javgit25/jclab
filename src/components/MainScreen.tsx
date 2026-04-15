@@ -35,6 +35,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [showQRModal, setShowQRModal] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [adminTimesMap, setAdminTimesMap] = useState<Record<string, any>>({});
   const [viewingRemitoFromSearch, setViewingRemitoFromSearch] = useState<any>(null);
   const [searchFilters, setSearchFilters] = useState({
     query: '',
@@ -1298,6 +1299,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     }
   };
 
+  // Cargar tiempos de procesamiento cuando hay resultados de búsqueda
+  React.useEffect(() => {
+    if (searchResults.length === 0) return;
+    const rns = [...new Set(searchResults.map(r => r.remitoNumber).filter(Boolean))];
+    if (rns.length === 0) return;
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase.from('remitos').select('remito_number,material_recibido,fecha_material_recibido,listo_at,timestamp')
+        .in('remito_number', rns).then(({ data }) => {
+          if (data && data.length > 0) {
+            const map: Record<string, any> = {};
+            data.forEach((r: any) => { map[r.remito_number] = { materialRecibido: r.material_recibido, fechaMaterialRecibido: r.fecha_material_recibido, listoAt: r.listo_at, timestamp: r.timestamp }; });
+            setAdminTimesMap(map);
+          }
+        });
+    }).catch(() => {});
+  }, [searchResults]);
+
   // Función de búsqueda avanzada
   // Auto-buscar cuando cambian tissueType o hasServices
   const prevTissueRef = React.useRef(searchFilters.tissueType);
@@ -1328,7 +1346,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 ...biopsy,
                 date: entry.date,
                 timestamp: entry.timestamp || biopsy.timestamp,
-                remitoId: entry.id
+                remitoId: entry.id,
+                remitoNumber: entry.remitoNumber
               });
             });
           }
@@ -1336,7 +1355,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       } else {
         const historyKey = `${doctorInfo.name}_history`;
         const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-        
+
         Object.values(historyData).forEach((entry: any) => {
           if (entry.biopsies) {
             entry.biopsies.forEach((biopsy: any) => {
@@ -1344,7 +1363,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 ...biopsy,
                 date: entry.date,
                 timestamp: entry.timestamp || biopsy.timestamp,
-                remitoId: entry.id
+                remitoId: entry.id,
+                remitoNumber: entry.remitoNumber
               });
             });
           }
@@ -3380,6 +3400,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                             ))}
                           </div>
                         )}
+
+                        {/* Tiempos de procesamiento */}
+                        {result.remitoNumber && adminTimesMap[result.remitoNumber] && (() => {
+                          const at = adminTimesMap[result.remitoNumber];
+                          const tC = new Date(result.timestamp || result.date).getTime();
+                          const tR = at.fechaMaterialRecibido ? new Date(at.fechaMaterialRecibido).getTime() : null;
+                          const tL = at.listoAt ? new Date(at.listoAt).getTime() : null;
+                          if (!tR && !tL) return null;
+                          const fmt = (ms: number) => { const m = Math.floor(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); if (h < 24) return h + 'h ' + (m % 60) + 'm'; return Math.floor(h / 24) + 'd ' + (h % 24) + 'h'; };
+                          return (
+                            <div style={{ display: 'flex', gap: '4px', marginBottom: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                              {tR && <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#92400e', fontWeight: '600' }}>📦 Llegó al lab en {fmt(tR - tC)}</span>}
+                              {tR && tL && <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#1e40af', fontWeight: '600' }}>⚙️ Procesado en {fmt(tL - tR)}</span>}
+                              {tL && <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#166534', fontWeight: '600' }}>✅ Listo en {fmt(tL - tC)}</span>}
+                            </div>
+                          );
+                        })()}
 
                         {/* Footer: fecha + remito clickeable */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '6px', borderTop: '1px solid #f3f4f6' }}>

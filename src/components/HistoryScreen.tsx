@@ -889,7 +889,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (!hasAnyTime) return null;
 
                         return (
-                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
                             {tRecibido && (
                               <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#92400e', fontWeight: '600' }}>
                                 📦 Llegó al lab en {formatDiff(tRecibido.getTime() - tCargado.getTime())}
@@ -1362,8 +1362,8 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   if (!tR && !tL) return null;
                   const fmt2 = (ms: number) => { const m = Math.floor(ms / 60000); if (m < 60) return m + ' min'; const h = Math.floor(m / 60); if (h < 24) return h + 'h ' + (m % 60) + 'm'; return Math.floor(h / 24) + 'd ' + (h % 24) + 'h'; };
                   return (
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', marginBottom: '12px' }}>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', marginBottom: '12px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
                         {tR && <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#92400e', fontWeight: 700 }}>📦 Llegó al lab en {fmt2(tR - tC)}</span>}
                         {tR && tL && <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#1e40af', fontWeight: 700 }}>⚙️ Procesado en {fmt2(tL - tR)}</span>}
                         {tL && <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#166534', fontWeight: 700 }}>✅ Listo en {fmt2(tL - tC)}</span>}
