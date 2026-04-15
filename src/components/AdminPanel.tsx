@@ -2455,7 +2455,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
                               // SINCRONIZAR con historial del médico
                               try {
-                                const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
+                                const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim();
                                 const remitoNum = (remito as any).remitoNumber || '';
                                 if (doctorEmail) {
                                   const doctorKey = `doctor_${doctorEmail}`;

@@ -129,39 +129,30 @@ function App() {
   }, [generateDoctorKey]);
 
   // Función para cargar historial
-  const loadHistoryData = useCallback(() => {
-    if (!doctorInfo || !doctorInfo.email) {
-      console.log('App - loadHistoryData: No hay doctorInfo con email disponible');
-      return;
-    }
+  const loadHistoryData = useCallback(async () => {
+    if (!doctorInfo || !doctorInfo.email) return;
 
     const doctorKey = generateDoctorKey(doctorInfo.email);
     const historyKey = `${doctorKey}_history`;
-    console.log('App - loadHistoryData: Cargando historial con key:', historyKey);
-    
+
+    // Cargar de Supabase primero (fuente de verdad)
+    try {
+      const remoteHistory = await db.getDoctorHistory(doctorInfo.email);
+      if (remoteHistory && Object.keys(remoteHistory).length > 0) {
+        setHistoryData(remoteHistory);
+        return;
+      }
+    } catch {}
+
+    // Fallback: localStorage
     try {
       const savedHistory = localStorage.getItem(historyKey);
-      console.log('App - loadHistoryData: Datos raw del localStorage:', savedHistory);
-      
       if (savedHistory) {
-        const parsedHistory = JSON.parse(savedHistory);
-        console.log('App - loadHistoryData: Historial parseado:', parsedHistory);
-        console.log('App - loadHistoryData: Cantidad de entradas:', Object.keys(parsedHistory).length);
-        setHistoryData(parsedHistory);
+        setHistoryData(JSON.parse(savedHistory));
       } else {
-        console.log('App - loadHistoryData: No hay historial guardado, inicializando vacío');
         setHistoryData({});
       }
-
-      // Refresh from Supabase in background
-      db.getDoctorHistory(doctorInfo.email).then(remoteHistory => {
-        if (remoteHistory && Object.keys(remoteHistory).length > 0) {
-          console.log('App - loadHistoryData: Datos actualizados desde Supabase:', Object.keys(remoteHistory).length);
-          setHistoryData(remoteHistory);
-        }
-      }).catch(err => console.error('App - loadHistoryData: Error fetching from Supabase:', err));
-    } catch (error) {
-      console.error('App - loadHistoryData: Error al cargar historial:', error);
+    } catch {
       setHistoryData({});
     }
   }, [doctorInfo, generateDoctorKey]);
