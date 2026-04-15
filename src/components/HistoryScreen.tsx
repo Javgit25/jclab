@@ -753,7 +753,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   const n = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                   const entryRN = (entry as any).remitoNumber;
                   // Solo matchear por remitoNumber o ID exacto, no por fecha/cantidad
-                  return n.filter((x: any) => x.tipo !== 'listo' && x.tipo !== 'parcial').some((x: any) => {
+                  return n.filter((x: any) => x.tipo !== 'listo' && x.tipo !== 'parcial' && x.tipo !== 'material_recibido').some((x: any) => {
                     if (x.remitoId === entry.id) return true;
                     // Match por remitoNumber del admin remito
                     if (entryRN && x.remitoId) {
@@ -890,7 +890,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         const adminRemitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
                         const remitoNotifs = allNotifs
                           .filter((n: any) => {
-                            if (n.tipo === 'listo' || n.tipo === 'parcial') return false;
+                            if (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') return false;
                             if (n.remitoId === entry.id) return true;
                             const entryRN2 = (entry as any).remitoNumber;
                             if (entryRN2 && n.remitoId) {

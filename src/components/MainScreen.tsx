@@ -2349,20 +2349,26 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
         }}>
           <div style={{
-            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+            background: listoAlert.tipo === 'material_recibido'
+              ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+              : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
             borderRadius: '20px', padding: '32px', maxWidth: '380px', width: '100%',
             textAlign: 'center', color: 'white',
-            boxShadow: '0 25px 60px rgba(5, 150, 105, 0.4)',
+            boxShadow: listoAlert.tipo === 'material_recibido'
+              ? '0 25px 60px rgba(217, 119, 6, 0.4)'
+              : '0 25px 60px rgba(5, 150, 105, 0.4)',
             animation: 'pulse 2s infinite'
           }}>
             {(() => {
               const msg = listoAlert.mensaje || '';
+              const isMatRecibido = listoAlert.tipo === 'material_recibido';
               const isTaco = msg.includes('Taco/Cassette');
               const isProf = msg.includes('Profundización');
               const isServ = msg.includes('Servicio Adicional');
               const isSolicitud = isTaco || isProf || isServ;
-              const icon = isTaco ? '📦' : isProf ? '🔬' : isServ ? '➕' : '✅';
-              const titulo = isTaco ? 'Taco/Cassette' : isProf ? 'Profundización' : isServ ? 'Servicio Adicional' : 'Material Listo';
+              const icon = isMatRecibido ? '📦' : isTaco ? '📦' : isProf ? '🔬' : isServ ? '➕' : '✅';
+              const titulo = isMatRecibido ? 'Laboratorio recibió su material' : isTaco ? 'Taco/Cassette' : isProf ? 'Profundización' : isServ ? 'Servicio Adicional' : 'Material Listo';
+              const subtitulo = isMatRecibido ? 'Su material está siendo procesado' : isSolicitud ? 'Listo para retirar' : 'Listo para retirar';
               return (
                 <>
                   <div style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</div>
@@ -2370,10 +2376,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     {titulo}
                   </div>
                   <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
-                    {isSolicitud ? 'Listo para retirar' : 'Listo para retirar'}
+                    {subtitulo}
                   </div>
                   <div style={{ fontSize: '14px', opacity: 0.85, lineHeight: '1.5', marginBottom: '20px', whiteSpace: 'pre-line', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px' }}>
-                    {msg.replace(/.*listo para retirar!\n?/i, '').trim() || msg}
+                    {msg}
                   </div>
                 </>
               );
