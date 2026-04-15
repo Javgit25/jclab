@@ -2490,7 +2490,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         }
                                         entry.totalCount = entry.biopsies.length;
                                         matched = true;
-                                        db.saveDoctorHistoryEntry(doctorEmail, currentLabCode, entry).catch(console.error);
+                                        console.log('🔵 MATCH! Guardando entry con', entry.biopsies.length, 'biopsias, id:', entry.id);
+                                        db.saveDoctorHistoryEntry(doctorEmail, currentLabCode, entry).then(() => {
+                                          console.log('🔵 ✅ Guardado exitosamente en Supabase');
+                                        }).catch(e => console.error('🔵 ❌ Error guardando:', e));
                                       }
                                     });
                                   }).catch(console.error);
