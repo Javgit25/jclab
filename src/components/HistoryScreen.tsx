@@ -49,36 +49,36 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     } catch {}
   });
 
-  // Cargar admin remitos desde Supabase para tiempos de procesamiento
-  const [adminRemitosDB, setAdminRemitosDB] = useState<any[]>([]);
+  // Cargar tiempos de admin remitos desde Supabase directamente
+  const [adminTimesMap, setAdminTimesMap] = useState<Record<string, any>>({});
   useEffect(() => {
-    const loadAdminRemitos = async () => {
-      // Intentar obtener labCode de localStorage
-      let labCode = '';
+    const loadTimes = async () => {
       try {
-        const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
-        const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
-        labCode = doc?.labCode || '';
-      } catch {}
-      // Fallback: buscar en Supabase
-      if (!labCode) {
-        try {
-          const docs = await db.getDoctors();
-          const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
-          labCode = (doc as any)?.labCode || '';
-        } catch (e) { console.error('Error getDoctors:', e); }
-      }
-      console.log('📊 Tiempos - labCode:', labCode, 'email:', doctorInfo.email);
-      if (labCode) {
-        try {
-          const remitos = await db.getRemitos(labCode);
-          console.log('📊 Tiempos - remitos cargados:', remitos?.length, 'con material:', remitos?.filter((r: any) => r.materialRecibido).length);
-          if (remitos && remitos.length > 0) setAdminRemitosDB(remitos);
-        } catch (e) { console.error('Error getRemitos:', e); }
-      }
+        // Obtener todos los remitoNumbers del historial
+        const remitoNumbers = historyEntries.map(e => (e as any).remitoNumber).filter(Boolean);
+        if (remitoNumbers.length === 0) return;
+        // Query directo a Supabase por estos remitoNumbers
+        const { data } = await (await import('../lib/supabase')).supabase
+          .from('remitos')
+          .select('remito_number,material_recibido,fecha_material_recibido,listo_at,timestamp')
+          .in('remito_number', remitoNumbers);
+        if (data && data.length > 0) {
+          const map: Record<string, any> = {};
+          data.forEach((r: any) => {
+            map[r.remito_number] = {
+              materialRecibido: r.material_recibido,
+              fechaMaterialRecibido: r.fecha_material_recibido,
+              listoAt: r.listo_at,
+              timestamp: r.timestamp,
+            };
+          });
+          console.log('📊 Tiempos cargados para', Object.keys(map).length, 'remitos, con material:', Object.values(map).filter((v: any) => v.materialRecibido).length);
+          setAdminTimesMap(map);
+        }
+      } catch (e) { console.error('Error cargando tiempos:', e); }
     };
-    loadAdminRemitos();
-  }, [doctorInfo.email]);
+    loadTimes();
+  }, [historyEntries, doctorInfo.email]);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; entryId: string | null }>({
     isOpen: false,
@@ -867,13 +867,9 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     {/* Tracking de tiempos del remito */}
                     {(() => {
                       try {
-                        const adminRemitosAll = adminRemitosDB;
                         const entryRNT = (entry as any).remitoNumber;
-                        const adminR = adminRemitosAll.find((ar: any) =>
-                          ar.id === entry.id || ((ar as any).remitoNumber && (ar as any).remitoNumber === entryRNT)
-                        );
-                        if (!adminR) { console.log('📊 No match para', entryRNT, 'en', adminRemitosAll.length, 'remitos'); return null; }
-                        console.log('📊 Match!', entryRNT, 'materialRecibido:', adminR.materialRecibido, 'fechaMat:', adminR.fechaMaterialRecibido, 'listoAt:', adminR.listoAt);
+                        const adminR = entryRNT ? adminTimesMap[entryRNT] : null;
+                        if (!adminR) return null;
                         const tCargado = new Date(entry.timestamp || entry.date);
                         const tRecibido = adminR.fechaMaterialRecibido ? new Date(adminR.fechaMaterialRecibido) : null;
                         const tListo = adminR.listoAt ? new Date(adminR.listoAt) : null;
@@ -1361,11 +1357,8 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 {/* Tiempos de procesamiento en vista detalle */}
                 {(() => {
                   const entryRNT2 = (re as any).remitoNumber;
-                  const adminR2 = adminRemitosDB.find((ar: any) =>
-                    ar.id === re.id || ((ar as any).remitoNumber && (ar as any).remitoNumber === entryRNT2)
-                  );
-                  // Debug visible
-                  if (!adminR2) return <div style={{ background: '#fef2f2', border: '2px solid #dc2626', borderRadius: '8px', padding: '10px', marginBottom: '12px', fontSize: '11px', color: '#991b1b' }}>⚠️ Debug: No se encontró remito admin para #{entryRNT2}. DB tiene {adminRemitosDB.length} remitos. IDs: {adminRemitosDB.slice(0, 3).map((r: any) => r.remitoNumber).join(', ')}...</div>;
+                  const adminR2 = entryRNT2 ? adminTimesMap[entryRNT2] : null;
+                  if (!adminR2) return null;
                   const tC = new Date(re.timestamp || re.date).getTime();
                   const tR = adminR2.fechaMaterialRecibido ? new Date(adminR2.fechaMaterialRecibido).getTime() : null;
                   const tL = adminR2.listoAt ? new Date(adminR2.listoAt).getTime() : null;
