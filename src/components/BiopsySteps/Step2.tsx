@@ -17,6 +17,8 @@ interface Step2Props {
   onCitologiaUrgenteChange?: (urgente: boolean) => void;
   citologiaSubType?: string;
   onCitologiaSubTypeChange?: (subType: string) => void;
+  numeroExterno?: string;
+  onNumeroExternoChange?: (value: string) => void;
   onNext: () => void;
   onPrev: () => void;
   onFinishRemito?: () => void;
@@ -45,6 +47,8 @@ export const Step2: React.FC<Step2Props> = ({
   onCitologiaUrgenteChange,
   citologiaSubType = '',
   onCitologiaSubTypeChange,
+  numeroExterno = '',
+  onNumeroExternoChange,
   onNext,
   onPrev,
   onFinishRemito,
@@ -85,7 +89,7 @@ export const Step2: React.FC<Step2Props> = ({
   // Función para validar si el paso está completo
   const isStepValid = () => {
     if (!tissueType) return false;
-    
+
     // Para PAP y Citología, verificar que tengan cantidad > 0
     if (tissueType === 'PAP') {
       return papQuantity > 0;
@@ -93,7 +97,11 @@ export const Step2: React.FC<Step2Props> = ({
     if (tissueType === 'Citología') {
       return citologiaSubType !== '' && citologiaQuantity > 0;
     }
-    
+    // Para Taco en Consulta, requiere número externo
+    if (tissueType === 'Taco en Consulta') {
+      return numeroExterno.trim().length > 0;
+    }
+
     return true;
   };
 
@@ -701,6 +709,88 @@ export const Step2: React.FC<Step2Props> = ({
             </div>
           )}
 
+          {/* Configuración específica para Taco en Consulta */}
+          {tissueType === 'Taco en Consulta' && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              backgroundColor: '#fef3c7',
+              borderRadius: '16px',
+              border: '2px solid #f59e0b',
+              boxShadow: '0 8px 24px rgba(245, 158, 11, 0.15)'
+            }}>
+              <h3 style={{
+                fontSize: '16px',
+                fontWeight: 'bold',
+                color: '#92400e',
+                marginBottom: '12px',
+                textAlign: 'center'
+              }}>
+                📦 Taco en Consulta
+              </h3>
+
+              <p style={{
+                fontSize: '13px',
+                color: '#78350f',
+                marginBottom: '16px',
+                textAlign: 'center',
+                fontWeight: '500'
+              }}>
+                Ingrese el número externo con el que viene identificado el taco
+              </p>
+
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  Número Externo del Taco:
+                </label>
+                <div
+                  onClick={() => onOpenVirtualKeyboard('full', 'numeroExterno', numeroExterno)}
+                  style={{
+                    width: '100%',
+                    padding: '16px',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    borderRadius: '12px',
+                    border: numeroExterno ? '3px solid #f59e0b' : '3px solid #d1d5db',
+                    backgroundColor: numeroExterno ? '#fffbeb' : 'white',
+                    color: numeroExterno ? '#92400e' : '#6b7280',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    outline: 'none',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center'
+                  }}
+                >
+                  {numeroExterno || '🖱️ Toque para ingresar número externo...'}
+                </div>
+              </div>
+
+              {numeroExterno && (
+                <div style={{
+                  padding: '8px',
+                  backgroundColor: '#f0fdf4',
+                  border: '1px solid #22c55e',
+                  borderRadius: '8px',
+                  textAlign: 'center',
+                  fontSize: '12px',
+                  color: '#065f46',
+                  fontWeight: '600'
+                }}>
+                  ✓ Número externo: {numeroExterno}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Botón fijo en la parte inferior */}
           <div style={{ 
             marginTop: '20px', 
@@ -753,6 +843,8 @@ export const Step2: React.FC<Step2Props> = ({
                   {!tissueType ? 'Seleccione un tipo de tejido' :
                    (tissueType === 'PAP' && papQuantity === 0) ? 'Especifique cantidad de PAP' :
                    (tissueType === 'Citología' && citologiaQuantity === 0) ? 'Especifique cantidad de Citología' :
+                   (tissueType === 'Taco en Consulta' && !numeroExterno.trim()) ? 'Ingrese el número externo' :
+                   tissueType === 'Taco en Consulta' ? 'Continuar a Cantidad de Material' :
                    'Continuar al Tipo de Biopsia'}
                 </span>
                 {isStepValid() && <ArrowRight style={{ height: '24px', width: '24px' }} />}

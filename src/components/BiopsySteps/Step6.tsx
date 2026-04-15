@@ -32,9 +32,11 @@ export const Step6: React.FC<Step6Props> = ({
   onServicioFieldChange,
   onNext,
   onPrev,
+  tissueType,
   onFinishRemito,
   todayBiopsiesCount
 }) => {
+  const isTacoConsulta = tissueType === 'Taco en Consulta';
   // Estado para cassettes seleccionados por servicio
   const [selectedCassettesIHQ, setSelectedCassettesIHQ] = useState<number[]>([]);
   const [selectedCassettesComun, setSelectedCassettesComun] = useState<number[]>([]);
@@ -907,8 +909,8 @@ export const Step6: React.FC<Step6Props> = ({
           </div>
 
 
-          {/* INCLUYE CITOLOGÍA */}
-          <div style={{
+          {/* INCLUYE CITOLOGÍA - oculto para Taco en Consulta */}
+          {!isTacoConsulta && <div style={{
             background: servicios.incluyeCitologia ? '#f5f3ff' : 'white',
             border: `2px solid ${servicios.incluyeCitologia ? '#7c3aed' : '#e5e7eb'}`,
             borderRadius: '12px', padding: '14px', marginTop: '12px',
@@ -977,7 +979,7 @@ export const Step6: React.FC<Step6Props> = ({
                 )}
               </div>
             )}
-          </div>
+          </div>}
 
           {/* Validación: si hay servicios con 2+ cassettes, deben seleccionar a cuáles */}
           {(() => {

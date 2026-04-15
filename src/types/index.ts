@@ -135,6 +135,7 @@ export interface BiopsyForm {
   quedaMaterial?: boolean;     // Si queda material sin procesar
   entregarConTaco?: boolean;   // Si se solicita devolver tacos/cassettes
   tacosSeleccionados?: number[]; // Índices de cassettes a devolver (vacío = todos)
+  numeroExterno?: string;       // Número externo del taco (para Taco en Consulta)
 }
 
 export interface VirtualKeyboard {

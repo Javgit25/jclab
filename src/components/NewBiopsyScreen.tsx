@@ -384,6 +384,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         handlePapQuantityChange(parseInt(newValue) || 0);
       } else if (prev.targetField === 'citologiaQuantity') {
         handleCitologiaQuantityChange(parseInt(newValue) || 0);
+      } else if (prev.targetField === 'numeroExterno') {
+        setBiopsyForm(f => ({ ...f, numeroExterno: newValue }));
       } else if (prev.targetField.startsWith('cassetteSuffix_')) {
         const index = parseInt(prev.targetField.split('_')[1]);
         updateCassetteSuffix(index, newValue);
@@ -511,7 +513,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       papQuantity: 0,
       papUrgente: false,
       citologiaQuantity: 0,
-      citologiaUrgente: false
+      citologiaUrgente: false,
+      numeroExterno: ''
     });
     setCurrentStep(1);
   }, [biopsyForm.tissueType, generateFinalBiopsy, onSaveBiopsy, onUpdateFrequentTissues]);
@@ -519,6 +522,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   // ✅ FUNCIÓN HELPER PARA DETERMINAR SI ES PAP O CITOLOGÍA
   const isPapOrCitologia = useCallback(() => {
     return biopsyForm.tissueType === 'PAP' || biopsyForm.tissueType === 'Citología';
+  }, [biopsyForm.tissueType]);
+
+  // Helper para Taco en Consulta
+  const isTacoConsulta = useCallback(() => {
+    return biopsyForm.tissueType === 'Taco en Consulta';
   }, [biopsyForm.tissueType]);
 
   // ✅ FUNCIÓN MEJORADA PARA VALIDACIÓN Y NAVEGACIÓN CON FLUJO ESPECIAL
@@ -545,8 +553,19 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         setCurrentStep(7);
         return;
       }
+
+      // Taco en Consulta: validar número externo y saltar Step3 → ir a Step4
+      if (isTacoConsulta()) {
+        if (!biopsyForm.numeroExterno || !biopsyForm.numeroExterno.trim()) {
+          alert('❌ Error: Debe ingresar el número externo del taco');
+          return;
+        }
+        console.log('🎯 Flujo Taco en Consulta: Step2 → Step4');
+        setCurrentStep(4);
+        return;
+      }
     }
-    
+
     if (currentStep === 4) {
       const isPapOrCitologiaFlow = isPapOrCitologia();
       if (isPapOrCitologiaFlow) {
@@ -554,23 +573,35 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         setCurrentStep(6);
         return;
       }
+      // Taco en Consulta: saltar Step5 → ir a Step6
+      if (isTacoConsulta()) {
+        console.log('🎯 Flujo Taco en Consulta: Step4 → Step6');
+        setCurrentStep(6);
+        return;
+      }
     }
-    
+
     if (currentStep < 7) {
       setCurrentStep(currentStep + 1);
     }
-  }, [currentStep, biopsyForm.tissueType, biopsyForm.papQuantity, biopsyForm.citologiaQuantity, isPapOrCitologia]);
+  }, [currentStep, biopsyForm.tissueType, biopsyForm.papQuantity, biopsyForm.citologiaQuantity, biopsyForm.numeroExterno, isPapOrCitologia, isTacoConsulta]);
 
   const prevStep = useCallback(() => {
     console.log('⬅️ prevStep called', { currentStep, tissueType: biopsyForm.tissueType, isPapOrCitologia: isPapOrCitologia() });
-    
+
     // ✅ FLUJO ESPECIAL: Si estamos en Step 7 y es PAP/Citología, volver a Step 2
     if (currentStep === 7 && isPapOrCitologia()) {
       console.log('🎯 Flujo especial: Desde Step 7 PAP/Citología volver a Step 2');
       setCurrentStep(2);
       return;
     }
-    
+
+    // Taco en Consulta: Step7 → Step6
+    if (currentStep === 7 && isTacoConsulta()) {
+      setCurrentStep(6);
+      return;
+    }
+
     // Lógica especial para volver en PAP/Citología (caso normal)
     if (currentStep === 4) {
       const isPapOrCitologiaFlow = isPapOrCitologia();
@@ -579,12 +610,22 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         setCurrentStep(2);
         return;
       }
+      // Taco en Consulta: Step4 → Step2 (saltar Step3)
+      if (isTacoConsulta()) {
+        setCurrentStep(2);
+        return;
+      }
     }
-    
+
     if (currentStep === 6) {
       const isPapOrCitologiaFlow = isPapOrCitologia();
       if (isPapOrCitologiaFlow) {
         // Volver a Step4 (saltar Step5)
+        setCurrentStep(4);
+        return;
+      }
+      // Taco en Consulta: Step6 → Step4 (saltar Step5)
+      if (isTacoConsulta()) {
         setCurrentStep(4);
         return;
       }
@@ -593,7 +634,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
-  }, [currentStep, biopsyForm.tissueType, isPapOrCitologia]);
+  }, [currentStep, biopsyForm.tissueType, isPapOrCitologia, isTacoConsulta]);
 
   return (
     <div className="h-screen bg-gray-50" style={{ display: 'flex', flexDirection: 'column', position: 'relative' }}>
@@ -632,6 +673,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onCitologiaUrgenteChange={handleCitologiaUrgenteChange}
             citologiaSubType={biopsyForm.citologiaSubType || ''}
             onCitologiaSubTypeChange={handleCitologiaSubTypeChange}
+            numeroExterno={biopsyForm.numeroExterno || ''}
+            onNumeroExternoChange={(value) => setBiopsyForm(prev => ({ ...prev, numeroExterno: value }))}
             onNext={nextStep}
             onPrev={prevStep}
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
@@ -645,8 +688,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
         
-        {/* ✅ STEP 3 - NO SE MUESTRA PARA PAP/CITOLOGÍA */}
-        {currentStep === 3 && !isPapOrCitologia() && (
+        {/* ✅ STEP 3 - NO SE MUESTRA PARA PAP/CITOLOGÍA NI TACO EN CONSULTA */}
+        {currentStep === 3 && !isPapOrCitologia() && !isTacoConsulta() && (
           <Step3
             type={biopsyForm.type}
             onTypeChange={(value) => handleBiopsyChange('type', value)}
@@ -657,7 +700,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
         
-        {/* ✅ STEP 4 - SOLO SE MUESTRA PARA CASOS NORMALES */}
+        {/* ✅ STEP 4 - SE MUESTRA PARA CASOS NORMALES Y TACO EN CONSULTA */}
         {currentStep === 4 && !isPapOrCitologia() && (
           <Step4
             cassettes={biopsyForm.cassettes}
@@ -679,8 +722,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
 
-        {/* ✅ STEP 5 - NO SE MUESTRA PARA PAP/CITOLOGÍA */}
-        {currentStep === 5 && !isPapOrCitologia() && (
+        {/* ✅ STEP 5 - NO SE MUESTRA PARA PAP/CITOLOGÍA NI TACO EN CONSULTA */}
+        {currentStep === 5 && !isPapOrCitologia() && !isTacoConsulta() && (
           <Step5
             declassify={biopsyForm.declassify}
             onDeclassifyChange={(value) => handleBiopsyChange('declassify', value)}
@@ -691,7 +734,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
         
-        {/* ✅ STEP 6 - NO SE MUESTRA PARA PAP/CITOLOGÍA - CON PROP CORREGIDA */}
+        {/* ✅ STEP 6 - NO SE MUESTRA PARA PAP/CITOLOGÍA - SÍ PARA TACO EN CONSULTA */}
         {currentStep === 6 && !isPapOrCitologia() && (
           <Step6
             servicios={biopsyForm.servicios}

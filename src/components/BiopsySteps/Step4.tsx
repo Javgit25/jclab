@@ -223,6 +223,7 @@ export const Step4: React.FC<Step4Props> = ({
 }) => {
   // Determinar si es PAP o Citología para manejo especial
   const isPapOrCitologia = tissueType === 'PAP' || tissueType === 'Citología';
+  const isTacoConsulta = tissueType === 'Taco en Consulta';
   const materialType = isPapOrCitologia ? 'Vidrios' : 'Cassettes';
 
   // Auto-inicializar trozos cuando hay 2+ cassettes y pieces está vacío
@@ -237,7 +238,9 @@ export const Step4: React.FC<Step4Props> = ({
     }
   }, [cassettes]);
 
-  const isValid = cassettes && parseInt(cassettes) > 0 && pieces && parseInt(pieces) > 0;
+  const isValid = isTacoConsulta
+    ? cassettes && parseInt(cassettes) > 0
+    : cassettes && parseInt(cassettes) > 0 && pieces && parseInt(pieces) > 0;
 
   return (
     <div style={{
@@ -395,8 +398,8 @@ export const Step4: React.FC<Step4Props> = ({
                 onOpenKeyboard={() => onOpenVirtualKeyboard('numeric', 'cassettes', cassettes)}
               />
 
-              {/* Trozos: si 1 cassette = input global, si 2+ = por cassette */}
-              {(!cassettes || parseInt(cassettes) <= 1) && (
+              {/* Trozos: si 1 cassette = input global, si 2+ = por cassette (oculto para Taco en Consulta) */}
+              {!isTacoConsulta && (!cassettes || parseInt(cassettes) <= 1) && (
                 <TouchNumericInput
                   label="Número de Trozos"
                   value={pieces}
@@ -409,8 +412,8 @@ export const Step4: React.FC<Step4Props> = ({
               )}
             </div>
 
-            {/* Trozos por cassette + Queda Material - cuando hay 2+ cassettes */}
-            {!isPapOrCitologia && cassettes && parseInt(cassettes) >= 2 && (
+            {/* Trozos por cassette + Queda Material - cuando hay 2+ cassettes (oculto para Taco en Consulta) */}
+            {!isPapOrCitologia && !isTacoConsulta && cassettes && parseInt(cassettes) >= 2 && (
               <div style={{ marginBottom: '8px', backgroundColor: '#f0f4ff', borderRadius: '10px', padding: '10px', border: '2px solid #1e3a5f20' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f' }}>Trozos por Cassette</span>
@@ -438,8 +441,8 @@ export const Step4: React.FC<Step4Props> = ({
               </div>
             )}
 
-            {/* Cassettes individuales - Solo si no es PAP o Citología Y hay 2 o más cassettes */}
-            {!isPapOrCitologia && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
+            {/* Cassettes individuales - Solo si no es PAP o Citología ni Taco en Consulta Y hay 2 o más cassettes */}
+            {!isPapOrCitologia && !isTacoConsulta && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
               <div style={{ marginBottom: '12px' }}>
                 <h3 style={{
                   fontSize: '14px',
@@ -565,12 +568,12 @@ export const Step4: React.FC<Step4Props> = ({
                 fontWeight: '600'
               }}>
                 <span>📋 {materialType}: {cassettes}</span>
-                <span>Trozos: {pieces}</span>
+                {!isTacoConsulta && <span>Trozos: {pieces}</span>}
               </div>
             )}
 
-            {/* Checkbox Queda Material — al final */}
-            {!isPapOrCitologia && cassettes && parseInt(cassettes) >= 1 && (
+            {/* Checkbox Queda Material — al final (oculto para Taco en Consulta) */}
+            {!isPapOrCitologia && !isTacoConsulta && cassettes && parseInt(cassettes) >= 1 && (
               <div style={{ marginBottom: '8px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: quedaMaterial ? '#fef3c7' : '#f9fafb', border: `2px solid ${quedaMaterial ? '#f59e0b' : '#e5e7eb'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={quedaMaterial} onChange={(e) => onQuedaMaterialChange?.(e.target.checked)}
