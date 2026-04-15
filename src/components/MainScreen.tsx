@@ -3579,7 +3579,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     {bios.map((b: any, i: number) => {
                       const isPAP = b.tissueType === 'PAP';
                       const isCito = b.tissueType === 'Citología';
-                      const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : b.type === 'PQ' ? 'PQ' : 'BX';
+                      const tipo = isPAP ? 'PAP' : isCito ? (b.citologiaSubType || 'Cito') : (b.type === 'TC' || b.tissueType === 'Taco en Consulta') ? 'TACO' : b.type === 'PQ' ? 'PQ' : 'BX';
                       const sv = b.servicios || {};
                       const isUrgent = sv.cassetteUrgente || sv.papUrgente || sv.citologiaUrgente;
                       const services: string[] = [];
@@ -3603,7 +3603,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         <React.Fragment key={i}>
                         <tr style={{ background: rowBg, borderLeft: isUrgent ? '3px solid #dc2626' : 'none', borderBottom: hasExtra ? 'none' : '1px solid #e2e8f0' }}>
                           <td style={{ padding: '5px 4px', fontWeight: 600, color: '#94a3b8', fontSize: '8pt' }}>{i + 1}</td>
-                          <td style={{ padding: '5px 4px' }}><span style={{ fontWeight: 700 }}>{b.number || '-'}</span>{cassNums && <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{cassNums}</div>}</td>
+                          <td style={{ padding: '5px 4px' }}><span style={{ fontWeight: 700 }}>{b.number || '-'}</span>{b.numeroExterno && <span style={{ color: '#b45309', fontSize: '7pt', marginLeft: '2px' }}>(Ext: {b.numeroExterno})</span>}{cassNums && <div style={{ fontSize: '7pt', color: '#94a3b8' }}>{cassNums}</div>}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}><span style={{ background: tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span></td>
                           <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>

@@ -192,6 +192,7 @@ export interface AdminBiopsia {
   };
   papQuantity: number;
   citologiaQuantity: number;
+  numeroExterno?: string;
 }
 
 export interface Configuracion {

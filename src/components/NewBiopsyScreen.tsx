@@ -101,6 +101,16 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           updated.citologiaQuantity = 0;
           updated.citologiaUrgente = false;
         }
+        // Auto-asignar tipo TC para Taco en Consulta
+        if (value === 'Taco en Consulta') {
+          updated.type = 'TC';
+        } else if (updated.type === 'TC') {
+          updated.type = '';
+        }
+        // Limpiar número externo si cambia de tejido
+        if (value !== 'Taco en Consulta') {
+          updated.numeroExterno = '';
+        }
       }
       
       // Lógica existente para cassettes...

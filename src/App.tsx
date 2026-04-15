@@ -519,7 +519,8 @@ function App() {
             trozoPorCassette: biopsy.trozoPorCassette || [],
             quedaMaterial: biopsy.quedaMaterial || false,
             entregarConTaco: biopsy.entregarConTaco || false,
-            tacosSeleccionados: biopsy.tacosSeleccionados || []
+            tacosSeleccionados: biopsy.tacosSeleccionados || [],
+            numeroExterno: biopsy.numeroExterno || ''
           };
         }),
         estado: 'pendiente',

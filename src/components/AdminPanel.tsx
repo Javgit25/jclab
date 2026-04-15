@@ -41,6 +41,7 @@ interface AdminBiopsia {
   };
   papQuantity: number;
   citologiaQuantity: number;
+  numeroExterno?: string;
 }
 
 interface Configuracion {
@@ -1025,8 +1026,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             ${[...remitosDelMedico].sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime()).map(remito =>
               remito.biopsias.map((biopsia: any) => {
                 const citoSub = (biopsia as any).citologiaSubType || '';
-                const tipo = biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
-                const bc = tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
+                const tipo = biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
+                const bc = tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
 
                 const svcs: string[] = [];
                 if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
@@ -1558,7 +1559,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         const biopsia = remito.biopsias[idx];
                         const esPAP = biopsia.tejido === 'PAP' || (biopsia.papQuantity || 0) > 0;
                         const esCito = biopsia.tejido === 'Citología' || (biopsia.citologiaQuantity || 0) > 0;
-                        const tipoB = esPAP ? 'PAP' : esCito ? ((biopsia as any).citologiaSubType || 'Citología') : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
+                        const tipoB = esPAP ? 'PAP' : esCito ? ((biopsia as any).citologiaSubType || 'Citología') : (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : 'BX';
                         if (valor) {
                           const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                           let newNotif: any;
@@ -1688,7 +1689,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   const esPAP = b.tejido === 'PAP' || (b.papQuantity || 0) > 0;
                                   const esCito = b.tejido === 'Citología' || (b.citologiaQuantity || 0) > 0;
                                   const citoST = (b as any).citologiaSubType || '';
-                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Cito') : b.tipo === 'PQ' ? 'PQ' : 'BX';
+                                  const tipo = esPAP ? 'PAP' : esCito ? (citoST || 'Cito') : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : 'BX';
                                   const cass = parseInt(String(b.cassettes)) || 0;
                                   const esUrgente = biopsiaEsUrgente(b);
                                   const estaLista = biopsiaListas[bi] || false;
@@ -1727,10 +1728,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           {estaLista && <CheckCircle size={12} />}
                                         </button>
                                       </td>
-                                      <td className="py-1.5 px-2 font-semibold text-gray-800">#{b.numero}</td>
+                                      <td className="py-1.5 px-2 font-semibold text-gray-800">#{b.numero}{b.numeroExterno ? <span className="text-amber-600 text-xs ml-1">(Ext: {b.numeroExterno})</span> : null}</td>
                                       <td className="py-1.5 px-2 text-gray-700">{esCito && citoST ? `Citología (${citoST})` : b.tejido}</td>
                                       <td className="py-1.5 px-2 text-center">
-                                        <span className={`px-1.5 py-0.5 rounded font-bold text-xs ${esUrgente ? 'bg-red-600 text-white' : esPAP ? 'bg-purple-100 text-purple-700' : esCito ? 'bg-indigo-100 text-indigo-700' : tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>{tipo}</span>
+                                        <span className={`px-1.5 py-0.5 rounded font-bold text-xs ${esUrgente ? 'bg-red-600 text-white' : esPAP ? 'bg-purple-100 text-purple-700' : esCito ? 'bg-indigo-100 text-indigo-700' : tipo === 'TACO' ? 'bg-amber-100 text-amber-700' : tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'}`}>{tipo}</span>
                                       </td>
                                       <td className="py-1.5 px-2 text-center font-bold">{cant}</td>
                                       <td className="py-1.5 px-2 text-center">
@@ -1871,10 +1872,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               tacoInfo = '<div style="margin-top:3px;"><span class="taco">📦 Devolver todos los tacos</span></div>';
                             }
                           }
+                          const isTaco = b.tipo === 'TC' || b.tejido === 'Taco en Consulta';
+                          const numExtLabel = b.numeroExterno ? ' <span style="color:#b45309;font-size:5.5pt;">(Ext: ' + b.numeroExterno + ')</span>' : '';
                           return `<tr class="${isUrgent ? 'urgent' : ''}">
-                            <td class="num">${b.numero||i+1}</td>
+                            <td class="num">${b.numero||i+1}${numExtLabel}</td>
                             <td>${b.tejido||'-'}${tacoInfo}</td>
-                            <td style="text-align:center"><span class="tipo-badge" style="background:${isPAP?'#7c3aed':isCito?'#475569':b.tipo==='PQ'?'#c2410c':'#166534'}">${isPAP?'PAP':isCito?citoLabel:b.tipo||'BX'}</span></td>
+                            <td style="text-align:center"><span class="tipo-badge" style="background:${isPAP?'#7c3aed':isCito?'#475569':isTaco?'#d97706':b.tipo==='PQ'?'#c2410c':'#166534'}">${isPAP?'PAP':isCito?citoLabel:isTaco?'TACO':b.tipo||'BX'}</span></td>
                             <td class="cant">${cant}</td>
                             <td style="text-align:center">${trozosDetalle ? '<div style="font-weight:700;font-size:10pt;">' + totalTrozos + '</div><div class="trozos-detail">' + trozosDetalle + '</div>' : totalTrozos}</td>
                             <td class="svc">${svc.length > 0 ? svc.map(s => s.includes('URGENTE') ? '<span class="svc-urgent">' + s + '</span>' : s).join(' · ') : '<span style="color:#bbb">—</span>'}</td>
@@ -2209,12 +2212,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               const isPapCito = biopsia.tejido === 'PAP' || biopsia.tejido === 'Citología';
                               return (
                               <tr key={index} className={`border-b border-gray-100 ${isPapCito ? 'bg-gray-50/50' : ''}`}>
-                                <td className="py-2 px-3 font-bold text-blue-600 text-xs">#{biopsia.numero}</td>
+                                <td className="py-2 px-3 font-bold text-blue-600 text-xs">#{biopsia.numero}{biopsia.numeroExterno ? <span className="text-amber-600 ml-1">(Ext: {biopsia.numeroExterno})</span> : null}</td>
                                 <td className="py-2 px-3 text-xs">{biopsia.tejido}</td>
                                 <td className="py-2 px-3">
                                   <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                    biopsia.tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : biopsia.tejido === 'PAP' ? 'bg-pink-100 text-pink-700' : biopsia.tejido === 'Citología' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
-                                  }`}>{biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? ((biopsia as any).citologiaSubType || 'CITO') : 'BX'}</span>
+                                    (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'bg-amber-100 text-amber-700' : biopsia.tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : biopsia.tejido === 'PAP' ? 'bg-pink-100 text-pink-700' : biopsia.tejido === 'Citología' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
+                                  }`}>{(biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? ((biopsia as any).citologiaSubType || 'CITO') : 'BX'}</span>
                                 </td>
                                 <td className="py-2 px-3 text-center">
                                   {isPapCito ? (
@@ -2670,8 +2673,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
                                     // Generar HTML compacto para email (< 50KB)
                                     const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
-                                      const tipo = b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
-                                      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
+                                      const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
+                                      const numExt = b.numeroExterno ? ' <span style="color:#b45309;">(Ext: ' + b.numeroExterno + ')</span>' : '';
+                                      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + numExt + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
                                     })).join('');
 
                                     const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +

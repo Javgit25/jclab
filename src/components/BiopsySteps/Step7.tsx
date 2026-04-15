@@ -292,9 +292,14 @@ export const Step7: React.FC<Step7Props> = ({
                   margin: '0'
                 }}>
                   #{biopsyForm.number}
+                  {biopsyForm.numeroExterno && (
+                    <span style={{ fontSize: '14px', color: '#d97706', marginLeft: '8px', fontWeight: '600' }}>
+                      (Ext: {biopsyForm.numeroExterno})
+                    </span>
+                  )}
                 </p>
               </div>
-              
+
               {/* Tipo de tejido */}
               <div>
                 <p style={{
@@ -338,10 +343,10 @@ export const Step7: React.FC<Step7Props> = ({
                   <p style={{
                     fontSize: '16px',
                     fontWeight: '600',
-                    color: '#1f2937',
+                    color: biopsyForm.type === 'TC' ? '#d97706' : '#1f2937',
                     margin: '0'
                   }}>
-                    {biopsyForm.type}
+                    {biopsyForm.type === 'TC' ? 'TACO CONSULTA' : biopsyForm.type}
                   </p>
                 </div>
               )}
