@@ -890,20 +890,19 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
 
                         return (
                           <div style={{ display: 'flex', gap: '4px', marginBottom: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                            <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '600' }}>⏱</span>
                             {tRecibido && (
                               <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#92400e', fontWeight: '600' }}>
-                                📦 {formatDiff(tRecibido.getTime() - tCargado.getTime())}
+                                📦 Llegó al lab en {formatDiff(tRecibido.getTime() - tCargado.getTime())}
                               </span>
                             )}
                             {tRecibido && tListo && (
                               <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#1e40af', fontWeight: '600' }}>
-                                ⚙️ {formatDiff(tListo.getTime() - tRecibido.getTime())}
+                                ⚙️ Procesado en {formatDiff(tListo.getTime() - tRecibido.getTime())}
                               </span>
                             )}
                             {tListo && (
                               <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: '#166534', fontWeight: '600' }}>
-                                ✅ {formatDiff(tListo.getTime() - tCargado.getTime())}
+                                ✅ Listo en {formatDiff(tListo.getTime() - tCargado.getTime())}
                               </span>
                             )}
                           </div>
@@ -1365,10 +1364,9 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   return (
                     <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 10px', marginBottom: '12px' }}>
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ fontSize: '9pt', color: '#64748b', fontWeight: 600 }}>⏱ Tiempos:</span>
-                        {tR && <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#92400e', fontWeight: 700 }}>📦 Recibido: {fmt2(tR - tC)}</span>}
-                        {tR && tL && <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#1e40af', fontWeight: 700 }}>⚙️ Lab: {fmt2(tL - tR)}</span>}
-                        {tL && <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#166534', fontWeight: 700 }}>✅ Total: {fmt2(tL - tC)}</span>}
+                        {tR && <span style={{ background: '#fef3c7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#92400e', fontWeight: 700 }}>📦 Llegó al lab en {fmt2(tR - tC)}</span>}
+                        {tR && tL && <span style={{ background: '#dbeafe', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#1e40af', fontWeight: 700 }}>⚙️ Procesado en {fmt2(tL - tR)}</span>}
+                        {tL && <span style={{ background: '#dcfce7', borderRadius: '4px', padding: '3px 8px', fontSize: '8pt', color: '#166534', fontWeight: 700 }}>✅ Listo en {fmt2(tL - tC)}</span>}
                       </div>
                     </div>
                   );
