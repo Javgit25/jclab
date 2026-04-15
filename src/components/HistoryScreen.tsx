@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Printer, Calendar, FileText, Trash2, Send, CheckCircle, Edit2, X, Plus, Save, Activity, Clock } from 'lucide-react';
 import { BiopsyForm, DoctorInfo, HistoryEntry } from '../types';
 import { serviciosAdicionales, giemsaOptions } from '../constants/services';
+import * as db from '../lib/database';
 import { getPrinterConfig, isPrinterConfigured, sendToPrinter, showPrintDialog } from '../utils/printer';
 
 interface HistoryScreenProps {
@@ -47,6 +48,22 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
       }
     } catch {}
   });
+
+  // Cargar admin remitos desde Supabase para tiempos de procesamiento
+  const [adminRemitosDB, setAdminRemitosDB] = useState<any[]>([]);
+  useEffect(() => {
+    // Obtener labCode del doctor registrado
+    try {
+      const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+      const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
+      const labCode = doc?.labCode || '';
+      if (labCode) {
+        db.getRemitos(labCode).then((remitos: any[]) => {
+          if (remitos && remitos.length > 0) setAdminRemitosDB(remitos);
+        }).catch(() => {});
+      }
+    } catch {}
+  }, [doctorInfo.email]);
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; entryId: string | null }>({
     isOpen: false,
@@ -835,7 +852,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     {/* Tracking de tiempos del remito */}
                     {(() => {
                       try {
-                        const adminRemitosAll = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+                        const adminRemitosAll = adminRemitosDB;
                         const entryRNT = (entry as any).remitoNumber;
                         const adminR = adminRemitosAll.find((ar: any) =>
                           ar.id === entry.id || ((ar as any).remitoNumber && (ar as any).remitoNumber === entryRNT)

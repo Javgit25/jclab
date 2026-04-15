@@ -1734,7 +1734,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               <div className="text-xs text-amber-600">Cargado por: {(remito as any).cargadoPor}</div>
                             )}
                           </td>
-                          <td className="py-2 px-3 text-xs text-gray-500">{new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</td>
+                          <td className="py-2 px-3 text-xs text-gray-500">
+                            {new Date(remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                            {(() => {
+                              const tCargado = new Date((remito as any).timestamp || remito.fecha).getTime();
+                              const tRecibido = (remito as any).fechaMaterialRecibido ? new Date((remito as any).fechaMaterialRecibido).getTime() : null;
+                              const tListo = (remito as any).listoAt ? new Date((remito as any).listoAt).getTime() : null;
+                              if (!tRecibido && !tListo) return null;
+                              const fmt = (ms: number) => { const m = Math.floor(ms / 60000); if (m < 60) return m + 'min'; const h = Math.floor(m / 60); if (h < 24) return h + 'h' + (m % 60 > 0 ? m % 60 + 'm' : ''); return Math.floor(h / 24) + 'd ' + (h % 24) + 'h'; };
+                              return (
+                                <div className="mt-0.5 space-y-0.5">
+                                  {tRecibido && <div className="text-amber-600" style={{ fontSize: '9px' }}>📦 {fmt(tRecibido - tCargado)}</div>}
+                                  {tRecibido && tListo && <div className="text-blue-600" style={{ fontSize: '9px' }}>⚙️ {fmt(tListo - tRecibido)}</div>}
+                                  {tListo && <div className="text-green-600" style={{ fontSize: '9px' }}>✅ {fmt(tListo - tCargado)}</div>}
+                                </div>
+                              );
+                            })()}
+                          </td>
                           <td className="py-2 px-3 text-center">
                             <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{dashFilter === 'listos' ? listasCount : pendientesCount}/{totalBiopsias}</span>
                           </td>
