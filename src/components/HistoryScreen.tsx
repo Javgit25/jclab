@@ -1364,7 +1364,8 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   const adminR2 = adminRemitosDB.find((ar: any) =>
                     ar.id === re.id || ((ar as any).remitoNumber && (ar as any).remitoNumber === entryRNT2)
                   );
-                  if (!adminR2) return null;
+                  // Debug visible
+                  if (!adminR2) return <div style={{ background: '#fef2f2', border: '2px solid #dc2626', borderRadius: '8px', padding: '10px', marginBottom: '12px', fontSize: '11px', color: '#991b1b' }}>⚠️ Debug: No se encontró remito admin para #{entryRNT2}. DB tiene {adminRemitosDB.length} remitos. IDs: {adminRemitosDB.slice(0, 3).map((r: any) => r.remitoNumber).join(', ')}...</div>;
                   const tC = new Date(re.timestamp || re.date).getTime();
                   const tR = adminR2.fechaMaterialRecibido ? new Date(adminR2.fechaMaterialRecibido).getTime() : null;
                   const tL = adminR2.listoAt ? new Date(adminR2.listoAt).getTime() : null;
