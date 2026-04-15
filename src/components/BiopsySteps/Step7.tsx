@@ -513,8 +513,8 @@ export const Step7: React.FC<Step7Props> = ({
                   </div>
                 </label>
 
-                {/* Selección de cuáles tacos cuando hay 2+ cassettes */}
-                {biopsyForm.entregarConTaco && parseInt(biopsyForm.cassettes) >= 2 && (
+                {/* Selección de cuáles tacos cuando hay 2+ cassettes (no para Taco en Consulta, se devuelven todos) */}
+                {biopsyForm.entregarConTaco && biopsyForm.tissueType !== 'Taco en Consulta' && parseInt(biopsyForm.cassettes) >= 2 && (
                   <div style={{ marginTop: '8px', padding: '10px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fcd34d' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontSize: '12px', fontWeight: '600', color: '#92400e' }}>¿Cuáles tacos necesita?</span>
