@@ -70,7 +70,7 @@ export const Step7: React.FC<Step7Props> = ({
       const cassettes = parseInt(biopsyForm.cassettes) || 0;
       const pieces = parseInt(biopsyForm.pieces) || 0;
       let text = `${cassettes} cassette${cassettes > 1 ? 's' : ''}`;
-      if (pieces > 0) {
+      if (pieces > 0 && biopsyForm.tissueType !== 'Taco en Consulta') {
         text += ` • ${pieces} trozo${pieces > 1 ? 's' : ''}`;
       }
       return text;

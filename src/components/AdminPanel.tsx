@@ -1844,14 +1844,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           }
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
+                          const isTacoC = b.tipo === 'TC' || b.tejido === 'Taco en Consulta';
                           const citoLabel = isCito ? (b.citologiaSubType || 'Cito') : '';
                           const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : (b.cassettes || 0);
                           // Trozos detallado por cassette
                           const trozoPorCass = b.trozoPorCassette || [];
-                          const totalTrozos = isPAP || isCito ? '-' : (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) : (b.trozos || b.pieces || '-'));
+                          const totalTrozos = isPAP || isCito || isTacoC ? '-' : (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) : (b.trozos || b.pieces || '-'));
                           const cassNums = b.cassettesNumbers || [];
                           let trozosDetalle = '';
-                          if (!isPAP && !isCito && trozoPorCass.length > 1) {
+                          if (!isPAP && !isCito && !isTacoC && trozoPorCass.length > 1) {
                             trozosDetalle = trozoPorCass.map((t: number, ci: number) => {
                               const cn = cassNums[ci];
                               const name = ci === 0 ? (cn?.base || 'C1') : (cn?.suffix ? 'S/' + cn.suffix : 'S/' + ci);
@@ -1872,12 +1873,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               tacoInfo = '<div style="margin-top:3px;"><span class="taco">📦 Devolver todos los tacos</span></div>';
                             }
                           }
-                          const isTaco = b.tipo === 'TC' || b.tejido === 'Taco en Consulta';
                           const numExtLabel = b.numeroExterno ? ' <span style="color:#b45309;font-size:5.5pt;">(Ext: ' + b.numeroExterno + ')</span>' : '';
                           return `<tr class="${isUrgent ? 'urgent' : ''}">
                             <td class="num">${b.numero||i+1}${numExtLabel}</td>
                             <td>${b.tejido||'-'}${tacoInfo}</td>
-                            <td style="text-align:center"><span class="tipo-badge" style="background:${isPAP?'#7c3aed':isCito?'#475569':isTaco?'#d97706':b.tipo==='PQ'?'#c2410c':'#166534'}">${isPAP?'PAP':isCito?citoLabel:isTaco?'TACO':b.tipo||'BX'}</span></td>
+                            <td style="text-align:center"><span class="tipo-badge" style="background:${isPAP?'#7c3aed':isCito?'#475569':isTacoC?'#d97706':b.tipo==='PQ'?'#c2410c':'#166534'}">${isPAP?'PAP':isCito?citoLabel:isTacoC?'TACO':b.tipo||'BX'}</span></td>
                             <td class="cant">${cant}</td>
                             <td style="text-align:center">${trozosDetalle ? '<div style="font-weight:700;font-size:10pt;">' + totalTrozos + '</div><div class="trozos-detail">' + trozosDetalle + '</div>' : totalTrozos}</td>
                             <td class="svc">${svc.length > 0 ? svc.map(s => s.includes('URGENTE') ? '<span class="svc-urgent">' + s + '</span>' : s).join(' · ') : '<span style="color:#bbb">—</span>'}</td>

@@ -1328,7 +1328,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            {isPAP || isCito ? '-' : (() => {
+                            {isPAP || isCito || b.type === 'TC' || b.tissueType === 'Taco en Consulta' ? '-' : (() => {
                               const tpc = b.trozoPorCassette || [];
                               const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(b.pieces) || 0);
                               const cns = b.cassettesNumbers || [];
