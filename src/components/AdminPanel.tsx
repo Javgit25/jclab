@@ -1887,31 +1887,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   const fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8">
                     <title>Remitos Pendientes - ${labNombre}</title>
                     <style>
-                      @page { size: A4; margin: 12mm 10mm; }
+                      @page { size: A4; margin: 8mm 7mm; }
                       * { margin: 0; padding: 0; box-sizing: border-box; }
-                      body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                      .header { text-align: center; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 3px solid #1a1a1a; }
-                      .header h1 { font-size: 16pt; font-weight: 800; letter-spacing: -0.3px; }
-                      .header .sub { font-size: 11pt; color: #555; margin-top: 2px; }
-                      .header .meta { font-size: 8pt; color: #999; margin-top: 4px; }
-                      .remito { border: 2px solid #1a1a1a; margin-bottom: 14px; page-break-inside: avoid; }
-                      .remito-header { background: #1a1a1a; color: white; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; }
-                      .remito-header .medico { font-size: 13pt; font-weight: 800; }
-                      .remito-header .cargado { font-size: 8pt; color: #d97706; margin-left: 8px; }
-                      .remito-header .nro { font-size: 9pt; opacity: 0.6; margin-left: 8px; }
-                      .remito-header .right { font-size: 8pt; opacity: 0.7; text-align: right; }
-                      .remito-header .urgente { background: #dc2626; color: white; padding: 2px 8px; border-radius: 3px; font-size: 8pt; font-weight: 700; margin-right: 6px; }
+                      body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; font-size: 7pt; color: #1a1a1a; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                      .header { text-align: center; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 2px solid #1a1a1a; }
+                      .header h1 { font-size: 11pt; font-weight: 800; letter-spacing: -0.3px; }
+                      .header .sub { font-size: 8pt; color: #555; margin-top: 1px; }
+                      .header .meta { font-size: 6.5pt; color: #999; margin-top: 2px; }
+                      .remito { border: 1.5px solid #1a1a1a; margin-bottom: 5px; page-break-inside: avoid; }
+                      .remito-header { background: #1a1a1a; color: white; padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; }
+                      .remito-header .medico { font-size: 8pt; font-weight: 800; }
+                      .remito-header .cargado { font-size: 6pt; color: #d97706; margin-left: 4px; }
+                      .remito-header .nro { font-size: 6.5pt; opacity: 0.6; margin-left: 4px; }
+                      .remito-header .right { font-size: 6pt; opacity: 0.7; text-align: right; }
+                      .remito-header .urgente { background: #dc2626; color: white; padding: 1px 4px; border-radius: 2px; font-size: 6pt; font-weight: 700; margin-right: 4px; }
                       table { width: 100%; border-collapse: collapse; }
-                      th { background: #f0f0f0; border-bottom: 2px solid #1a1a1a; padding: 5px 8px; font-size: 7pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #333; }
-                      td { padding: 6px 8px; border-bottom: 1px solid #e0e0e0; font-size: 9pt; vertical-align: top; }
-                      tr.urgent { background: #fff5f5 !important; border-left: 4px solid #dc2626; }
+                      th { background: #f0f0f0; border-bottom: 1.5px solid #1a1a1a; padding: 2px 4px; font-size: 5.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; color: #333; }
+                      td { padding: 2px 4px; border-bottom: 1px solid #e0e0e0; font-size: 6.5pt; vertical-align: top; line-height: 1.2; }
+                      tr.urgent { background: #fff5f5 !important; border-left: 3px solid #dc2626; }
                       tr:nth-child(even) { background: #fafafa; }
-                      .num { font-weight: 700; font-size: 10pt; }
-                      .tipo-badge { color: white; padding: 2px 8px; border-radius: 3px; font-weight: 700; font-size: 8pt; display: inline-block; }
-                      .cant { font-size: 11pt; font-weight: 800; text-align: center; }
-                      .trozos-detail { font-size: 7pt; color: #888; }
-                      .taco { background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 3px; font-size: 7pt; font-weight: 700; border: 1px solid #fbbf24; display: inline-block; margin-top: 3px; }
-                      .svc { font-size: 8pt; color: #333; }
+                      .num { font-weight: 700; font-size: 7pt; }
+                      .tipo-badge { color: white; padding: 1px 4px; border-radius: 2px; font-weight: 700; font-size: 6pt; display: inline-block; }
+                      .cant { font-size: 7.5pt; font-weight: 800; text-align: center; }
+                      .trozos-detail { font-size: 5.5pt; color: #888; }
+                      .taco { background: #fef3c7; color: #92400e; padding: 1px 3px; border-radius: 2px; font-size: 5.5pt; font-weight: 700; border: 1px solid #fbbf24; display: inline-block; margin-top: 1px; }
+                      .svc { font-size: 6pt; color: #333; }
                       .svc-urgent { color: #dc2626; font-weight: 700; }
                       .print-btn { display: inline-block; background: #1e40af; color: white; padding: 10px 24px; border-radius: 8px; font-size: 11pt; font-weight: 700; border: none; cursor: pointer; margin-bottom: 16px; }
                       .print-btn:hover { background: #1e3a8a; }
@@ -1927,10 +1927,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </div>
                     ${htmlParts}
                   </body></html>`;
-                  const printWindow = window.open('', '_blank');
-                  if (printWindow) {
-                    printWindow.document.write(fullHtml);
-                    printWindow.document.close();
+                  // Usar iframe oculto para imprimir sin abrir ventana nueva (evita perder sesión)
+                  let printFrame = document.getElementById('print-pendientes-frame') as HTMLIFrameElement;
+                  if (!printFrame) {
+                    printFrame = document.createElement('iframe');
+                    printFrame.id = 'print-pendientes-frame';
+                    printFrame.style.position = 'fixed';
+                    printFrame.style.right = '0';
+                    printFrame.style.bottom = '0';
+                    printFrame.style.width = '0';
+                    printFrame.style.height = '0';
+                    printFrame.style.border = 'none';
+                    document.body.appendChild(printFrame);
+                  }
+                  const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
+                  if (frameDoc) {
+                    frameDoc.open();
+                    frameDoc.write(fullHtml);
+                    frameDoc.close();
+                    setTimeout(() => { printFrame.contentWindow?.print(); }, 300);
                   }
                 }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
                   🖨 Imprimir pendientes
