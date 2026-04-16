@@ -1692,7 +1692,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     if (servicios.cassetteUrgente) services.push('Cassette Urgente');
     if (servicios.corteBlancoIHQ) services.push('Corte Blanco IHQ');
     if (servicios.corteBlancoComun) services.push('Corte Blanco Común');
-    if (servicios.giemsaPASMasson) services.push('Giemsa/PAS/Masson');
+    if (servicios.giemsaPASMasson) {
+      const opts = servicios.giemsaOptions || {};
+      const tec = [opts.giemsa && 'Giemsa', opts.pas && 'PAS', opts.masson && 'Masson'].filter(Boolean);
+      const gi = servicios.giemsaCassettes || [];
+      const cn = result.cassettesNumbers || [];
+      const subs = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']' : '';
+      services.push((tec.length > 0 ? tec.join(', ') : 'Giemsa/PAS/Masson') + subs);
+    }
     if (servicios.pap) services.push('PAP');
     if (servicios.papUrgente) services.push('PAP Urgente');
     if (servicios.citologia) services.push('Citología');

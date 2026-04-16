@@ -484,8 +484,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               if (biopsy.servicios.corteBlancoIHQ) services.push(`• Corte Blanco IHQ (${biopsy.servicios.corteBlancoIHQQuantity})`);
               if (biopsy.servicios.corteBlancoComun) services.push(`• Corte Blanco Común (${biopsy.servicios.corteBlancoComunQuantity})`);
               if (biopsy.servicios.giemsaPASMasson) {
-                const total = biopsy.servicios.giemsaPASMassonTotal || 0;
-                if (total > 0) services.push(`• Giemsa/PAS/Masson (${total})`);
+                const opts = (biopsy.servicios as any).giemsaOptions || {};
+                const tecnicas = [opts.giemsa && 'Giemsa', opts.pas && 'PAS', opts.masson && 'Masson'].filter(Boolean);
+                const gi = (biopsy.servicios as any).giemsaCassettes || [];
+                const cn = biopsy.cassettesNumbers || [];
+                const subsLabel = gi.length > 0 && cn.length > 0
+                  ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']'
+                  : '';
+                services.push(`• ${tecnicas.length > 0 ? tecnicas.join(', ') : 'Giemsa/PAS/Masson'}${subsLabel}`);
               }
               
               const cassetteNumbers = biopsy.cassettesNumbers?.map(c => `${c.base}${c.suffix}`).join(', ') || 'N/A';

@@ -85,8 +85,13 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                 });
               
               if (giemsaSelected.length > 0) {
-                // ✅ MOSTRAR SOLO LAS OPCIONES ESPECÍFICAS SELECCIONADAS
-                servicioLabel = giemsaSelected.join(', ');
+                // Mostrar técnicas + SUBs seleccionados
+                const gi = (biopsy.servicios as any).giemsaCassettes || [];
+                const cn = biopsy.cassettesNumbers || [];
+                const subsLabel = gi.length > 0 && cn.length > 0
+                  ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']'
+                  : '';
+                servicioLabel = giemsaSelected.join(', ') + subsLabel;
               } else {
                 // Si no hay sub-opciones seleccionadas, no mostrar nada
                 return;

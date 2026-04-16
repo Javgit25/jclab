@@ -54,7 +54,18 @@ export const Step7: React.FC<Step7Props> = ({
           const option = giemsaOptions.find(opt => opt.key === key);
           return option ? option.label : key;
         });
-      return selected.length > 0 ? selected.join(', ') : 'No especificado';
+      if (selected.length === 0) return 'No especificado';
+      // Agregar info de cassettes/SUBs seleccionados
+      const cassetteIndices = biopsyForm.servicios?.giemsaCassettes || [];
+      const cn = biopsyForm.cassettesNumbers || [];
+      if (cassetteIndices.length > 0 && cn.length > 0) {
+        const labels = cassetteIndices.map((idx: number) => {
+          const c = cn[idx];
+          return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx + 1}`;
+        });
+        return `${selected.join(', ')} [${labels.join(', ')}]`;
+      }
+      return selected.join(', ');
     }
     return 'No especificado';
   };
