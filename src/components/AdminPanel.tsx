@@ -1267,6 +1267,97 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     document.body.removeChild(link);
   };
 
+  // Generar HTML rico para email de facturación (inline styles para compatibilidad con clientes de email)
+  const generarHTMLEmailFacturacion = (medico: string, centroFilter?: string) => {
+    const fromName = labConfig.nombre || 'Laboratorio';
+    const fechaActual = new Date().toLocaleDateString('es-AR');
+    let footerText = '';
+    try { footerText = JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch {}
+
+    const rmAll = remitos.filter(r => r.medico === medico);
+    const centros = centroFilter ? [centroFilter] : [...new Set(rmAll.map(r => r.hospital || '').filter(Boolean))];
+    const isMultiCentro = !centroFilter && centros.length > 1;
+
+    const generarSeccion = (rm: any[], titulo?: string) => {
+      const totalSeccion = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+      const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
+        const tipo = (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
+        const isNoVino = b.noVino;
+        const noVinoStyle = isNoVino ? 'text-decoration:line-through;color:#9ca3af;' : '';
+        const svcs: string[] = [];
+        if ((b.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span style="background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;">URGENTE</span>');
+        if ((b.servicios?.corteBlancoIHQ || 0) > 0) svcs.push('<span style="background:#eff6ff;color:#1e40af;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;">Corte IHQ x' + b.servicios.corteBlancoIHQ + '</span>');
+        if ((b.servicios?.corteBlanco || 0) > 0) svcs.push('<span style="background:#eff6ff;color:#1e40af;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;">Corte Blanco x' + b.servicios.corteBlanco + '</span>');
+        if ((b.servicios?.giemsaPASMasson || 0) > 0) {
+          const opts = b.servicios?.giemsaOptions;
+          const t: string[] = [];
+          if (opts?.giemsa) t.push('Giemsa');
+          if (opts?.pas) t.push('PAS');
+          if (opts?.masson) t.push('Masson');
+          svcs.push('<span style="background:#eff6ff;color:#1e40af;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;">' + (t.length > 0 ? t.join(', ') : 'Tinción') + '</span>');
+        }
+        if ((b.servicios?.profundizacion || 0) > 0) svcs.push('<span style="background:#dbeafe;color:#1d4ed8;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;">Prof. x' + b.servicios.profundizacion + '</span>');
+        const ihqVid = tipo === 'IHQ' ? ((b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || parseInt(b.cassettes) || 0) : 0;
+        const cantLabel = tipo === 'IHQ' ? (parseInt(b.cassettes) || 0) + ' cass. / ' + ihqVid + ' vid.'
+          : tipo === 'PAP' ? (b.papQuantity || 1) + ' vid.'
+          : tipo === 'CITO' ? (b.citologiaQuantity || 1) + ' vid.'
+          : String(parseInt(b.cassettes) || 0);
+        const subtotal = isNoVino ? '$0' : '$' + calcularTotalBiopsia(b).toLocaleString();
+        return '<tr style="' + noVinoStyle + '">' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + b.numero + '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;"><span style="background:' + (tipo === 'PQ' ? '#fed7aa' : tipo === 'PAP' ? '#fce7f3' : tipo === 'CITO' ? '#ede9fe' : '#dcfce7') + ';color:' + (tipo === 'PQ' ? '#c2410c' : tipo === 'PAP' ? '#be185d' : tipo === 'CITO' ? '#7c3aed' : '#166534') + ';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">' + tipo + '</span></td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:center;">' + cantLabel + '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:11px;">' + (isNoVino ? '<span style="color:#dc2626;font-weight:700;">No se recibió</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8;">Estándar</span>') + '</td>' +
+          '<td style="padding:8px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">' + subtotal + '</td></tr>';
+      })).join('');
+
+      const tituloHtml = titulo ? '<h3 style="color:#1e40af;font-size:14px;margin:24px 0 8px;border-bottom:2px solid #dbeafe;padding-bottom:6px;">' + titulo + ' — ' + rm.length + ' remito(s)</h3>' : '';
+      return tituloHtml +
+        '<table style="width:100%;border-collapse:collapse;margin-bottom:8px;">' +
+        '<tr style="background:#0f172a;"><th style="padding:8px 10px;text-align:left;font-size:10px;color:white;text-transform:uppercase;letter-spacing:0.5px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:10px;color:white;text-transform:uppercase;">Material</th><th style="padding:8px 10px;text-align:left;font-size:10px;color:white;text-transform:uppercase;">Tipo</th><th style="padding:8px 10px;text-align:center;font-size:10px;color:white;text-transform:uppercase;">Cant.</th><th style="padding:8px 10px;text-align:left;font-size:10px;color:white;text-transform:uppercase;">Servicios</th><th style="padding:8px 10px;text-align:right;font-size:10px;color:white;text-transform:uppercase;">Subtotal</th></tr>' +
+        rows +
+        '<tr style="background:#0f172a;"><td colspan="5" style="padding:10px;text-align:right;font-weight:700;font-size:12px;color:white;text-transform:uppercase;letter-spacing:1px;">' + (titulo ? 'Subtotal ' + titulo : 'Total a Facturar') + '</td><td style="padding:10px;text-align:right;font-weight:700;font-size:16px;color:white;">$' + totalSeccion.toLocaleString() + '</td></tr>' +
+        '</table>';
+    };
+
+    const rmFiltered = centroFilter ? rmAll.filter(r => (r.hospital || '') === centroFilter) : rmAll;
+    const totalGeneral = rmFiltered.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+    const totalPacientes = rmFiltered.reduce((s, r) => s + r.biopsias.length, 0);
+
+    let detalle = '';
+    if (isMultiCentro) {
+      centros.forEach(c => {
+        const rmC = rmAll.filter(r => (r.hospital || '') === c);
+        detalle += generarSeccion(rmC, c);
+      });
+      // Remitos sin centro
+      const rmSinCentro = rmAll.filter(r => !r.hospital);
+      if (rmSinCentro.length > 0) detalle += generarSeccion(rmSinCentro, 'Sin centro');
+      detalle += '<div style="background:#0f172a;color:white;padding:14px 20px;border-radius:8px;margin-top:16px;text-align:right;"><span style="font-weight:700;font-size:14px;margin-right:20px;">TOTAL GENERAL</span><span style="font-weight:700;font-size:20px;">$' + totalGeneral.toLocaleString() + '</span></div>';
+    } else {
+      detalle = generarSeccion(rmFiltered);
+    }
+
+    const footerHtml = footerText ? '<div style="margin-top:24px;padding:16px 20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;"><div style="font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">Datos de pago</div><div style="font-size:13px;color:#1e293b;white-space:pre-line;line-height:1.6;">' + footerText.replace(/\n/g, '<br>') + '</div></div>' : '';
+
+    return '<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;background:white;">' +
+      '<div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 50%,#1e40af 100%);color:white;padding:24px 28px;text-align:center;border-radius:10px 10px 0 0;">' +
+      (labConfig.logoUrl ? '<img src="' + labConfig.logoUrl + '" alt="Logo" style="height:60px;max-width:250px;object-fit:contain;margin-bottom:8px;" /><br>' : '') +
+      '<h2 style="margin:0;font-size:18px;font-weight:700;">' + fromName + '</h2>' +
+      '<p style="margin:6px 0 0;font-size:11px;opacity:0.7;">' + [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ') + '</p></div>' +
+      '<div style="padding:24px 28px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #e2e8f0;">' +
+      '<div><div style="font-size:18px;font-weight:700;color:#0f172a;">Detalle de Facturación' + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
+      '<div style="font-size:14px;color:#1e40af;font-weight:600;margin-top:4px;">Dr/a. ' + medico + '</div>' +
+      '<div style="font-size:12px;color:#64748b;margin-top:4px;">' + fechaActual + ' · ' + rmFiltered.length + ' remito(s) · ' + totalPacientes + ' paciente(s)</div></div>' +
+      '<div style="text-align:right;"><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;">Total a facturar</div><div style="font-size:26px;font-weight:800;color:#0f172a;">$' + totalGeneral.toLocaleString() + '</div></div></div>' +
+      detalle +
+      footerHtml +
+      '<div style="text-align:center;padding:16px 0;margin-top:20px;color:#94a3b8;font-size:10px;border-top:1px solid #e2e8f0;">Reporte generado el ' + fechaActual + ' · Powered by BiopsyTracker</div>' +
+      '</div></div>';
+  };
+
   const exportarExcel = (medicoFiltro: string | null = null) => {
     const remitosFiltro = medicoFiltro 
       ? remitos.filter(r => r.medico === medicoFiltro)
@@ -2963,33 +3054,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
                                       if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                       const fromName = labConfig.nombre || 'Laboratorio';
-                                      const fechaActual = new Date().toLocaleDateString('es-AR');
-                                      // Generar secciones por centro
-                                      const seccionesCentro = centros.map(c => {
-                                        const rmC = rmMedico.filter(r => (r.hospital || 'Sin centro') === c);
-                                        const totalC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
-                                        const rowsC = rmC.flatMap(r => r.biopsias.map((b: any) => {
-                                          const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
-                                          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
-                                        })).join('');
-                                        return '<h3 style="color:#1e40af;font-size:14px;margin:20px 0 8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;">' + c + ' — ' + rmC.length + ' remito(s)</h3>' +
-                                          '<table style="width:100%;border-collapse:collapse;margin:0 0 8px;">' +
-                                          '<tr style="background:#1e3a5f;color:white;"><th style="padding:6px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:6px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:6px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:6px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:6px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
-                                          rowsC +
-                                          '<tr style="background:#e2e8f0;"><td colspan="4" style="padding:8px 10px;text-align:right;font-weight:700;font-size:12px;color:#1e3a5f;">SUBTOTAL ' + c.toUpperCase() + '</td><td style="padding:8px 10px;text-align:right;font-weight:700;font-size:13px;color:#1e3a5f;">$' + totalC.toLocaleString() + '</td></tr>' +
-                                          '</table>';
-                                      }).join('');
-                                      const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-                                        '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
-                                        '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
-                                        '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
-                                        '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación</h3>' +
-                                        '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + ' — ' + fechaActual + ' — ' + centros.length + ' centros</p>' +
-                                        seccionesCentro +
-                                        '<div style="background:#0f172a;color:white;padding:14px 16px;border-radius:8px;margin-top:16px;display:flex;justify-content:space-between;align-items:center;">' +
-                                        '<span style="font-weight:700;font-size:14px;">TOTAL GENERAL</span>' +
-                                        '<span style="font-weight:700;font-size:18px;">$' + totalMedico.toLocaleString() + '</span></div>' +
-                                        '<p style="color:#94a3b8;font-size:10px;text-align:center;margin-top:12px;">Powered by BiopsyTracker</p></div>';
+                                      const emailHtml = generarHTMLEmailFacturacion(medico);
                                       await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
                                       alert('Email unificado enviado a ' + doctorEmail);
                                     } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
@@ -3032,24 +3097,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
                                           if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                           const fromName = labConfig.nombre || 'Laboratorio';
-                                          const fechaActual = new Date().toLocaleDateString('es-AR');
-                                          const emailRows = rm.flatMap(r => r.biopsias.map((b: any) => {
-                                            const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
-                                            const numExt = b.numeroExterno ? ' <span style="color:#b45309;">(Ext: ' + b.numeroExterno + ')</span>' : '';
-                                            return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + numExt + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
-                                          })).join('');
-                                          const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-                                            '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
-                                            '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
-                                            '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
-                                            '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación — ' + centro + '</h3>' +
-                                            '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + ' — ' + fechaActual + ' — ' + rm.length + ' remito(s)</p>' +
-                                            '<table style="width:100%;border-collapse:collapse;margin:12px 0;">' +
-                                            '<tr style="background:#0f172a;color:white;"><th style="padding:8px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:8px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
-                                            emailRows +
-                                            '<tr style="background:#0f172a;color:white;"><td colspan="4" style="padding:10px;text-align:right;font-weight:700;font-size:13px;">TOTAL ' + centro.toUpperCase() + '</td><td style="padding:10px;text-align:right;font-weight:700;font-size:15px;">$' + total.toLocaleString() + '</td></tr>' +
-                                            '</table>' +
-                                            '<p style="color:#94a3b8;font-size:10px;text-align:center;">Powered by BiopsyTracker</p></div>';
+                                          const emailHtml = generarHTMLEmailFacturacion(medico, centro);
                                           await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + centro + ' - ' + fromName, messageHtml: emailHtml, fromName });
                                           alert('Email de ' + centro + ' enviado a ' + doctorEmail);
                                         } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
@@ -3105,24 +3153,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
                                         if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                         const fromName = labConfig.nombre || 'Laboratorio';
-                                        const fechaActual = new Date().toLocaleDateString('es-AR');
-                                        const emailRows = rm.flatMap(r => r.biopsias.map((b: any) => {
-                                          const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
-                                          const numExt = b.numeroExterno ? ' <span style="color:#b45309;">(Ext: ' + b.numeroExterno + ')</span>' : '';
-                                          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + numExt + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
-                                        })).join('');
-                                        const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-                                          '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
-                                          '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
-                                          '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
-                                          '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación</h3>' +
-                                          '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + (centroName ? ' — ' + centroName : '') + ' — ' + fechaActual + ' — ' + rm.length + ' remito(s)</p>' +
-                                          '<table style="width:100%;border-collapse:collapse;margin:12px 0;">' +
-                                          '<tr style="background:#0f172a;color:white;"><th style="padding:8px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:8px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
-                                          emailRows +
-                                          '<tr style="background:#0f172a;color:white;"><td colspan="4" style="padding:10px;text-align:right;font-weight:700;font-size:13px;">TOTAL</td><td style="padding:10px;text-align:right;font-weight:700;font-size:15px;">$' + total.toLocaleString() + '</td></tr>' +
-                                          '</table>' +
-                                          '<p style="color:#94a3b8;font-size:10px;text-align:center;">Powered by BiopsyTracker</p></div>';
+                                        const emailHtml = generarHTMLEmailFacturacion(medico, centroName || undefined);
                                         await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
                                         alert('Email enviado a ' + doctorEmail);
                                       } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
@@ -3794,7 +3825,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const sId = (document.getElementById('emailjs_serviceId') as HTMLInputElement)?.value || '';
                           const tId = (document.getElementById('emailjs_templateId') as HTMLInputElement)?.value || '';
                           const pKey = (document.getElementById('emailjs_publicKey') as HTMLInputElement)?.value || '';
-                          localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId: sId, templateId: tId, publicKey: pKey }));
+                          const footerText = (document.getElementById('emailjs_footer') as HTMLTextAreaElement)?.value || '';
+                          localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId: sId, templateId: tId, publicKey: pKey, footerText }));
                           alert('Configuración de EmailJS guardada correctamente.');
                           setRemitos([...remitos]); // forzar re-render
                         }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
@@ -3816,6 +3848,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <span className={`text-xs font-semibold ${isConfigured ? 'text-green-600' : 'text-gray-400'}`}>
                           {isConfigured ? '✓ Configurado' : 'No configurado'}
                         </span>
+                      </div>
+                      {/* Pie de email configurable */}
+                      <div className="mt-4 pt-4 border-t border-gray-200">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Pie del email de facturación</label>
+                        <p className="text-xs text-gray-400 mb-2">Datos bancarios, CBU, alias, instrucciones de pago, etc. Se incluye al final del email.</p>
+                        <textarea
+                          id="emailjs_footer"
+                          defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch { return ''; } })()}
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                          placeholder="Ej: Datos para transferencia:&#10;Banco Nación - CBU: 000000000000&#10;Alias: laboratorio.pagos&#10;Titular: Laboratorio S.R.L."
+                        />
                       </div>
                     </div>
                   );
