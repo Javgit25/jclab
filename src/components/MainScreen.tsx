@@ -489,21 +489,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [financialDataFromDb, setFinancialDataFromDb] = useState<any>(null);
 
   // Cargar remitos desde Supabase para facturación (fuente de verdad del admin)
-  React.useEffect(() => {
-    const loadRemitosForBilling = async () => {
-      try {
-        const { supabase } = await import('../lib/supabase');
-        const email = doctorInfo.email?.toLowerCase().trim();
-        const { data } = await supabase.from('remitos').select('*').or(`email.eq.${email},doctor_email.eq.${email}`);
-        if (data) {
-          // Guardar en localStorage para acceso sincrónico
-          localStorage.setItem('_remitosFacturacion', JSON.stringify(data));
-          setFinancialDataFromDb(data);
-        }
-      } catch {}
-    };
-    loadRemitosForBilling();
+  const loadRemitosForBilling = React.useCallback(async () => {
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const email = doctorInfo.email?.toLowerCase().trim();
+      const { data } = await supabase.from('remitos').select('*').or(`email.eq.${email},doctor_email.eq.${email}`);
+      if (data) {
+        localStorage.setItem('_remitosFacturacion', JSON.stringify(data));
+        setFinancialDataFromDb(data);
+      }
+    } catch {}
   }, [doctorInfo.email]);
+
+  // Cargar al montar + refrescar cada 30 segundos
+  React.useEffect(() => {
+    loadRemitosForBilling();
+    const interval = setInterval(loadRemitosForBilling, 30000);
+    return () => clearInterval(interval);
+  }, [loadRemitosForBilling]);
 
   const StatisticsModal = () => {
     // Calcular datos de facturación usando remitos de Supabase (misma fuente que el admin)
@@ -1936,7 +1939,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           {[
             { onClick: () => setShowSearchModal(true), icon: <Search style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Búsqueda', sub: 'Filtrar' },
             { onClick: onViewHistory, icon: <History style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Historial', sub: `${stats.totalRemitos} remitos` },
-            { onClick: () => setShowStatistics(true), icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' }
+            { onClick: () => { loadRemitosForBilling(); setShowStatistics(true); }, icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' }
           ].map((btn, i) => (
             <button
               key={i}
