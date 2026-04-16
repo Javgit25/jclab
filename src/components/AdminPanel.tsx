@@ -1614,17 +1614,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
               {/* Tabla de remitos filtrados */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1">
-                <table className="w-full text-sm">
+                <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '18%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '24%' }} />
+                  </colgroup>
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">N° Rem.</th>
-                      <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">Médico</th>
-                      <th className="text-left py-2 px-3 text-xs text-gray-500 font-semibold">Fecha</th>
-                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Pac.</th>
-                      <th className="text-right py-2 px-3 text-xs text-gray-500 font-semibold">Total</th>
-                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Prioridad</th>
-                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Estado</th>
-                      <th className="text-center py-2 px-3 text-xs text-gray-500 font-semibold">Acciones</th>
+                      <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">N° Rem.</th>
+                      <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">Médico</th>
+                      <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">Fecha</th>
+                      <th className="text-center py-2 px-2 text-xs text-gray-500 font-semibold">Pac.</th>
+                      <th className="text-right py-2 px-2 text-xs text-gray-500 font-semibold">Total</th>
+                      <th className="text-center py-2 px-2 text-xs text-gray-500 font-semibold">Prioridad</th>
+                      <th className="text-center py-2 px-2 text-xs text-gray-500 font-semibold">Estado</th>
+                      <th className="text-center py-2 px-2 text-xs text-gray-500 font-semibold">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1813,10 +1823,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         {isExpanded && (
                           <tr><td colSpan={8} className="p-0">
                             <div className="bg-gray-50 border-y border-gray-200">
-                              <table className="w-full text-xs">
+                              <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
+                                <colgroup>
+                                  <col style={{ width: '4%' }} />
+                                  <col style={{ width: '12%' }} />
+                                  <col style={{ width: '14%' }} />
+                                  <col style={{ width: '8%' }} />
+                                  <col style={{ width: '8%' }} />
+                                  <col style={{ width: '10%' }} />
+                                  <col style={{ width: '28%' }} />
+                                  <col style={{ width: '16%' }} />
+                                </colgroup>
                                 <thead>
                                   <tr className="bg-gray-200">
-                                    <th className="py-1.5 px-2 text-left text-gray-600 font-semibold w-8"></th>
+                                    <th className="py-1.5 px-2 text-left text-gray-600 font-semibold"></th>
                                     <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">N° Estudio</th>
                                     <th className="py-1.5 px-2 text-left text-gray-600 font-semibold">Material</th>
                                     <th className="py-1.5 px-2 text-center text-gray-600 font-semibold">Tipo</th>
@@ -1859,9 +1879,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     svcList.push(`+ Cito (${fmt})`);
                                   }
 
-                                  const esIHQ = b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica';
-                                  const ihqVidrios = esIHQ ? ((b as any).trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || cass : 0;
-                                  const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : esIHQ ? `${ihqVidrios} vid.` : `${cass} cass.`;
+                                  const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : `${cass} cass.`;
 
                                   return (
                                     <tr key={bi} className={`border-b border-gray-100 ${estaLista ? 'bg-green-50' : esUrgente ? 'bg-red-50' : ''}`}>
@@ -2023,9 +2041,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const isCito = b.tejido === 'Citología';
                           const isTacoC = b.tipo === 'TC' || b.tejido === 'Taco en Consulta';
                           const citoLabel = isCito ? (b.citologiaSubType || 'Cito') : '';
-                          const isIHQp = b.tipo === 'TC' ? false : b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica';
-                          const ihqVid = isIHQp ? ((b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || (b.cassettes || 0)) : 0;
-                          const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : isIHQp ? ihqVid + ' vid.' : (b.cassettes || 0);
+                          const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : (b.cassettes || 0);
                           // Trozos detallado por cassette
                           const trozoPorCass = b.trozoPorCassette || [];
                           const isIHQp2 = b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica';
