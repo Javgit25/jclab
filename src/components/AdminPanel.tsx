@@ -2956,12 +2956,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     <p className="text-xs text-gray-400">{medicos.length} médicos · {remitos.length} remitos</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => {
-                      const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-                      if (confirm(`¿Enviar facturación de ${mes} a todos los médicos?`)) alert('Facturación preparada. Requiere servicio de email.');
-                    }} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1">
-                      <Mail size={12} /> Enviar a todos
-                    </button>
                   </div>
                 </div>
 
@@ -3249,15 +3243,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 ) : null;
               })()}
 
-              {/* Sección de actualización de precios */}
+              {/* Sección de actualización de precios (colapsable) */}
               <div className="px-5 pb-4">
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div style={{ background: '#0f172a' }} className="px-4 py-3 flex items-center justify-between">
+                  <div style={{ background: '#0f172a' }} className="px-4 py-3 flex items-center justify-between cursor-pointer"
+                    onClick={() => {
+                      const el = document.getElementById('preciosSection');
+                      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+                    }}>
                     <div>
                       <h3 className="text-sm font-bold text-white">Comunicar actualización de precios</h3>
                       <p className="text-xs text-white/50">Enviar tabla de precios vigentes a todos los médicos</p>
                     </div>
+                    <span className="text-white/60 text-xs">▼</span>
                   </div>
+                  <div id="preciosSection" style={{ display: 'none' }}>
                   <div className="p-4">
                     <div className="grid grid-cols-2 gap-4">
                       {/* Tabla de precios */}
@@ -3358,6 +3358,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </div>
                     </div>
                   </div>
+                  </div>{/* cierre preciosSection */}
                 </div>
               </div>
 
