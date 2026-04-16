@@ -1616,18 +1616,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex-1">
                 <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
+                    <col style={{ width: '7%' }} />
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '6%' }} />
+                    <col style={{ width: '8%' }} />
                     <col style={{ width: '8%' }} />
                     <col style={{ width: '18%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '7%' }} />
-                    <col style={{ width: '9%' }} />
-                    <col style={{ width: '10%' }} />
-                    <col style={{ width: '14%' }} />
-                    <col style={{ width: '24%' }} />
+                    <col style={{ width: '28%' }} />
                   </colgroup>
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-200">
-                      <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">N° Rem.</th>
+                      <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">Remito</th>
                       <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">Médico</th>
                       <th className="text-left py-2 px-2 text-xs text-gray-500 font-semibold">Fecha</th>
                       <th className="text-center py-2 px-2 text-xs text-gray-500 font-semibold">Pac.</th>
@@ -1826,13 +1826,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
                                 <colgroup>
                                   <col style={{ width: '4%' }} />
-                                  <col style={{ width: '12%' }} />
-                                  <col style={{ width: '14%' }} />
-                                  <col style={{ width: '8%' }} />
-                                  <col style={{ width: '8%' }} />
                                   <col style={{ width: '10%' }} />
-                                  <col style={{ width: '28%' }} />
-                                  <col style={{ width: '16%' }} />
+                                  <col style={{ width: '15%' }} />
+                                  <col style={{ width: '7%' }} />
+                                  <col style={{ width: '7%' }} />
+                                  <col style={{ width: '9%' }} />
+                                  <col style={{ width: '30%' }} />
+                                  <col style={{ width: '18%' }} />
                                 </colgroup>
                                 <thead>
                                   <tr className="bg-gray-200">
