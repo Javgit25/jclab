@@ -1271,9 +1271,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const generarHTMLEmailFacturacion = (medico: string, centroFilter?: string) => {
     const fn = labConfig.nombre || 'Laboratorio';
     const fa = new Date().toLocaleDateString('es-AR');
-    let ft = '', bt = '';
-    try { const cfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); ft = cfg.footerText || ''; bt = cfg.bodyText || ''; } catch {}
+    let ft = '', btRaw = '';
+    try { const cfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); ft = cfg.footerText || ''; btRaw = cfg.bodyText || ''; } catch {}
     const info = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
+    const mesActual = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const defaultBody = `Estimado/a Dr./Dra. ${medico},\nPor medio de la presente, le adjuntamos el detalle completo de las biopsias y pacientes remitidos a nuestro laboratorio durante el mes de ${mesActual}.\nQuedamos a su disposición para cualquier consulta o aclaración que considere necesaria.\nSin otro particular, saludamos a usted muy atentamente.`;
+    const bt = btRaw || defaultBody;
 
     const rmAll = remitos.filter(r => r.medico === medico);
     const centros = centroFilter ? [centroFilter] : [...new Set(rmAll.map(r => r.hospital || '').filter(Boolean))];
@@ -3831,14 +3834,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {/* Cuerpo y pie de email configurables */}
                       <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje del email</label>
-                          <p className="text-xs text-gray-400 mb-2">Texto introductorio que aparece antes de la tabla de facturación.</p>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje del email <span className="text-gray-400 font-normal">(opcional)</span></label>
+                          <p className="text-xs text-gray-400 mb-2">Si se deja vacío, se usa un mensaje predeterminado con el nombre del médico y el mes.</p>
                           <textarea
                             id="emailjs_body"
                             defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').bodyText || ''; } catch { return ''; } })()}
                             rows={3}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ej: Estimado/a Doctor/a, le adjuntamos el detalle de facturación del mes en curso."
+                            placeholder="Dejar vacío para usar el mensaje predeterminado. Si lo personalizás, no incluye nombre ni mes automáticamente."
                           />
                         </div>
                         <div>
