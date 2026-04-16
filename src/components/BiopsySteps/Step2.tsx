@@ -276,8 +276,8 @@ export const Step2: React.FC<Step2Props> = ({
           background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
         }}>
           
-          {/* Contenido con scroll */}
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+          {/* Contenido con scroll - deshabilitar interacción cuando hay config especial activa */}
+          <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px', pointerEvents: (tissueType === 'Inmunohistoquímica' || tissueType === 'Taco en Consulta' || tissueType === 'PAP' || tissueType === 'Citología') ? 'none' : 'auto', opacity: (tissueType === 'Inmunohistoquímica' || tissueType === 'Taco en Consulta' || tissueType === 'PAP' || tissueType === 'Citología') ? 0.4 : 1, transition: 'opacity 0.3s' }}>
             {/* Campo de búsqueda principal */}
             <div style={{ marginBottom: '24px' }}>
               <div style={{

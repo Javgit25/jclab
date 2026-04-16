@@ -1879,7 +1879,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       </td>
                                       <td className="py-1.5 px-2 text-center font-bold">{cant}</td>
                                       <td className="py-1.5 px-2 text-center">
-                                        {!esPAP && !esCito && tipo !== 'TACO' ? (() => {
+                                        {tipo === 'IHQ' ? (() => {
+                                          const tpc = (b as any).trozoPorCassette || [];
+                                          const cn = (b as any).cassettesNumbers || [];
+                                          const totalV = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : cass;
+                                          return <div>
+                                            <div className="font-bold text-blue-700">{totalV} vid.</div>
+                                            {tpc.length > 1 && <div className="text-blue-400" style={{ fontSize: '8px' }}>{tpc.map((t: number, ci: number) => { const c = cn[ci]; return (c?.suffix ? c.base + '/' + c.suffix : 'C' + (ci+1)) + ':' + (t || 1); }).join(' · ')}</div>}
+                                          </div>;
+                                        })() : !esPAP && !esCito && tipo !== 'TACO' ? (() => {
                                           const tpc = (b as any).trozoPorCassette || [];
                                           const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(String(b.trozos || (b as any).pieces)) || 0);
                                           const cn = (b as any).cassettesNumbers || [];
@@ -2020,7 +2028,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : isIHQp ? ihqVid + ' vid.' : (b.cassettes || 0);
                           // Trozos detallado por cassette
                           const trozoPorCass = b.trozoPorCassette || [];
-                          const totalTrozos = isPAP || isCito || isTacoC ? '-' : (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) : (b.trozos || b.pieces || '-'));
+                          const isIHQp2 = b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica';
+                          const totalTrozos = isPAP || isCito || isTacoC ? '-' : isIHQp2 ? (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) + ' vid.' : '-') : (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) : (b.trozos || b.pieces || '-'));
                           const cassNums = b.cassettesNumbers || [];
                           let trozosDetalle = '';
                           if (!isPAP && !isCito && !isTacoC && trozoPorCass.length > 1) {
