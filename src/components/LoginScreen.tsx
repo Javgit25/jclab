@@ -50,8 +50,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     let cancelled = false;
     const syncFromDb = async () => {
       try {
-        // Pre-cargar labs para validación de código al registrar
-        db.getLabs().catch(() => {});
+        // Pre-cargar labs para validación de código al registrar (esperar resultado)
+        await db.getLabs().catch(() => {});
         const freshDoctors = await db.getDoctors();
         if (!cancelled && freshDoctors.length > 0) {
           // getDoctors() ya actualiza localStorage internamente
@@ -206,23 +206,23 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     if (!labCode.trim()) {
       newErrors.labCode = 'Ingresá el código del laboratorio';
     } else {
-      // Verificar que el código exista - consultar Supabase con fallback a localStorage
+      // Verificar que el código exista - consultar Supabase directo
       try {
         let labs: any[] = [];
-        try { labs = await db.getLabs(); } catch {}
+        // Primero intentar localStorage (ya precargado en useEffect)
+        try { labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]'); } catch {}
+        // Si no hay en caché, consultar Supabase
         if (labs.length === 0) {
-          labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
-        }
-        // Si aún no hay labs, reintentar una vez (puede ser primera carga)
-        if (labs.length === 0) {
-          await new Promise(r => setTimeout(r, 500));
           try { labs = await db.getLabs(); } catch {}
-          if (labs.length === 0) {
-            labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
-          }
         }
-        const labExists = labs.some((l: any) => l.labCode === labCode.trim().toUpperCase() && l.estado !== 'suspendido');
-        if (!labExists) newErrors.labCode = 'Código no válido o laboratorio suspendido';
+        const codeUpper = labCode.trim().toUpperCase();
+        const labExists = labs.some((l: any) => l.labCode === codeUpper && l.estado !== 'suspendido');
+        if (!labExists) {
+          // Último intento: consultar Supabase fresco (por si el caché estaba vacío)
+          try { labs = await db.getLabs(); } catch {}
+          const labExistsRetry = labs.some((l: any) => l.labCode === codeUpper && l.estado !== 'suspendido');
+          if (!labExistsRetry) newErrors.labCode = 'Código no válido o laboratorio suspendido';
+        }
       } catch { newErrors.labCode = 'Error al verificar código'; }
     }
     if (!password || password.length < 4) newErrors.password = 'Mínimo 4 caracteres';

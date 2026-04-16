@@ -358,17 +358,19 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
 
         {/* Doctor name - BIG */}
         <div style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '4px', lineHeight: 1.2, color: '#f1f5f9' }}>
-          Dr/a. {(() => {
+          {(() => {
+            let nombre = '';
             try {
               const remitosLocal = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
               const r = remitosLocal.find((rem: any) => rem.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
-              const nombre = r?.medico || '';
+              nombre = r?.medico || '';
               if (nombre) {
                 const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
-                return nombre + cargado;
+                nombre = nombre + cargado;
               }
             } catch {}
-            return getDoctorName(sol);
+            if (!nombre) nombre = getDoctorName(sol);
+            return nombre.startsWith('Dr') ? nombre : 'Dr./Dra. ' + nombre;
           })()}
         </div>
 
@@ -443,7 +445,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                   onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fca5a5' }}>Dr/a. {urg.medico}</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fca5a5' }}>{urg.medico?.startsWith('Dr') ? urg.medico : 'Dr./Dra. ' + urg.medico}</span>
                     <span style={{ background: '#dc2626', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>{urg.tipo}</span>
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Pac. #{urg.numero} · {urg.tejido} · Remito #{urg.remitoNumber}</div>

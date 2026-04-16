@@ -586,10 +586,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     total += (servicios.corteBlanco || 0) * configuracion.precioCorteBlanco;
     total += (servicios.corteBlancoIHQ || 0) * configuracion.precioCorteBlancoIHQ;
     
-    const giemsaCount = typeof servicios.giemsaPASMasson === 'number'
+    // Giemsa/PAS/Masson: cobrar por cada cassette seleccionado × técnicas
+    const giemsaTecnicas = typeof servicios.giemsaPASMasson === 'number'
       ? servicios.giemsaPASMasson
       : (servicios.giemsaPASMasson ? 1 : 0);
-    total += giemsaCount * configuracion.precioGiemsaPASMasson;
+    const giemsaCassCount = (servicios as any).giemsaCassettes?.length || 0;
+    // Si hay cassettes específicos seleccionados, cobrar por cada uno; sino cobrar por técnicas
+    const giemsaTotal = giemsaCassCount > 0 ? giemsaCassCount * giemsaTecnicas : giemsaTecnicas;
+    total += giemsaTotal * configuracion.precioGiemsaPASMasson;
 
     // Citología incluida en biopsia (cobra 1 paciente)
     if ((servicios as any).incluyeCitologia) {
@@ -1024,7 +1028,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Detalle de Facturación - ${medico}</title>
+      <title>Facturación ${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })} - ${medico}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 0; background: white; color: #1e293b; font-size: 13px; }
@@ -1074,7 +1078,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       <div class="content">
         <div class="doc-header">
           <div>
-            <div class="doc-title">Detalle de Facturación${centroFilter ? ' — ' + centroFilter : ''}</div>
+            <div class="doc-title">Facturación ${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}${centroFilter ? ' — ' + centroFilter : ''}</div>
             <div class="doc-medico">Dr/a. ${medico}</div>
             <div class="doc-fecha">${fechaActual} &nbsp;·&nbsp; ${remitosDelMedico.length} remito${remitosDelMedico.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${totalPacientes} paciente${totalPacientes > 1 ? 's' : ''}</div>
           </div>
@@ -1253,6 +1257,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     return htmlContent;
   };
 
+  // Registrar envío de email de facturación
+  const registrarEmailEnviado = (medico: string, email: string, centro?: string) => {
+    try {
+      const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+      const key = `emailsFacturacion_${mes.replace(/\s+/g, '_')}`;
+      const historial = JSON.parse(localStorage.getItem(key) || '[]');
+      historial.push({
+        medico,
+        email,
+        centro: centro || '',
+        fecha: new Date().toISOString(),
+        mes
+      });
+      localStorage.setItem(key, JSON.stringify(historial));
+    } catch {}
+  };
+
   const exportarFacturacionMedico = (medico: string, centroFilter?: string) => {
     const htmlContent = generarHTMLFacturacion(medico, centroFilter);
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
@@ -1260,7 +1281,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const url = URL.createObjectURL(blob);
     const centroSuffix = centroFilter ? `_${centroFilter.replace(/\s+/g, '_')}` : '';
     link.setAttribute('href', url);
-    link.setAttribute('download', `Reporte_${medico.replace(/\s+/g, '_')}${centroSuffix}_${new Date().toISOString().split('T')[0]}.html`);
+    const mesArchivo = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_');
+    link.setAttribute('download', `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}${centroSuffix}.html`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -1330,7 +1352,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       (info ? '<p style="margin:4px 0 0;font-size:10px;opacity:0.7;">' + info + '</p>' : '') + '</div>' +
       '<div style="padding:20px;">' +
       (bt ? '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:20px;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
-      '<table style="width:100%;margin-bottom:16px;"><tr><td><div style="font-size:16px;font-weight:700;color:#0f172a;">Detalle de Facturación' + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
+      '<table style="width:100%;margin-bottom:16px;"><tr><td><div style="font-size:16px;font-weight:700;color:#0f172a;">Facturación ' + mesActual + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
       '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-top:3px;">Dr/a. ' + medico + '</div>' +
       '<div style="font-size:11px;color:#888;margin-top:3px;">' + fa + ' · ' + rmF.length + ' rem. · ' + totP + ' pac.</div></td>' +
       '<td style="text-align:right;vertical-align:top;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:24px;font-weight:800;color:#0f172a;">$' + totG.toLocaleString() + '</div></td></tr></table>' +
@@ -2930,7 +2952,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <div className="flex-shrink-0 px-5 pt-4 pb-3">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">Facturación</h2>
+                    <h2 className="text-lg font-bold text-gray-900">Facturación — {new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}</h2>
                     <p className="text-xs text-gray-400">{medicos.length} médicos · {remitos.length} remitos</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -3036,7 +3058,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                       const fromName = labConfig.nombre || 'Laboratorio';
                                       const emailHtml = generarHTMLEmailFacturacion(medico);
-                                      await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
+                                      const mesEmail = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                      await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + mesEmail + ' - ' + fromName, messageHtml: emailHtml, fromName });
+                                      registrarEmailEnviado(medico, doctorEmail);
                                       alert('Email unificado enviado a ' + doctorEmail);
                                     } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
                                   }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" title="Enviar email con todos los centros">
@@ -3079,7 +3103,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                           const fromName = labConfig.nombre || 'Laboratorio';
                                           const emailHtml = generarHTMLEmailFacturacion(medico, centro);
-                                          await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + centro + ' - ' + fromName, messageHtml: emailHtml, fromName });
+                                          const mesEmail = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                          await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + mesEmail + ' ' + centro + ' - ' + fromName, messageHtml: emailHtml, fromName });
+                                          registrarEmailEnviado(medico, doctorEmail, centro);
                                           alert('Email de ' + centro + ' enviado a ' + doctorEmail);
                                         } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
                                       }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
@@ -3135,7 +3161,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                         const fromName = labConfig.nombre || 'Laboratorio';
                                         const emailHtml = generarHTMLEmailFacturacion(medico, centroName || undefined);
-                                        await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
+                                        const mesEmail = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                        await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + mesEmail + ' - ' + fromName, messageHtml: emailHtml, fromName });
+                                        registrarEmailEnviado(medico, doctorEmail, centroName || undefined);
                                         alert('Email enviado a ' + doctorEmail);
                                       } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
                                     }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
@@ -3164,6 +3192,62 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   </table>
                 </div>
               </div>
+
+              {/* Historial de emails enviados */}
+              {(() => {
+                const mesActual = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                const keyActual = `emailsFacturacion_${mesActual.replace(/\s+/g, '_')}`;
+                const emailsDelMes: any[] = JSON.parse(localStorage.getItem(keyActual) || '[]');
+                // Buscar meses anteriores
+                const mesesConEmails: string[] = [];
+                for (let i = 0; i < localStorage.length; i++) {
+                  const k = localStorage.key(i);
+                  if (k?.startsWith('emailsFacturacion_')) {
+                    const mes = k.replace('emailsFacturacion_', '').replace(/_/g, ' ');
+                    if (!mesesConEmails.includes(mes)) mesesConEmails.push(mes);
+                  }
+                }
+                mesesConEmails.sort((a, b) => new Date('1 ' + b).getTime() - new Date('1 ' + a).getTime());
+
+                return (emailsDelMes.length > 0 || mesesConEmails.length > 0) ? (
+                  <div className="px-5 pb-3">
+                    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      <div style={{ background: '#0f172a' }} className="px-4 py-2.5 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-white">Emails enviados — {mesActual}</h3>
+                        <span className="text-xs text-white/60">{emailsDelMes.length} enviado(s)</span>
+                      </div>
+                      {emailsDelMes.length > 0 ? (
+                        <div className="p-3 max-h-40 overflow-y-auto">
+                          <div className="space-y-1">
+                            {emailsDelMes.map((e: any, i: number) => (
+                              <div key={i} className="flex items-center justify-between text-xs bg-gray-50 rounded-lg px-3 py-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-gray-900">Dr./Dra. {e.medico}</span>
+                                  {e.centro && <span className="text-blue-500">{e.centro}</span>}
+                                </div>
+                                <div className="flex items-center gap-2 text-gray-400">
+                                  <span>{e.email}</span>
+                                  <span>{new Date(e.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })} {new Date(e.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3 text-center text-xs text-gray-400">No se enviaron emails este mes</div>
+                      )}
+                      {mesesConEmails.length > 1 && (
+                        <div className="px-3 pb-2 border-t border-gray-100 pt-2">
+                          <div className="text-xs text-gray-400">Meses anteriores: {mesesConEmails.filter(m => m !== mesActual).map(m => {
+                            const cnt = JSON.parse(localStorage.getItem(`emailsFacturacion_${m.replace(/\s+/g, '_')}`) || '[]').length;
+                            return `${m} (${cnt})`;
+                          }).join(' · ')}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Sección de actualización de precios */}
               <div className="px-5 pb-4">

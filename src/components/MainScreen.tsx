@@ -110,12 +110,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     loadNoVino();
   }, [doctorInfo.email]);
 
-  // Cargar config de precios desde Supabase al montar
+  // Cargar config de precios desde Supabase al montar (siempre refrescar)
   React.useEffect(() => {
     const loadAdminConfig = async () => {
       try {
-        const existing = localStorage.getItem('adminConfig');
-        if (existing) return; // Ya hay config local
         const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
         const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo.email?.toLowerCase());
         if (doc?.labCode) {
@@ -590,8 +588,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         total += (svc.profundizacion || 0) * precios.profundizacion;
         total += (svc.corteBlanco || 0) * precios.corteBlanco;
         total += (svc.corteBlancoIHQ || 0) * precios.corteBlancoIHQ;
-        const giemsaCount = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : (svc.giemsaPASMasson ? 1 : 0);
-        total += giemsaCount * precios.giemsaPASMasson;
+        const giemsaTecnicas = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : (svc.giemsaPASMasson ? 1 : 0);
+        const giemsaCassCount = svc.giemsaCassettes?.length || 0;
+        const giemsaTotal = giemsaCassCount > 0 ? giemsaCassCount * giemsaTecnicas : giemsaTecnicas;
+        total += giemsaTotal * precios.giemsaPASMasson;
         if (svc.incluyeCitologia) total += precios.citologia;
         return total;
       };
