@@ -1825,13 +1825,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             <div className="bg-gray-50 border-y border-gray-200">
                               <table className="w-full text-xs" style={{ tableLayout: 'fixed' }}>
                                 <colgroup>
-                                  <col style={{ width: '4%' }} />
-                                  <col style={{ width: '10%' }} />
-                                  <col style={{ width: '15%' }} />
-                                  <col style={{ width: '7%' }} />
-                                  <col style={{ width: '7%' }} />
+                                  <col style={{ width: '3%' }} />
                                   <col style={{ width: '9%' }} />
-                                  <col style={{ width: '30%' }} />
+                                  <col style={{ width: '12%' }} />
+                                  <col style={{ width: '6%' }} />
+                                  <col style={{ width: '6%' }} />
+                                  <col style={{ width: '8%' }} />
+                                  <col style={{ width: '38%' }} />
                                   <col style={{ width: '18%' }} />
                                 </colgroup>
                                 <thead>
