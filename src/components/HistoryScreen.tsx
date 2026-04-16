@@ -1430,7 +1430,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             <span style={{ background: tipo === 'TACO' ? '#d97706' : tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span>
                           </td>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : `${b.cassettes || 0} cass.`}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             {(b.type === 'IHQ' || b.tissueType === 'Inmunohistoquímica') ? (() => { const tpcI = b.trozoPorCassette || []; const cnsI = b.cassettesNumbers || []; const tvI = tpcI.length > 0 ? tpcI.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(b.cassettes) || 0); return <div><span style={{ fontWeight: 700 }}>{tvI} vid.</span>{tpcI.length > 1 && <div style={{ fontSize: '6pt', color: '#93c5fd' }}>{tpcI.map((t: number, ci: number) => { const c = cnsI[ci]; return (c?.suffix ? c.base + '/' + c.suffix : 'C' + (ci+1)) + ':' + (t || 1); }).join(' · ')}</div>}</div>; })() : isPAP || isCito || b.type === 'TC' || b.tissueType === 'Taco en Consulta' ? '-' : (() => {
                               const tpc = b.trozoPorCassette || [];
