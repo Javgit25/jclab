@@ -524,7 +524,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     let total = 0;
     const totalCassettes = Math.max(biopsia.cassettes || 0, 0);
     const esCassetteUrgente = (servicios.cassetteUrgente || 0) > 0;
-    
+    const esIHQ = biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica';
+
+    // IHQ: cobrar por vidrio al precio Corte Blanco IHQ
+    if (esIHQ) {
+      const tpc = (biopsia as any).trozoPorCassette || [];
+      const totalVidrios = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : totalCassettes;
+      total += totalVidrios * configuracion.precioCorteBlancoIHQ;
+      return total;
+    }
+
     // Cálculo de cassettes
     if (totalCassettes > 0) {
       if (esCassetteUrgente) {
@@ -2470,11 +2479,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 <td className="py-2 px-3 text-xs">{biopsia.tejido}</td>
                                 <td className="py-2 px-3">
                                   <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                                    (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'bg-amber-100 text-amber-700' : biopsia.tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : biopsia.tejido === 'PAP' ? 'bg-pink-100 text-pink-700' : biopsia.tejido === 'Citología' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
-                                  }`}>{(biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? ((biopsia as any).citologiaSubType || 'CITO') : 'BX'}</span>
+                                    (biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'bg-blue-100 text-blue-700' : (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'bg-amber-100 text-amber-700' : biopsia.tipo === 'PQ' ? 'bg-orange-100 text-orange-700' : biopsia.tejido === 'PAP' ? 'bg-pink-100 text-pink-700' : biopsia.tejido === 'Citología' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'
+                                  }`}>{(biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'IHQ' : (biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta') ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? ((biopsia as any).citologiaSubType || 'CITO') : 'BX'}</span>
                                 </td>
                                 <td className="py-2 px-3 text-center">
-                                  {isPapCito ? (
+                                  {(biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? (
+                                    <div>
+                                      <div className="text-xs font-bold text-gray-700">{biopsia.cassettes} cass.</div>
+                                      <div className="text-xs font-bold text-blue-600">{((biopsia as any).trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || biopsia.cassettes} vidrios</div>
+                                    </div>
+                                  ) : isPapCito ? (
                                     <span className="text-xs text-gray-500">{biopsia.tejido === 'PAP' ? (biopsia.papQuantity || biopsia.cassettes) : (biopsia.citologiaQuantity || biopsia.cassettes)} vidrios</span>
                                   ) : (
                                     <input type="number" value={biopsia.cassettes} min={minCass}
