@@ -1859,7 +1859,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     svcList.push(`+ Cito (${fmt})`);
                                   }
 
-                                  const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : `${cass} cass.`;
+                                  const esIHQ = b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica';
+                                  const ihqVidrios = esIHQ ? ((b as any).trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || cass : 0;
+                                  const cant = esPAP ? `${b.papQuantity || b.cassettes || 1} vid.` : esCito ? `${b.citologiaQuantity || b.cassettes || 1} vid.` : esIHQ ? `${ihqVidrios} vid.` : `${cass} cass.`;
 
                                   return (
                                     <tr key={bi} className={`border-b border-gray-100 ${estaLista ? 'bg-green-50' : esUrgente ? 'bg-red-50' : ''}`}>
@@ -2013,7 +2015,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const isCito = b.tejido === 'Citología';
                           const isTacoC = b.tipo === 'TC' || b.tejido === 'Taco en Consulta';
                           const citoLabel = isCito ? (b.citologiaSubType || 'Cito') : '';
-                          const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : (b.cassettes || 0);
+                          const isIHQp = b.tipo === 'TC' ? false : b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica';
+                          const ihqVid = isIHQp ? ((b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || (b.cassettes || 0)) : 0;
+                          const cant = isPAP ? (b.papQuantity || b.cassettes || 1) + ' vid.' : isCito ? (b.citologiaQuantity || b.cassettes || 1) + ' vid.' : isIHQp ? ihqVid + ' vid.' : (b.cassettes || 0);
                           // Trozos detallado por cassette
                           const trozoPorCass = b.trozoPorCassette || [];
                           const totalTrozos = isPAP || isCito || isTacoC ? '-' : (trozoPorCass.length > 0 ? trozoPorCass.reduce((s: number, v: number) => s + (v || 1), 0) : (b.trozos || b.pieces || '-'));

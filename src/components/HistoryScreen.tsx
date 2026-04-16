@@ -1430,9 +1430,9 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             <span style={{ background: tipo === 'TACO' ? '#d97706' : tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span>
                           </td>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.cassettes || 0)}</td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : (b.type === 'IHQ' || b.tissueType === 'Inmunohistoquímica') ? `${(b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || b.cassettes || 0} vid.` : (b.cassettes || 0)}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            {isPAP || isCito || b.type === 'TC' || b.tissueType === 'Taco en Consulta' ? '-' : (() => {
+                            {isPAP || isCito || b.type === 'TC' || b.tissueType === 'Taco en Consulta' || b.type === 'IHQ' || b.tissueType === 'Inmunohistoquímica' ? '-' : (() => {
                               const tpc = b.trozoPorCassette || [];
                               const totalT = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : (parseInt(b.pieces) || 0);
                               const cns = b.cassettesNumbers || [];

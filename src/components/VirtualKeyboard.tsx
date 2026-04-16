@@ -148,7 +148,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
         </div>
 
         {/* 🔧 PANEL DE SUGERENCIAS MEJORADO CON CIERRE AUTOMÁTICO */}
-        {keyboard.targetField === 'tissueType' && autoCompleteOptions.length > 0 && (
+        {(keyboard.targetField === 'tissueType' || keyboard.targetField === 'ihqTejido') && autoCompleteOptions.length > 0 && (
           <div className="mb-3 p-3 bg-blue-50 rounded-lg border-2 border-blue-200">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-medium text-blue-800">
