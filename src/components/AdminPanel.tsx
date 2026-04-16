@@ -1271,8 +1271,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const generarHTMLEmailFacturacion = (medico: string, centroFilter?: string) => {
     const fn = labConfig.nombre || 'Laboratorio';
     const fa = new Date().toLocaleDateString('es-AR');
-    let ft = '';
-    try { ft = JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch {}
+    let ft = '', bt = '';
+    try { const cfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); ft = cfg.footerText || ''; bt = cfg.bodyText || ''; } catch {}
     const info = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
 
     const rmAll = remitos.filter(r => r.medico === medico);
@@ -1330,6 +1330,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-top:3px;">Dr/a. ' + medico + '</div>' +
       '<div style="font-size:11px;color:#888;margin-top:3px;">' + fa + ' · ' + rmF.length + ' rem. · ' + totP + ' pac.</div></td>' +
       '<td style="text-align:right;vertical-align:top;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:24px;font-weight:800;color:#0f172a;">$' + totG.toLocaleString() + '</div></td></tr></table>' +
+      (bt ? '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:16px;padding:12px 0;border-bottom:1px solid #eee;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
       det + pie +
       '<div style="text-align:center;padding:12px 0;margin-top:16px;color:#aaa;font-size:9px;border-top:1px solid #eee;">' + fa + ' · BiopsyTracker</div>' +
       '</div></div>';
@@ -3802,8 +3803,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const sId = (document.getElementById('emailjs_serviceId') as HTMLInputElement)?.value || '';
                           const tId = (document.getElementById('emailjs_templateId') as HTMLInputElement)?.value || '';
                           const pKey = (document.getElementById('emailjs_publicKey') as HTMLInputElement)?.value || '';
+                          const bodyText = (document.getElementById('emailjs_body') as HTMLTextAreaElement)?.value || '';
                           const footerText = (document.getElementById('emailjs_footer') as HTMLTextAreaElement)?.value || '';
-                          localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId: sId, templateId: tId, publicKey: pKey, footerText }));
+                          localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId: sId, templateId: tId, publicKey: pKey, bodyText, footerText }));
                           alert('Configuración de EmailJS guardada correctamente.');
                           setRemitos([...remitos]); // forzar re-render
                         }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
@@ -3826,17 +3828,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           {isConfigured ? '✓ Configurado' : 'No configurado'}
                         </span>
                       </div>
-                      {/* Pie de email configurable */}
-                      <div className="mt-4 pt-4 border-t border-gray-200">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Pie del email de facturación</label>
-                        <p className="text-xs text-gray-400 mb-2">Datos bancarios, CBU, alias, instrucciones de pago, etc. Se incluye al final del email.</p>
-                        <textarea
-                          id="emailjs_footer"
-                          defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch { return ''; } })()}
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                          placeholder="Ej: Datos para transferencia:&#10;Banco Nación - CBU: 000000000000&#10;Alias: laboratorio.pagos&#10;Titular: Laboratorio S.R.L."
-                        />
+                      {/* Cuerpo y pie de email configurables */}
+                      <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje del email</label>
+                          <p className="text-xs text-gray-400 mb-2">Texto introductorio que aparece antes de la tabla de facturación.</p>
+                          <textarea
+                            id="emailjs_body"
+                            defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').bodyText || ''; } catch { return ''; } })()}
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: Estimado/a Doctor/a, le adjuntamos el detalle de facturación del mes en curso."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">Pie del email (datos de pago)</label>
+                          <p className="text-xs text-gray-400 mb-2">Datos bancarios, CBU, alias, instrucciones de pago, etc.</p>
+                          <textarea
+                            id="emailjs_footer"
+                            defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch { return ''; } })()}
+                            rows={4}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            placeholder="Ej: Datos para transferencia:&#10;Banco Nación - CBU: 000000000000&#10;Alias: laboratorio.pagos&#10;Titular: Laboratorio S.R.L."
+                          />
+                        </div>
                       </div>
                     </div>
                   );
