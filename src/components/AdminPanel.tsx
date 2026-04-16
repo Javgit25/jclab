@@ -1110,8 +1110,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             ${[...remitosDelMedico].sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime()).map(remito =>
               remito.biopsias.map((biopsia: any) => {
                 const citoSub = (biopsia as any).citologiaSubType || '';
-                const tipo = biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
-                const bc = tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
+                const tipo = (biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'IHQ' : biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
+                const bc = tipo === 'IHQ' ? 'badge-bx' : tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
 
                 const svcs: string[] = [];
                 if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
@@ -1173,7 +1173,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     } catch {}
                   }
                 }
-                const cantLabel = tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
+                const ihqVidTotal = tipo === 'IHQ' ? ((biopsia.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || currCass) : 0;
+                const cantLabel = tipo === 'IHQ' ? currCass + ' cass. / ' + ihqVidTotal + ' vid.'
+                  : tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
                   : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
                   : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
 
