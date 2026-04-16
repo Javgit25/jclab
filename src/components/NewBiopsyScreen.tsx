@@ -110,13 +110,15 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           updated.citologiaQuantity = 0;
           updated.citologiaUrgente = false;
         }
-        // Auto-asignar tipo IHQ para Inmunohistoquímica
+        // Auto-asignar tipo IHQ y entregarConTaco para Inmunohistoquímica
         if (value === 'Inmunohistoquímica') {
           updated.type = 'IHQ';
+          updated.entregarConTaco = true;
         } else if (updated.type === 'IHQ') {
           updated.type = '';
           updated.ihqTejido = '';
           updated.ihqVidriosQty = 0;
+          updated.entregarConTaco = false;
         }
         // Limpiar IHQ si cambia de tejido
         if (value !== 'Inmunohistoquímica') {

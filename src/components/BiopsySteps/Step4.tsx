@@ -456,13 +456,15 @@ export const Step4: React.FC<Step4Props> = ({
                   const label = cn?.suffix ? `${cn.base}/${cn.suffix}` : `Cassette ${i+1}`;
                   const val = trozoPorCassette[i] || 1;
                   return (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 10px', background: i % 2 === 0 ? 'white' : '#f8fafc', borderRadius: '8px', marginBottom: '3px', gap: '10px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b', minWidth: '80px', textAlign: 'right' }}>{label}</span>
-                      <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = Math.max(1, (t[i] || 1) - 1); onTrozoPorCassetteChange?.(t); onPiecesChange(String(t.reduce((s, v) => s + v, 0))); }}
-                        style={{ width: '38px', height: '38px', borderRadius: '12px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>−</button>
-                      <span style={{ fontSize: '20px', fontWeight: '800', color: '#1e40af', minWidth: '40px', textAlign: 'center', background: '#f0f4ff', borderRadius: '8px', padding: '4px 8px' }}>{val}</span>
-                      <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = (t[i] || 1) + 1; onTrozoPorCassetteChange?.(t); onPiecesChange(String(t.reduce((s, v) => s + v, 0))); }}
-                        style={{ width: '38px', height: '38px', borderRadius: '12px', border: 'none', background: '#1e40af', color: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                    <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 10px', background: i % 2 === 0 ? 'white' : '#f8fafc', borderRadius: '8px', marginBottom: '3px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '700', color: '#1e293b', marginBottom: '6px' }}>{label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = Math.max(1, (t[i] || 1) - 1); onTrozoPorCassetteChange?.(t); onPiecesChange(String(t.reduce((s, v) => s + v, 0))); }}
+                          style={{ width: '38px', height: '38px', borderRadius: '12px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>−</button>
+                        <span style={{ fontSize: '20px', fontWeight: '800', color: '#1e40af', minWidth: '40px', textAlign: 'center', background: '#f0f4ff', borderRadius: '8px', padding: '4px 8px' }}>{val}</span>
+                        <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = (t[i] || 1) + 1; onTrozoPorCassetteChange?.(t); onPiecesChange(String(t.reduce((s, v) => s + v, 0))); }}
+                          style={{ width: '38px', height: '38px', borderRadius: '12px', border: 'none', background: '#1e40af', color: 'white', cursor: 'pointer', fontSize: '20px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                      </div>
                     </div>
                   );
                 })}

@@ -66,6 +66,10 @@ export const Step7: React.FC<Step7Props> = ({
       } else {
         return `${biopsyForm.citologiaQuantity} vidrio${biopsyForm.citologiaQuantity > 1 ? 's' : ''} citología`;
       }
+    } else if (biopsyForm.tissueType === 'Inmunohistoquímica') {
+      const cassettes = parseInt(biopsyForm.cassettes) || 0;
+      const totalVidrios = (biopsyForm.trozoPorCassette || []).reduce((s, v) => s + (v || 1), 0) || cassettes;
+      return `${cassettes} cassette${cassettes > 1 ? 's' : ''} • ${totalVidrios} vidrio${totalVidrios > 1 ? 's' : ''}`;
     } else {
       const cassettes = parseInt(biopsyForm.cassettes) || 0;
       const pieces = parseInt(biopsyForm.pieces) || 0;
@@ -492,7 +496,7 @@ export const Step7: React.FC<Step7Props> = ({
                 }}>
                   <input type="checkbox"
                     checked={biopsyForm.entregarConTaco || false}
-                    disabled={biopsyForm.tissueType === 'Taco en Consulta'}
+                    disabled={biopsyForm.tissueType === 'Taco en Consulta' || biopsyForm.tissueType === 'Inmunohistoquímica'}
                     onChange={(e) => {
                       const checked = e.target.checked;
                       if (onBiopsyFieldChange) {
@@ -505,7 +509,7 @@ export const Step7: React.FC<Step7Props> = ({
                   <div>
                     <span style={{ fontSize: '14px', fontWeight: '700', color: biopsyForm.entregarConTaco ? '#92400e' : '#374151' }}>
                       📦 Entregar con Taco
-                      {biopsyForm.tissueType === 'Taco en Consulta' && <span style={{ fontSize: '10px', color: '#d97706', marginLeft: '6px' }}>(siempre para Taco en Consulta)</span>}
+                      {(biopsyForm.tissueType === 'Taco en Consulta' || biopsyForm.tissueType === 'Inmunohistoquímica') && <span style={{ fontSize: '10px', color: '#d97706', marginLeft: '6px' }}>(siempre)</span>}
                     </span>
                     <div style={{ fontSize: '10px', color: '#64748b' }}>
                       El laboratorio devolverá los cassettes/tacos junto a los vidrios
@@ -514,7 +518,7 @@ export const Step7: React.FC<Step7Props> = ({
                 </label>
 
                 {/* Selección de cuáles tacos cuando hay 2+ cassettes (no para Taco en Consulta, se devuelven todos) */}
-                {biopsyForm.entregarConTaco && biopsyForm.tissueType !== 'Taco en Consulta' && parseInt(biopsyForm.cassettes) >= 2 && (
+                {biopsyForm.entregarConTaco && biopsyForm.tissueType !== 'Taco en Consulta' && biopsyForm.tissueType !== 'Inmunohistoquímica' && parseInt(biopsyForm.cassettes) >= 2 && (
                   <div style={{ marginTop: '8px', padding: '10px', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fcd34d' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                       <span style={{ fontSize: '12px', fontWeight: '600', color: '#92400e' }}>¿Cuáles tacos necesita?</span>
