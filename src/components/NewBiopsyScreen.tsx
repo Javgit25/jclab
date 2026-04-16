@@ -344,8 +344,16 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     const uniqueTissues = Array.from(seen.values());
 
     const valueNorm = normalizeForSearch(value);
+    // Alias: "ihq" debe matchear "Inmunohistoquímica"
+    const aliases: Record<string, string[]> = { 'inmunohistoquimica': ['ihq'] };
     const filtered = uniqueTissues
-      .filter(tissue => normalizeForSearch(tissue).includes(valueNorm))
+      .filter(tissue => {
+        const tissueNorm = normalizeForSearch(tissue);
+        if (tissueNorm.includes(valueNorm)) return true;
+        // Buscar por alias
+        const tissueAliases = aliases[tissueNorm] || [];
+        return tissueAliases.some(a => a.includes(valueNorm) || valueNorm.includes(a));
+      })
       .slice(0, 8)
       .sort((a, b) => {
         const aStarts = normalizeForSearch(a).startsWith(valueNorm);

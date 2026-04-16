@@ -413,8 +413,8 @@ export const Step4: React.FC<Step4Props> = ({
               )}
             </div>
 
-            {/* Trozos por cassette + Queda Material - cuando hay 2+ cassettes (oculto para Taco en Consulta) */}
-            {!isPapOrCitologia && !isTacoConsulta && cassettes && parseInt(cassettes) >= 2 && (
+            {/* Trozos por cassette - cuando hay 2+ cassettes (oculto para Taco en Consulta e IHQ) */}
+            {!isPapOrCitologia && !isTacoConsulta && !isIHQ && cassettes && parseInt(cassettes) >= 2 && (
               <div style={{ marginBottom: '8px', backgroundColor: '#f0f4ff', borderRadius: '10px', padding: '10px', border: '2px solid #1e3a5f20' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e3a5f' }}>Trozos por Cassette</span>
