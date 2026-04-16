@@ -3835,14 +3835,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje del email <span className="text-gray-400 font-normal">(opcional)</span></label>
-                          <p className="text-xs text-gray-400 mb-2">Si se deja vacío, se usa un mensaje predeterminado con el nombre del médico y el mes.</p>
+                          <p className="text-xs text-gray-400 mb-2">Si se deja vacío, se usa el mensaje predeterminado que se muestra abajo.</p>
                           <textarea
                             id="emailjs_body"
                             defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').bodyText || ''; } catch { return ''; } })()}
                             rows={3}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="Dejar vacío para usar el mensaje predeterminado. Si lo personalizás, no incluye nombre ni mes automáticamente."
+                            placeholder="Escribí un mensaje personalizado o dejalo vacío para usar el predeterminado."
                           />
+                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                            <div className="text-xs font-semibold text-blue-700 mb-1">Mensaje predeterminado (se usa si el campo está vacío):</div>
+                            <div className="text-xs text-blue-900 italic leading-relaxed">
+                              Estimado/a Dr./Dra. <strong>[nombre del médico]</strong>,<br/>
+                              Por medio de la presente, le adjuntamos el detalle completo de las biopsias y pacientes remitidos a nuestro laboratorio durante el mes de <strong>[mes actual]</strong>.<br/>
+                              Quedamos a su disposición para cualquier consulta o aclaración que considere necesaria.<br/>
+                              Sin otro particular, saludamos a usted muy atentamente.
+                            </div>
+                          </div>
                         </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">Pie del email (datos de pago)</label>
