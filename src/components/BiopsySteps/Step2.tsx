@@ -109,9 +109,9 @@ export const Step2: React.FC<Step2Props> = ({
     if (tissueType === 'Taco en Consulta') {
       return numeroExterno.trim().length > 0;
     }
-    // Para Inmunohistoquímica, requiere tejido y cantidad de vidrios
+    // Para Inmunohistoquímica, requiere tejido
     if (tissueType === 'Inmunohistoquímica') {
-      return ihqTejido.trim().length > 0 && ihqVidriosQty > 0;
+      return ihqTejido.trim().length > 0;
     }
 
     return true;
@@ -820,95 +820,39 @@ export const Step2: React.FC<Step2Props> = ({
                 marginBottom: '12px',
                 textAlign: 'center'
               }}>
-                🔬 Inmunohistoquímica
+                🔬 Inmunohistoquímica (IHQ)
               </h3>
 
-              {/* Selección de tejido */}
-              <div style={{ marginBottom: '14px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Tipo de Tejido:
-                </label>
-                <div
-                  onClick={() => onOpenVirtualKeyboard('full', 'ihqTejido', ihqTejido)}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    borderRadius: '12px',
-                    border: ihqTejido ? '3px solid #3b82f6' : '3px solid #d1d5db',
-                    backgroundColor: ihqTejido ? '#dbeafe' : 'white',
-                    color: ihqTejido ? '#1e40af' : '#6b7280',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    minHeight: '50px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    textAlign: 'center'
-                  }}
-                >
-                  {ihqTejido || '🖱️ Toque para seleccionar tejido...'}
-                </div>
-                {ihqTejido && (
-                  <div style={{ marginTop: '6px', textAlign: 'center', fontSize: '11px', color: '#1e40af', fontWeight: '600' }}>
-                    ✓ Tejido: {ihqTejido}
-                  </div>
-                )}
-              </div>
+              <p style={{ fontSize: '13px', color: '#1e40af', marginBottom: '12px', textAlign: 'center', fontWeight: '500' }}>
+                Seleccione el tipo de tejido de la muestra
+              </p>
 
-              {/* Cantidad de vidrios */}
-              <div style={{ marginBottom: '12px' }}>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  marginBottom: '8px'
-                }}>
-                  Cantidad de Vidrios:
-                </label>
-                <div style={{
+              <div
+                onClick={() => onOpenVirtualKeyboard('full', 'ihqTejido', ihqTejido)}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  borderRadius: '12px',
+                  border: ihqTejido ? '3px solid #3b82f6' : '3px solid #d1d5db',
+                  backgroundColor: ihqTejido ? '#dbeafe' : 'white',
+                  color: ihqTejido ? '#1e40af' : '#6b7280',
+                  cursor: 'pointer',
+                  minHeight: '50px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '12px'
-                }}>
-                  <button
-                    onClick={() => { if (ihqVidriosQty > 0 && onIhqVidriosQtyChange) onIhqVidriosQtyChange(ihqVidriosQty - 1); }}
-                    style={{
-                      width: '48px', height: '48px', borderRadius: '12px',
-                      border: '2px solid #1e3a5f', backgroundColor: 'white',
-                      color: '#1e3a5f', fontSize: '24px', fontWeight: 'bold',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                  >−</button>
-                  <button
-                    onClick={() => onOpenVirtualKeyboard('numeric', 'ihqVidriosQty', ihqVidriosQty.toString())}
-                    style={{
-                      minWidth: '120px', height: '48px', backgroundColor: 'white',
-                      border: '2px solid #1e3a5f', borderRadius: '12px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f', cursor: 'pointer'
-                    }}
-                  >{ihqVidriosQty}</button>
-                  <button
-                    onClick={() => { if (onIhqVidriosQtyChange) onIhqVidriosQtyChange(ihqVidriosQty + 1); }}
-                    style={{
-                      width: '48px', height: '48px', borderRadius: '12px',
-                      border: '2px solid #1e3a5f', backgroundColor: 'white',
-                      color: '#1e3a5f', fontSize: '24px', fontWeight: 'bold',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                    }}
-                  >+</button>
-                </div>
+                  textAlign: 'center'
+                }}
+              >
+                {ihqTejido || '🖱️ Toque para seleccionar tejido...'}
               </div>
+              {ihqTejido && (
+                <div style={{ marginTop: '6px', textAlign: 'center', fontSize: '11px', color: '#1e40af', fontWeight: '600' }}>
+                  ✓ Tejido: {ihqTejido} — Siguiente paso: cantidad de cassettes y vidrios
+                </div>
+              )}
             </div>
           )}
 
@@ -966,8 +910,8 @@ export const Step2: React.FC<Step2Props> = ({
                    (tissueType === 'Citología' && citologiaQuantity === 0) ? 'Especifique cantidad de Citología' :
                    (tissueType === 'Taco en Consulta' && !numeroExterno.trim()) ? 'Ingrese el número externo' :
                    tissueType === 'Taco en Consulta' ? 'Continuar a Cantidad de Material' :
-                   (tissueType === 'Inmunohistoquímica' && (!ihqTejido.trim() || ihqVidriosQty <= 0)) ? 'Complete tejido y cantidad de vidrios' :
-                   tissueType === 'Inmunohistoquímica' ? 'Continuar a Confirmación' :
+                   (tissueType === 'Inmunohistoquímica' && !ihqTejido.trim()) ? 'Seleccione el tipo de tejido' :
+                   tissueType === 'Inmunohistoquímica' ? 'Continuar a Cantidad de Material' :
                    'Continuar al Tipo de Biopsia'}
                 </span>
                 {isStepValid() && <ArrowRight style={{ height: '24px', width: '24px' }} />}

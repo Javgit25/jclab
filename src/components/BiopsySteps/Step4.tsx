@@ -224,6 +224,7 @@ export const Step4: React.FC<Step4Props> = ({
   // Determinar si es PAP o Citología para manejo especial
   const isPapOrCitologia = tissueType === 'PAP' || tissueType === 'Citología';
   const isTacoConsulta = tissueType === 'Taco en Consulta';
+  const isIHQ = tissueType === 'Inmunohistoquímica';
   const materialType = isPapOrCitologia ? 'Vidrios' : 'Cassettes';
 
   // Auto-inicializar trozos cuando hay 2+ cassettes y pieces está vacío
@@ -238,7 +239,7 @@ export const Step4: React.FC<Step4Props> = ({
     }
   }, [cassettes]);
 
-  const isValid = isTacoConsulta
+  const isValid = isTacoConsulta || isIHQ
     ? cassettes && parseInt(cassettes) > 0
     : cassettes && parseInt(cassettes) > 0 && pieces && parseInt(pieces) > 0;
 
@@ -398,8 +399,8 @@ export const Step4: React.FC<Step4Props> = ({
                 onOpenKeyboard={() => onOpenVirtualKeyboard('numeric', 'cassettes', cassettes)}
               />
 
-              {/* Trozos: si 1 cassette = input global, si 2+ = por cassette (oculto para Taco en Consulta) */}
-              {!isTacoConsulta && (!cassettes || parseInt(cassettes) <= 1) && (
+              {/* Trozos: si 1 cassette = input global (oculto para Taco en Consulta e IHQ) */}
+              {!isTacoConsulta && !isIHQ && (!cassettes || parseInt(cassettes) <= 1) && (
                 <TouchNumericInput
                   label="Número de Trozos"
                   value={pieces}
@@ -441,8 +442,37 @@ export const Step4: React.FC<Step4Props> = ({
               </div>
             )}
 
-            {/* Cassettes individuales - Solo si no es PAP o Citología ni Taco en Consulta Y hay 2 o más cassettes */}
-            {!isPapOrCitologia && !isTacoConsulta && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
+            {/* Vidrios por Cassette para IHQ */}
+            {isIHQ && cassettes && parseInt(cassettes) >= 1 && (
+              <div style={{ marginBottom: '8px', backgroundColor: '#eff6ff', borderRadius: '10px', padding: '10px', border: '2px solid #3b82f620' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>🔬 Vidrios por Cassette</span>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#059669', background: '#f0fdf4', padding: '2px 8px', borderRadius: '6px' }}>
+                    Total: {trozoPorCassette.length > 0 ? trozoPorCassette.reduce((s, v) => s + (v || 1), 0) : parseInt(cassettes) || 0} vidrios
+                  </span>
+                </div>
+                {Array.from({ length: parseInt(cassettes) || 0 }, (_, i) => {
+                  const cn = cassettesNumbers[i];
+                  const label = cn?.suffix ? `${cn.base}/${cn.suffix}` : `Cassette ${i+1}`;
+                  const val = trozoPorCassette[i] || 1;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', background: i % 2 === 0 ? 'white' : '#f8fafc', borderRadius: '6px', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>{label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = Math.max(1, (t[i] || 1) - 1); onTrozoPorCassetteChange?.(t); onPiecesChange(String(t.reduce((s, v) => s + v, 0))); }}
+                          style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>−</button>
+                        <span style={{ fontSize: '20px', fontWeight: '800', color: '#1e40af', minWidth: '28px', textAlign: 'center' }}>{val}</span>
+                        <button onClick={() => { const t = [...trozoPorCassette]; while (t.length <= i) t.push(1); t[i] = (t[i] || 1) + 1; onTrozoPorCassetteChange?.(t); onPiecesChange(String(t.reduce((s, v) => s + v, 0))); }}
+                          style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1e40af', color: 'white', cursor: 'pointer', fontSize: '18px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Cassettes individuales - Solo si no es PAP o Citología ni Taco en Consulta ni IHQ Y hay 2 o más cassettes */}
+            {!isPapOrCitologia && !isTacoConsulta && !isIHQ && cassettes && parseInt(cassettes) > 1 && cassettesNumbers.length > 1 && (
               <div style={{ marginBottom: '12px' }}>
                 <h3 style={{
                   fontSize: '14px',
@@ -568,12 +598,13 @@ export const Step4: React.FC<Step4Props> = ({
                 fontWeight: '600'
               }}>
                 <span>📋 {materialType}: {cassettes}</span>
-                {!isTacoConsulta && <span>Trozos: {pieces}</span>}
+                {isIHQ && <span>Vidrios: {trozoPorCassette.length > 0 ? trozoPorCassette.reduce((s, v) => s + (v || 1), 0) : parseInt(cassettes) || 0}</span>}
+                {!isTacoConsulta && !isIHQ && <span>Trozos: {pieces}</span>}
               </div>
             )}
 
-            {/* Checkbox Queda Material — al final (oculto para Taco en Consulta) */}
-            {!isPapOrCitologia && !isTacoConsulta && cassettes && parseInt(cassettes) >= 1 && (
+            {/* Checkbox Queda Material — al final (oculto para Taco en Consulta e IHQ) */}
+            {!isPapOrCitologia && !isTacoConsulta && !isIHQ && cassettes && parseInt(cassettes) >= 1 && (
               <div style={{ marginBottom: '8px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', backgroundColor: quedaMaterial ? '#fef3c7' : '#f9fafb', border: `2px solid ${quedaMaterial ? '#f59e0b' : '#e5e7eb'}`, borderRadius: '8px', cursor: 'pointer', transition: 'all 0.2s' }}>
                   <input type="checkbox" checked={quedaMaterial} onChange={(e) => onQuedaMaterialChange?.(e.target.checked)}

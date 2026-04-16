@@ -94,7 +94,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       // ✅ LÓGICA MEJORADA: Resetear cantidades cuando cambia el tipo de tejido
       if (field === 'tissueType') {
         // Normalizar nombres especiales (el autocompletado puede cambiar mayúsculas)
-        if (typeof value === 'string' && value.toLowerCase() === 'inmunohistoquímica') {
+        if (typeof value === 'string' && (value.toLowerCase() === 'inmunohistoquímica' || value.toLowerCase() === 'inmunohistoquimica' || value.toUpperCase() === 'IHQ')) {
           value = 'Inmunohistoquímica';
           updated.tissueType = value;
         }
@@ -586,10 +586,17 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         return;
       }
       
-      // ✅ FLUJO ESPECIAL: PAP/Citología/IHQ van directo a Step 7 (confirmación)
-      if (isPapOrCitologia() || isIHQ()) {
-        console.log('🎯 Flujo especial: PAP/Citología/IHQ va directo a Step 7');
+      // ✅ FLUJO ESPECIAL: PAP/Citología van directo a Step 7 (confirmación)
+      if (isPapOrCitologia()) {
+        console.log('🎯 Flujo especial: PAP/Citología va directo a Step 7');
         setCurrentStep(7);
+        return;
+      }
+
+      // IHQ: Step2 → Step4 (cassettes + vidrios)
+      if (isIHQ()) {
+        console.log('🎯 Flujo IHQ: Step2 → Step4');
+        setCurrentStep(4);
         return;
       }
 
@@ -618,6 +625,12 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         setCurrentStep(6);
         return;
       }
+      // IHQ: Step4 → Step7 directo (sin Step5 ni Step6)
+      if (isIHQ()) {
+        console.log('🎯 Flujo IHQ: Step4 → Step7');
+        setCurrentStep(7);
+        return;
+      }
     }
 
     if (currentStep < 7) {
@@ -628,10 +641,14 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   const prevStep = useCallback(() => {
     console.log('⬅️ prevStep called', { currentStep, tissueType: biopsyForm.tissueType, isPapOrCitologia: isPapOrCitologia() });
 
-    // ✅ FLUJO ESPECIAL: Si estamos en Step 7 y es PAP/Citología/IHQ, volver a Step 2
-    if (currentStep === 7 && (isPapOrCitologia() || isIHQ())) {
-      console.log('🎯 Flujo especial: Desde Step 7 PAP/Citología/IHQ volver a Step 2');
+    // ✅ FLUJO ESPECIAL: Si estamos en Step 7 y es PAP/Citología, volver a Step 2
+    if (currentStep === 7 && isPapOrCitologia()) {
       setCurrentStep(2);
+      return;
+    }
+    // IHQ: Step7 → Step4
+    if (currentStep === 7 && isIHQ()) {
+      setCurrentStep(4);
       return;
     }
 
@@ -651,6 +668,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       }
       // Taco en Consulta: Step4 → Step2 (saltar Step3)
       if (isTacoConsulta()) {
+        setCurrentStep(2);
+        return;
+      }
+      // IHQ: Step4 → Step2
+      if (isIHQ()) {
         setCurrentStep(2);
         return;
       }
@@ -732,7 +754,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         )}
         
         {/* ✅ STEP 3 - NO SE MUESTRA PARA PAP/CITOLOGÍA NI TACO EN CONSULTA */}
-        {currentStep === 3 && !isPapOrCitologia() && !isTacoConsulta() && (
+        {currentStep === 3 && !isPapOrCitologia() && !isTacoConsulta() && !isIHQ() && (
           <Step3
             type={biopsyForm.type}
             onTypeChange={(value) => handleBiopsyChange('type', value)}
@@ -766,7 +788,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         )}
 
         {/* ✅ STEP 5 - NO SE MUESTRA PARA PAP/CITOLOGÍA NI TACO EN CONSULTA */}
-        {currentStep === 5 && !isPapOrCitologia() && !isTacoConsulta() && (
+        {currentStep === 5 && !isPapOrCitologia() && !isTacoConsulta() && !isIHQ() && (
           <Step5
             declassify={biopsyForm.declassify}
             onDeclassifyChange={(value) => handleBiopsyChange('declassify', value)}
