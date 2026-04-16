@@ -50,6 +50,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     let cancelled = false;
     const syncFromDb = async () => {
       try {
+        // Pre-cargar labs para validación de código al registrar
+        db.getLabs().catch(() => {});
         const freshDoctors = await db.getDoctors();
         if (!cancelled && freshDoctors.length > 0) {
           // getDoctors() ya actualiza localStorage internamente
@@ -121,6 +123,48 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
   const [showUserSelect, setShowUserSelect] = useState(false);
   const [ayudantePassword, setAyudantePassword] = useState('');
 
+  // Multi-centro: estado para selección de centro médico
+  const [pendingCargadoPor, setPendingCargadoPor] = useState<string | null>(null);
+  const [showCentroSelect, setShowCentroSelect] = useState(false);
+
+  // Obtener lista de hospitales del doctor
+  const getHospitales = (doctor: RegisteredDoctor): string[] => {
+    const list = (doctor as any).hospitales || [];
+    if (list.length > 0) return list.filter((h: string) => h && h.trim());
+    if (doctor.hospital && doctor.hospital.trim()) return [doctor.hospital];
+    return [];
+  };
+
+  // Ejecutar login final con centro seleccionado
+  const doLogin = useCallback(async (cargadoPor: string, hospital: string) => {
+    if (!existingDoctor) return;
+    setIsSubmitting(true); setErrors({});
+    try {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      onLogin({
+        id: existingDoctor.id,
+        name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
+        firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
+        hospital, email: existingDoctor.email,
+        selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
+        cargadoPor
+      });
+    } catch { setErrors({ general: 'Error al iniciar sesión' }); }
+    finally { setIsSubmitting(false); }
+  }, [existingDoctor, onLogin]);
+
+  // Intentar login: si hay múltiples centros, mostrar selección
+  const tryLogin = useCallback((cargadoPor: string) => {
+    if (!existingDoctor) return;
+    const hospitales = getHospitales(existingDoctor);
+    if (hospitales.length > 1) {
+      setPendingCargadoPor(cargadoPor);
+      setShowCentroSelect(true);
+    } else {
+      doLogin(cargadoPor, hospitales[0] || existingDoctor.hospital || '');
+    }
+  }, [existingDoctor, doLogin]);
+
   const handleLogin = useCallback(async () => {
     if (isSubmitting || !existingDoctor) return;
     if (!password) { setErrors({ password: 'Ingrese su contraseña' }); return; }
@@ -133,20 +177,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
         setShowUserSelect(true);
         return;
       }
-      // No tiene ayudantes: login directo como médico
-      setIsSubmitting(true); setErrors({});
-      try {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        onLogin({
-          id: existingDoctor.id,
-          name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
-          firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
-          hospital: existingDoctor.hospital, email: existingDoctor.email,
-          selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
-          cargadoPor: `Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`
-        });
-      } catch { setErrors({ general: 'Error al iniciar sesión' }); }
-      finally { setIsSubmitting(false); }
+      // No tiene ayudantes: login directo como médico (o selección de centro)
+      tryLogin(`Dr/a. ${existingDoctor.firstName} ${existingDoctor.lastName}`);
       return;
     }
 
@@ -154,41 +186,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     const ayudantes = (existingDoctor as any).ayudantes || [];
     const ayudante = ayudantes.find((a: any) => a.activo && a.password === password);
     if (ayudante) {
-      setIsSubmitting(true); setErrors({});
-      try {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        onLogin({
-          id: existingDoctor.id,
-          name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
-          firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
-          hospital: existingDoctor.hospital, email: existingDoctor.email,
-          selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
-          cargadoPor: ayudante.nombre
-        });
-      } catch { setErrors({ general: 'Error al iniciar sesión' }); }
-      finally { setIsSubmitting(false); }
+      tryLogin(ayudante.nombre);
       return;
     }
 
     setErrors({ password: 'Contraseña incorrecta' });
-  }, [existingDoctor, password, onLogin, isSubmitting]);
+  }, [existingDoctor, password, isSubmitting, tryLogin]);
 
   const loginAsUser = useCallback(async (userName: string) => {
     if (!existingDoctor) return;
-    setIsSubmitting(true);
-    try {
-      await new Promise(resolve => setTimeout(resolve, 200));
-      onLogin({
-        id: existingDoctor.id,
-        name: `${existingDoctor.firstName} ${existingDoctor.lastName}`,
-        firstName: existingDoctor.firstName, lastName: existingDoctor.lastName,
-        hospital: existingDoctor.hospital, email: existingDoctor.email,
-        selectedDate: new Date().toDateString(), loginDate: new Date().toDateString(),
-        cargadoPor: userName
-      });
-    } catch {}
-    finally { setIsSubmitting(false); }
-  }, [existingDoctor, onLogin]);
+    tryLogin(userName);
+  }, [existingDoctor, tryLogin]);
 
   const handleRegister = useCallback(async () => {
     if (isSubmitting) return;
@@ -198,12 +206,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     if (!labCode.trim()) {
       newErrors.labCode = 'Ingresá el código del laboratorio';
     } else {
-      // Verificar que el código exista - siempre consulta Supabase
+      // Verificar que el código exista - consultar Supabase con fallback a localStorage
       try {
         let labs: any[] = [];
         try { labs = await db.getLabs(); } catch {}
         if (labs.length === 0) {
           labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+        }
+        // Si aún no hay labs, reintentar una vez (puede ser primera carga)
+        if (labs.length === 0) {
+          await new Promise(r => setTimeout(r, 500));
+          try { labs = await db.getLabs(); } catch {}
+          if (labs.length === 0) {
+            labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+          }
         }
         const labExists = labs.some((l: any) => l.labCode === labCode.trim().toUpperCase() && l.estado !== 'suspendido');
         if (!labExists) newErrors.labCode = 'Código no válido o laboratorio suspendido';
@@ -216,11 +232,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     setIsSubmitting(true); setErrors({});
     try {
       await new Promise(resolve => setTimeout(resolve, 200));
+      const hospitalTrimmed = hospitalName.trim() || '';
       const newDoctor: RegisteredDoctor = {
         id: `DOC_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         firstName: firstName.trim(), lastName: lastName.trim(),
         email: email.trim().toLowerCase(),
-        hospital: hospitalName.trim() || '',
+        hospital: hospitalTrimmed,
+        hospitales: hospitalTrimmed ? [hospitalTrimmed] : [],
         whatsapp: whatsapp.trim(),
         labCode: labCode.trim().toUpperCase(),
         password, registeredAt: new Date().toISOString(), profileChanges: []
@@ -712,6 +730,40 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
               }}
                 className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold">
                 Ingresar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de selección de centro médico */}
+      {showCentroSelect && existingDoctor && pendingCargadoPor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+            <div className="p-5 border-b border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900">Seleccione centro médico</h3>
+              <p className="text-sm text-gray-500 mt-1">Dr/a. {existingDoctor.firstName} {existingDoctor.lastName}</p>
+            </div>
+            <div className="p-5 space-y-2">
+              {getHospitales(existingDoctor).map((h, i) => (
+                <button key={i}
+                  onClick={() => {
+                    setShowCentroSelect(false);
+                    doLogin(pendingCargadoPor, h);
+                  }}
+                  className="w-full text-left px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-800 font-medium rounded-xl border border-blue-200 transition-all flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">
+                    {i + 1}
+                  </div>
+                  <span className="text-base">{h}</span>
+                </button>
+              ))}
+            </div>
+            <div className="p-5 border-t border-gray-200">
+              <button onClick={() => { setShowCentroSelect(false); setPendingCargadoPor(null); }}
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100">
+                Cancelar
               </button>
             </div>
           </div>

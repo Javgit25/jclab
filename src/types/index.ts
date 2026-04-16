@@ -26,6 +26,7 @@ export interface RegisteredDoctor {
   lastName: string;
   email: string;
   hospital: string;
+  hospitales?: string[];          // Multi-centro: lista de centros médicos
   whatsapp: string;
   labCode: string;
   password: string;

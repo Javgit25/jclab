@@ -1007,8 +1007,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     );
   };
 
-  const generarHTMLFacturacion = (medico: string) => {
-    const remitosDelMedico = remitos.filter(r => r.medico === medico);
+  const generarHTMLFacturacion = (medico: string, centroFilter?: string) => {
+    const remitosDelMedico = remitos.filter(r => r.medico === medico && (!centroFilter || (r.hospital || '') === centroFilter));
     const fechaActual = new Date().toLocaleDateString('es-AR');
     
     const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
@@ -1074,7 +1074,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       <div class="content">
         <div class="doc-header">
           <div>
-            <div class="doc-title">Detalle de Facturación</div>
+            <div class="doc-title">Detalle de Facturación${centroFilter ? ' — ' + centroFilter : ''}</div>
             <div class="doc-medico">Dr/a. ${medico}</div>
             <div class="doc-fecha">${fechaActual} &nbsp;·&nbsp; ${remitosDelMedico.length} remito${remitosDelMedico.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${totalPacientes} paciente${totalPacientes > 1 ? 's' : ''}</div>
           </div>
@@ -1253,13 +1253,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     return htmlContent;
   };
 
-  const exportarFacturacionMedico = (medico: string) => {
-    const htmlContent = generarHTMLFacturacion(medico);
+  const exportarFacturacionMedico = (medico: string, centroFilter?: string) => {
+    const htmlContent = generarHTMLFacturacion(medico, centroFilter);
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
+    const centroSuffix = centroFilter ? `_${centroFilter.replace(/\s+/g, '_')}` : '';
     link.setAttribute('href', url);
-    link.setAttribute('download', `Reporte_Completo_${medico.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`);
+    link.setAttribute('download', `Reporte_${medico.replace(/\s+/g, '_')}${centroSuffix}_${new Date().toISOString().split('T')[0]}.html`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -1751,6 +1752,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           </td>
                           <td className="py-2 px-3">
                             <div className="font-semibold text-gray-900 text-xs">Dr/a. {remito.medico}</div>
+                            {remito.hospital && (
+                              <div className="text-xs text-blue-500">{remito.hospital}</div>
+                            )}
                             {(remito as any).cargadoPor && (
                               <div className="text-xs text-amber-600">Cargado por: {(remito as any).cargadoPor}</div>
                             )}
@@ -2011,6 +2015,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       <div class="remito-header">
                         <div>
                           <span class="medico">Dr/a. ${r.medico}</span>
+                          ${r.hospital ? '<span style="color:#2563eb;font-weight:600;font-size:11px;margin-left:4px;">— ' + r.hospital + '</span>' : ''}
                           ${(r as any).cargadoPor ? '<span class="cargado">(' + (r as any).cargadoPor + ')</span>' : ''}
                           <span class="nro">Remito #${nro}</span>
                         </div>
@@ -2354,6 +2359,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </td>
                         <td className="py-3 px-4">
                           <div className="text-sm font-semibold text-gray-900">Dr/a. {remito.medico}</div>
+                          {remito.hospital && (
+                            <div className="text-xs text-blue-500">{remito.hospital}</div>
+                          )}
                           {(remito as any).cargadoPor && (
                             <div className="text-xs text-amber-600">Por: {(remito as any).cargadoPor}</div>
                           )}
@@ -2420,7 +2428,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       <div className="flex items-center justify-between p-4 border-b border-gray-200">
                         <div>
                           <h3 className="text-lg font-bold text-gray-900">Editar Remito #{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</h3>
-                          <p className="text-sm text-gray-500">Dr/a. {remito.medico} — {new Date(remito.fecha).toLocaleDateString('es-AR')}</p>
+                          <p className="text-sm text-gray-500">Dr/a. {remito.medico}{remito.hospital ? ` — ${remito.hospital}` : ''} — {new Date(remito.fecha).toLocaleDateString('es-AR')}</p>
                         </div>
                         <button onClick={() => { setEditingBiopsias(null); setEditingRemito(null); }} className="text-gray-400 hover:text-gray-600 text-xl font-bold px-2">×</button>
                       </div>
@@ -2741,6 +2749,30 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
                               db.saveNotification(newNotif).catch(console.error);
 
+                              // Cancelar solicitudes de taco pendientes para pacientes marcados NO VINO
+                              try {
+                                const remitoNum = (remito as any).remitoNumber || '';
+                                editingBiopsias.forEach((curr: any, idx: number) => {
+                                  const orig = origBiopsias[idx];
+                                  if (curr.noVino && !(orig?.noVino)) {
+                                    // Buscar solicitudes pendientes de este paciente
+                                    const solicitudes = JSON.parse(localStorage.getItem('solicitudes') || '[]');
+                                    solicitudes.forEach((sol: any) => {
+                                      if (
+                                        sol.estado === 'pendiente' &&
+                                        sol.numeroPaciente === curr.numero &&
+                                        (sol.remitoNumber === remitoNum || !sol.remitoNumber)
+                                      ) {
+                                        sol.estado = 'rechazado';
+                                        sol.notas = (sol.notas || '') + (sol.notas ? ' | ' : '') + 'Cancelado: paciente NO VINO';
+                                        db.saveSolicitud(sol).catch(console.error);
+                                      }
+                                    });
+                                    localStorage.setItem('solicitudes', JSON.stringify(solicitudes));
+                                  }
+                                });
+                              } catch (e) { console.error('Error cancelando solicitudes por NO VINO:', e); }
+
                               // SINCRONIZAR con historial del médico (desde Supabase)
                               try {
                                 const doctorEmail = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim();
@@ -2875,13 +2907,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
-              {/* Tabla de médicos */}
+              {/* Tabla de médicos agrupada por centro */}
               <div className="flex-1 overflow-auto px-5 pb-4">
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <table className="w-full">
                     <thead className="sticky top-0">
                       <tr style={{ background: '#0f172a' }}>
-                        <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase">Médico</th>
+                        <th className="text-left py-2.5 px-4 text-xs font-semibold text-white/70 uppercase">Médico / Centro</th>
                         <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Remitos</th>
                         <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">Pac.</th>
                         <th className="text-center py-2.5 px-3 text-xs font-semibold text-white/70 uppercase">BX</th>
@@ -2893,88 +2925,221 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {[...medicos].sort((a, b) => {
-                        const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
-                        const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
-                        return tB - tA;
-                      }).map((medico) => {
-                        const rm = remitos.filter(r => r.medico === medico);
-                        const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
-                        const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
-                        const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
-                        const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
-                        const pap = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.papQuantity || 0), 0), 0);
-                        const cito = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.citologiaQuantity || 0), 0), 0);
-                        return (
-                          <tr key={medico} className="border-b border-gray-50 hover:bg-blue-50/30">
-                            <td className="py-2.5 px-4">
-                              <div className="flex items-center gap-2.5">
-                                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                                  {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
-                                </div>
-                                <div>
-                                  <div className="text-xs font-semibold text-gray-900">Dr/a. {medico}</div>
-                                  <div className="text-xs text-gray-400">{rm[0]?.email || ''}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-700">{rm.length}</td>
-                            <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-700">{pac}</td>
-                            <td className="py-2.5 px-3 text-center"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{bx}</span></td>
-                            <td className="py-2.5 px-3 text-center"><span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">{pq}</span></td>
-                            <td className="py-2.5 px-3 text-center"><span className="text-xs font-bold text-gray-600">{pap || '-'}</span></td>
-                            <td className="py-2.5 px-3 text-center"><span className="text-xs font-bold text-gray-600">{cito || '-'}</span></td>
-                            <td className="py-2.5 px-4 text-right text-sm font-bold text-gray-900">${total.toLocaleString()}</td>
-                            <td className="py-2.5 px-3 text-center">
-                              <div className="flex gap-1 justify-center">
-                                <button onClick={() => exportarFacturacionMedico(medico)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-semibold">
-                                  <Download size={12} />
-                                </button>
-                                <button onClick={async () => {
-                                  const doctorEmail = rm[0]?.email || '';
-                                  if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
-                                  try {
-                                    const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
-                                    if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
-                                    const fromName = labConfig.nombre || 'Laboratorio';
-                                    const fechaActual = new Date().toLocaleDateString('es-AR');
-                                    const totalMedico = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                      {(() => {
+                        // Agrupar por médico, y dentro de cada médico por centro
+                        const medicosSorted = [...medicos].sort((a, b) => {
+                          const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                          const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                          return tB - tA;
+                        });
+                        const rows: React.ReactNode[] = [];
+                        medicosSorted.forEach((medico) => {
+                          const rmMedico = remitos.filter(r => r.medico === medico);
+                          const centros = [...new Set(rmMedico.map(r => r.hospital || 'Sin centro'))];
+                          const tieneCentros = centros.length > 1 || (centros.length === 1 && centros[0] !== 'Sin centro');
+                          const totalMedico = rmMedico.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
 
-                                    // Generar HTML compacto para email (< 50KB)
-                                    const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
-                                      const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
-                                      const numExt = b.numeroExterno ? ' <span style="color:#b45309;">(Ext: ' + b.numeroExterno + ')</span>' : '';
-                                      return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + numExt + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
-                                    })).join('');
-
-                                    const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
-                                      '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
-                                      '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
-                                      '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
-                                      '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación</h3>' +
-                                      '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + ' — ' + fechaActual + ' — ' + rm.length + ' remito(s)</p>' +
-                                      '<table style="width:100%;border-collapse:collapse;margin:12px 0;">' +
-                                      '<tr style="background:#0f172a;color:white;"><th style="padding:8px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:8px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
-                                      rows +
-                                      '<tr style="background:#0f172a;color:white;"><td colspan="4" style="padding:10px;text-align:right;font-weight:700;font-size:13px;">TOTAL</td><td style="padding:10px;text-align:right;font-weight:700;font-size:15px;">$' + totalMedico.toLocaleString() + '</td></tr>' +
-                                      '</table>' +
-                                      '<p style="color:#94a3b8;font-size:10px;text-align:center;">Powered by BiopsyTracker</p></div>';
-
-                                    await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
-                                    alert('Email enviado a ' + doctorEmail);
-                                  } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
-                                }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
-                                  <Mail size={12} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {/* Fila total */}
+                          if (tieneCentros && centros.length > 1) {
+                            // Médico con múltiples centros: fila header del médico + subfila por centro
+                            rows.push(
+                              <tr key={medico} className="bg-gray-50 border-b border-gray-200">
+                                <td className="py-2.5 px-4" colSpan={7}>
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                      {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                    </div>
+                                    <div>
+                                      <div className="text-xs font-bold text-gray-900">Dr/a. {medico}</div>
+                                      <div className="text-xs text-gray-400">{rmMedico[0]?.email || ''} · {centros.length} centros</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-4 text-right text-sm font-bold text-gray-900">${totalMedico.toLocaleString()}</td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <button onClick={async () => {
+                                    const doctorEmail = rmMedico[0]?.email || '';
+                                    if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
+                                    try {
+                                      const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
+                                      if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
+                                      const fromName = labConfig.nombre || 'Laboratorio';
+                                      const fechaActual = new Date().toLocaleDateString('es-AR');
+                                      // Generar secciones por centro
+                                      const seccionesCentro = centros.map(c => {
+                                        const rmC = rmMedico.filter(r => (r.hospital || 'Sin centro') === c);
+                                        const totalC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                                        const rowsC = rmC.flatMap(r => r.biopsias.map((b: any) => {
+                                          const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
+                                          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
+                                        })).join('');
+                                        return '<h3 style="color:#1e40af;font-size:14px;margin:20px 0 8px;border-bottom:2px solid #dbeafe;padding-bottom:4px;">' + c + ' — ' + rmC.length + ' remito(s)</h3>' +
+                                          '<table style="width:100%;border-collapse:collapse;margin:0 0 8px;">' +
+                                          '<tr style="background:#1e3a5f;color:white;"><th style="padding:6px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:6px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:6px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:6px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:6px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
+                                          rowsC +
+                                          '<tr style="background:#e2e8f0;"><td colspan="4" style="padding:8px 10px;text-align:right;font-weight:700;font-size:12px;color:#1e3a5f;">SUBTOTAL ' + c.toUpperCase() + '</td><td style="padding:8px 10px;text-align:right;font-weight:700;font-size:13px;color:#1e3a5f;">$' + totalC.toLocaleString() + '</td></tr>' +
+                                          '</table>';
+                                      }).join('');
+                                      const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                                        '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
+                                        '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
+                                        '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
+                                        '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación</h3>' +
+                                        '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + ' — ' + fechaActual + ' — ' + centros.length + ' centros</p>' +
+                                        seccionesCentro +
+                                        '<div style="background:#0f172a;color:white;padding:14px 16px;border-radius:8px;margin-top:16px;display:flex;justify-content:space-between;align-items:center;">' +
+                                        '<span style="font-weight:700;font-size:14px;">TOTAL GENERAL</span>' +
+                                        '<span style="font-weight:700;font-size:18px;">$' + totalMedico.toLocaleString() + '</span></div>' +
+                                        '<p style="color:#94a3b8;font-size:10px;text-align:center;margin-top:12px;">Powered by BiopsyTracker</p></div>';
+                                      await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
+                                      alert('Email unificado enviado a ' + doctorEmail);
+                                    } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
+                                  }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" title="Enviar email con todos los centros">
+                                    <Mail size={12} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                            centros.forEach((centro) => {
+                              const rm = rmMedico.filter(r => (r.hospital || 'Sin centro') === centro);
+                              const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                              const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
+                              const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
+                              const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
+                              const pap = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.papQuantity || 0), 0), 0);
+                              const cito = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.citologiaQuantity || 0), 0), 0);
+                              rows.push(
+                                <tr key={`${medico}_${centro}`} className="border-b border-gray-50 hover:bg-blue-50/30">
+                                  <td className="py-2 px-4 pl-14">
+                                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{centro}</span>
+                                  </td>
+                                  <td className="py-2 px-3 text-center text-xs font-bold text-gray-700">{rm.length}</td>
+                                  <td className="py-2 px-3 text-center text-xs font-bold text-gray-700">{pac}</td>
+                                  <td className="py-2 px-3 text-center"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{bx}</span></td>
+                                  <td className="py-2 px-3 text-center"><span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">{pq}</span></td>
+                                  <td className="py-2 px-3 text-center"><span className="text-xs font-bold text-gray-600">{pap || '-'}</span></td>
+                                  <td className="py-2 px-3 text-center"><span className="text-xs font-bold text-gray-600">{cito || '-'}</span></td>
+                                  <td className="py-2 px-4 text-right text-sm font-bold text-gray-700">${total.toLocaleString()}</td>
+                                  <td className="py-2 px-3 text-center">
+                                    <div className="flex gap-1 justify-center">
+                                      <button onClick={() => exportarFacturacionMedico(medico, centro)}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                        <Download size={12} />
+                                      </button>
+                                      <button onClick={async () => {
+                                        const doctorEmail = rm[0]?.email || '';
+                                        if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
+                                        try {
+                                          const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
+                                          if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
+                                          const fromName = labConfig.nombre || 'Laboratorio';
+                                          const fechaActual = new Date().toLocaleDateString('es-AR');
+                                          const emailRows = rm.flatMap(r => r.biopsias.map((b: any) => {
+                                            const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
+                                            const numExt = b.numeroExterno ? ' <span style="color:#b45309;">(Ext: ' + b.numeroExterno + ')</span>' : '';
+                                            return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + numExt + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
+                                          })).join('');
+                                          const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                                            '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
+                                            '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
+                                            '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
+                                            '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación — ' + centro + '</h3>' +
+                                            '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + ' — ' + fechaActual + ' — ' + rm.length + ' remito(s)</p>' +
+                                            '<table style="width:100%;border-collapse:collapse;margin:12px 0;">' +
+                                            '<tr style="background:#0f172a;color:white;"><th style="padding:8px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:8px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
+                                            emailRows +
+                                            '<tr style="background:#0f172a;color:white;"><td colspan="4" style="padding:10px;text-align:right;font-weight:700;font-size:13px;">TOTAL ' + centro.toUpperCase() + '</td><td style="padding:10px;text-align:right;font-weight:700;font-size:15px;">$' + total.toLocaleString() + '</td></tr>' +
+                                            '</table>' +
+                                            '<p style="color:#94a3b8;font-size:10px;text-align:center;">Powered by BiopsyTracker</p></div>';
+                                          await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + centro + ' - ' + fromName, messageHtml: emailHtml, fromName });
+                                          alert('Email de ' + centro + ' enviado a ' + doctorEmail);
+                                        } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
+                                      }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                        <Mail size={12} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          } else {
+                            // Médico con un solo centro o sin centro: fila simple
+                            const rm = rmMedico;
+                            const total = totalMedico;
+                            const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
+                            const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
+                            const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
+                            const pap = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.papQuantity || 0), 0), 0);
+                            const cito = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.citologiaQuantity || 0), 0), 0);
+                            const centroName = centros[0] !== 'Sin centro' ? centros[0] : '';
+                            rows.push(
+                              <tr key={medico} className="border-b border-gray-50 hover:bg-blue-50/30">
+                                <td className="py-2.5 px-4">
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                                      {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                    </div>
+                                    <div>
+                                      <div className="text-xs font-semibold text-gray-900">Dr/a. {medico}</div>
+                                      {centroName && <div className="text-xs text-blue-500 font-medium">{centroName}</div>}
+                                      <div className="text-xs text-gray-400">{rm[0]?.email || ''}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-700">{rm.length}</td>
+                                <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-700">{pac}</td>
+                                <td className="py-2.5 px-3 text-center"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{bx}</span></td>
+                                <td className="py-2.5 px-3 text-center"><span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs font-bold">{pq}</span></td>
+                                <td className="py-2.5 px-3 text-center"><span className="text-xs font-bold text-gray-600">{pap || '-'}</span></td>
+                                <td className="py-2.5 px-3 text-center"><span className="text-xs font-bold text-gray-600">{cito || '-'}</span></td>
+                                <td className="py-2.5 px-4 text-right text-sm font-bold text-gray-900">${total.toLocaleString()}</td>
+                                <td className="py-2.5 px-3 text-center">
+                                  <div className="flex gap-1 justify-center">
+                                    <button onClick={() => exportarFacturacionMedico(medico)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                      <Download size={12} />
+                                    </button>
+                                    <button onClick={async () => {
+                                      const doctorEmail = rm[0]?.email || '';
+                                      if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
+                                      try {
+                                        const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
+                                        if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
+                                        const fromName = labConfig.nombre || 'Laboratorio';
+                                        const fechaActual = new Date().toLocaleDateString('es-AR');
+                                        const emailRows = rm.flatMap(r => r.biopsias.map((b: any) => {
+                                          const tipo = (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? (b.citologiaSubType || 'CITO') : 'BX';
+                                          const numExt = b.numeroExterno ? ' <span style="color:#b45309;">(Ext: ' + b.numeroExterno + ')</span>' : '';
+                                          return '<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.numero + numExt + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + b.tejido + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:600;">' + tipo + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;">' + (b.cassettes || '-') + '</td><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
+                                        })).join('');
+                                        const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+                                          '<div style="background:#0f172a;color:white;padding:20px;border-radius:10px;text-align:center;margin-bottom:16px;">' +
+                                          '<h2 style="margin:0;font-size:18px;">' + fromName + '</h2>' +
+                                          '<p style="margin:4px 0 0;font-size:11px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + '</p></div>' +
+                                          '<h3 style="color:#0f172a;font-size:15px;">Detalle de Facturación</h3>' +
+                                          '<p style="color:#64748b;font-size:13px;">Dr/a. ' + medico + (centroName ? ' — ' + centroName : '') + ' — ' + fechaActual + ' — ' + rm.length + ' remito(s)</p>' +
+                                          '<table style="width:100%;border-collapse:collapse;margin:12px 0;">' +
+                                          '<tr style="background:#0f172a;color:white;"><th style="padding:8px 10px;text-align:left;font-size:11px;">N°</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Material</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Tipo</th><th style="padding:8px 10px;text-align:left;font-size:11px;">Cass.</th><th style="padding:8px 10px;text-align:right;font-size:11px;">Subtotal</th></tr>' +
+                                          emailRows +
+                                          '<tr style="background:#0f172a;color:white;"><td colspan="4" style="padding:10px;text-align:right;font-weight:700;font-size:13px;">TOTAL</td><td style="padding:10px;text-align:right;font-weight:700;font-size:15px;">$' + total.toLocaleString() + '</td></tr>' +
+                                          '</table>' +
+                                          '<p style="color:#94a3b8;font-size:10px;text-align:center;">Powered by BiopsyTracker</p></div>';
+                                        await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Detalle de Facturación - ' + fromName, messageHtml: emailHtml, fromName });
+                                        alert('Email enviado a ' + doctorEmail);
+                                      } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
+                                    }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
+                                      <Mail size={12} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          }
+                        });
+                        return rows;
+                      })()}
+                      {/* Fila total general */}
                       <tr style={{ background: '#0f172a' }}>
-                        <td className="py-3 px-4 text-white font-bold text-xs" colSpan={2}>TOTAL</td>
+                        <td className="py-3 px-4 text-white font-bold text-xs" colSpan={2}>TOTAL GENERAL</td>
                         <td className="py-3 px-3 text-center text-white font-bold text-xs">{totalPacientes}</td>
                         <td className="py-3 px-3 text-center text-white font-bold text-xs">{countBX}</td>
                         <td className="py-3 px-3 text-center text-white font-bold text-xs">{countPQ}</td>
@@ -4374,6 +4539,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         try { const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]'); pagadoM = payments.filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
                         const debeM = Math.max(0, totalM - pagadoM);
 
+                        const centrosM = [...new Set(remitosM.map(r => r.hospital).filter(Boolean))];
                         return (<React.Fragment key={medico}>
                           <tr className={`border-b border-gray-50 hover:bg-blue-50/20 ${debeM > 0 ? 'bg-red-50/30' : ''}`}>
                             <td className="py-2.5 px-4">
@@ -4381,7 +4547,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                                   {medico.split(' ').map(n => n[0]).join('').substring(0, 2)}
                                 </div>
-                                <div className="text-xs font-semibold text-gray-900">Dr/a. {medico}</div>
+                                <div>
+                                  <div className="text-xs font-semibold text-gray-900">Dr/a. {medico}</div>
+                                  {centrosM.length > 0 && (
+                                    <div className="text-xs text-blue-500">{centrosM.join(' · ')}</div>
+                                  )}
+                                </div>
                               </div>
                             </td>
                             <td className="py-2.5 px-3 text-center text-xs font-bold text-gray-600">{remitosM.length}</td>
@@ -4407,6 +4578,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           {showPaymentHistory === medico && (
                             <tr>
                               <td colSpan={7} className="py-2 px-4" style={{ background: '#f8fafc' }}>
+                                {centrosM.length > 1 && (
+                                  <div className="mb-3">
+                                    <div className="text-xs font-bold text-gray-500 uppercase mb-1">Desglose por centro</div>
+                                    <div className="flex gap-2 flex-wrap">
+                                      {centrosM.map((c, ci) => {
+                                        const rmC = remitosM.filter(r => r.hospital === c);
+                                        const totC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                                        return (
+                                          <div key={ci} className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs">
+                                            <span className="font-semibold text-blue-600">{c}</span>
+                                            <span className="text-gray-400 mx-1">·</span>
+                                            <span className="font-bold text-gray-900">${totC.toLocaleString()}</span>
+                                            <span className="text-gray-400 ml-1">({rmC.length} rem.)</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="text-xs font-bold text-gray-500 uppercase mb-2">Historial de pagos</div>
                                 {(() => {
                                   let payments: any[] = [];

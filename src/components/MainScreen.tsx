@@ -247,18 +247,32 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     if (unreadCount > 0) markNotificationsRead();
   };
 
-  // --- Ayudantes Management ---
+  // --- Ayudantes & Centros Management ---
   const getRegisteredDoctors = (): RegisteredDoctor[] => {
     try { return JSON.parse(localStorage.getItem('registeredDoctors') || '[]'); }
     catch { return []; }
   };
 
+  // Estado para centros médicos
+  const [centrosList, setCentrosList] = useState<string[]>([]);
+  const [newCentro, setNewCentro] = useState('');
+
   const openAyudantesModal = () => {
     const doctors = getRegisteredDoctors();
     const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
     setAyudantesList(doc?.ayudantes || []);
+    // Cargar centros médicos
+    const hospitales = doc?.hospitales || [];
+    if (hospitales.length > 0) {
+      setCentrosList(hospitales);
+    } else if (doc?.hospital && doc.hospital.trim()) {
+      setCentrosList([doc.hospital]);
+    } else {
+      setCentrosList([]);
+    }
     setNewAyudanteNombre('');
     setNewAyudantePassword('');
+    setNewCentro('');
     setShowAyudantesModal(true);
   };
 
@@ -298,6 +312,33 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     saveAyudantesToDoctor(updated);
   };
 
+  // --- Centros Médicos Management ---
+  const saveCentrosToDoctor = (updatedCentros: string[]) => {
+    const doctors = getRegisteredDoctors();
+    const idx = doctors.findIndex(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
+    if (idx >= 0) {
+      doctors[idx].hospitales = updatedCentros;
+      doctors[idx].hospital = updatedCentros[0] || doctors[idx].hospital;
+      localStorage.setItem('registeredDoctors', JSON.stringify(doctors));
+      db.saveDoctor(doctors[idx]);
+      setCentrosList(updatedCentros);
+    }
+  };
+
+  const addCentro = () => {
+    const nombre = newCentro.trim();
+    if (!nombre || centrosList.includes(nombre)) return;
+    const updated = [...centrosList, nombre];
+    saveCentrosToDoctor(updated);
+    setNewCentro('');
+  };
+
+  const deleteCentro = (centro: string) => {
+    if (centrosList.length <= 1) return;
+    const updated = centrosList.filter(c => c !== centro);
+    saveCentrosToDoctor(updated);
+  };
+
   const [qrImageSrc, setQrImageSrc] = useState<string>('');
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   
@@ -318,8 +359,14 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
       try {
         const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+        const currentHospital = doctorInfo.hospital || '';
         Object.values(historyData).forEach((entry: any) => {
           if (entry?.biopsies && entry.date) {
+            // Filtrar por centro médico actual
+            if (currentHospital) {
+              const entryHospital = entry.doctorInfo?.hospital || '';
+              if (entryHospital && entryHospital !== currentHospital) return;
+            }
             // Comparar usando toDateString para evitar problemas de formato
             const entryDateStr = new Date(entry.date).toDateString();
             if (entryDateStr === todayStr) {
@@ -391,7 +438,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       console.log('MainScreen - Datos del historial encontrados:', historyData);
       console.log('MainScreen - Cantidad de entradas:', Object.keys(historyData).length);
       
-      const entries = Object.values(historyData) as any[];
+      const allEntries = Object.values(historyData) as any[];
+      // Filtrar por centro médico actual
+      const currentHospital = doctorInfo.hospital || '';
+      const entries = currentHospital
+        ? allEntries.filter((e: any) => {
+            const h = e.doctorInfo?.hospital || '';
+            return !h || h === currentHospital;
+          })
+        : allEntries;
       const totalRemitos = entries.length;
       const totalBiopsias = entries.reduce((sum: number, entry: any) => sum + (entry.biopsies?.length || 0), 0);
       const promedioPorRemito = totalRemitos > 0 ? Math.round(totalBiopsias / totalRemitos) : 0;
@@ -471,9 +526,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         giemsaPASMasson: adminConfig?.precioGiemsaPASMasson || 75
       };
 
-      // Usar remitos de Supabase (misma fuente que el admin)
+      // Usar remitos de Supabase (misma fuente que el admin), filtrados por centro
       let remitosData: any[] = [];
       try { remitosData = JSON.parse(localStorage.getItem('_remitosFacturacion') || '[]'); } catch {}
+      const currentHospital = doctorInfo.hospital || '';
+      if (currentHospital) {
+        remitosData = remitosData.filter((r: any) => {
+          const h = r.hospital || '';
+          return !h || h === currentHospital;
+        });
+      }
 
       const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
       const previousYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
@@ -505,6 +567,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         const esCassetteUrgente = (svc.cassetteUrgente || 0) > 0;
         const esPapUrgente = (svc.papUrgente || 0) > 0;
         const esCitoUrgente = (svc.citologiaUrgente || 0) > 0;
+
+        // IHQ: cobrar por vidrio al precio Corte Blanco IHQ
+        const esIHQ = biopsy.tipo === 'IHQ' || biopsy.tejido === 'Inmunohistoquímica';
+        if (esIHQ) {
+          const tpc = biopsy.trozoPorCassette || [];
+          const totalVidrios = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : cassettes;
+          total += totalVidrios * precios.corteBlancoIHQ;
+          return total;
+        }
 
         if (cassettes > 0) {
           total += esCassetteUrgente ? precios.cassetteUrgente : precios.cassette;
@@ -1332,44 +1403,30 @@ export const MainScreen: React.FC<MainScreenProps> = ({
     try {
       let allBiopsies: any[] = [];
       
-      // Obtener todos los datos del historial
-      if (doctorInfo.email) {
-        const normalizedEmail = doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '');
-        const doctorKey = `doctor_${normalizedEmail}`;
-        const historyKey = `${doctorKey}_history`;
-        const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
-        
-        Object.values(historyData).forEach((entry: any) => {
-          if (entry.biopsies) {
-            entry.biopsies.forEach((biopsy: any) => {
-              allBiopsies.push({
-                ...biopsy,
-                date: entry.date,
-                timestamp: entry.timestamp || biopsy.timestamp,
-                remitoId: entry.id,
-                remitoNumber: entry.remitoNumber
-              });
-            });
-          }
-        });
-      } else {
-        const historyKey = `${doctorInfo.name}_history`;
-        const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
+      // Obtener datos del historial, filtrados por centro médico actual
+      const currentHospital = doctorInfo.hospital || '';
+      const historyKey = doctorInfo.email
+        ? `doctor_${doctorInfo.email.toLowerCase().trim().replace(/\s+/g, '')}_history`
+        : `${doctorInfo.name}_history`;
+      const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
 
-        Object.values(historyData).forEach((entry: any) => {
-          if (entry.biopsies) {
-            entry.biopsies.forEach((biopsy: any) => {
-              allBiopsies.push({
-                ...biopsy,
-                date: entry.date,
-                timestamp: entry.timestamp || biopsy.timestamp,
-                remitoId: entry.id,
-                remitoNumber: entry.remitoNumber
-              });
-            });
-          }
+      Object.values(historyData).forEach((entry: any) => {
+        if (!entry.biopsies) return;
+        // Filtrar por centro médico
+        if (currentHospital) {
+          const entryHospital = entry.doctorInfo?.hospital || '';
+          if (entryHospital && entryHospital !== currentHospital) return;
+        }
+        entry.biopsies.forEach((biopsy: any) => {
+          allBiopsies.push({
+            ...biopsy,
+            date: entry.date,
+            timestamp: entry.timestamp || biopsy.timestamp,
+            remitoId: entry.id,
+            remitoNumber: entry.remitoNumber
+          });
         });
-      }
+      });
       
       // Incluir biopsias actuales
       todayBiopsies.forEach(biopsy => {
@@ -3602,6 +3659,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   <div>
                     <div style={{ fontSize: '7pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Médico</div>
                     <div style={{ fontSize: '11pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || `${doc.firstName || ''} ${doc.lastName || ''}`}</div>
+                    {(doc.hospital || re.hospital) && <div style={{ fontSize: '9pt', color: '#2563eb', fontWeight: 600 }}>{doc.hospital || re.hospital}</div>}
                     {re.cargadoPor && <div style={{ fontSize: '8pt', color: '#d97706', fontWeight: 600 }}>Cargado por: {re.cargadoPor}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
@@ -3745,7 +3803,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <Settings style={{ height: '20px', width: '20px' }} />
-                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Ayudantes</h2>
+                <h2 style={{ margin: 0, fontSize: '16px', fontWeight: '700' }}>Configuración</h2>
               </div>
               <button onClick={() => setShowAyudantesModal(false)} style={{
                 background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
@@ -3753,8 +3811,85 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               }}>×</button>
             </div>
 
-            {/* Lista de ayudantes */}
+            {/* Contenido con scroll */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+
+              {/* Centros Médicos */}
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Plus style={{ height: '14px', width: '14px' }} /> Centros Médicos
+                </div>
+                {centrosList.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '12px 0', color: '#9ca3af' }}>
+                    <p style={{ fontSize: '12px', margin: 0 }}>No hay centros configurados. Agregue al menos uno.</p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '10px' }}>
+                    {centrosList.map((centro, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 12px', borderRadius: '8px',
+                        backgroundColor: centro === doctorInfo.hospital ? '#dbeafe' : '#f9fafb',
+                        border: `1px solid ${centro === doctorInfo.hospital ? '#93c5fd' : '#e5e7eb'}`
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{
+                            width: '24px', height: '24px', borderRadius: '50%',
+                            backgroundColor: centro === doctorInfo.hospital ? '#2563eb' : '#9ca3af',
+                            color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '11px', fontWeight: '700', flexShrink: 0
+                          }}>{i + 1}</div>
+                          <span style={{ fontSize: '13px', fontWeight: '500', color: '#1f2937' }}>{centro}</span>
+                        </div>
+                        {centrosList.length > 1 && (
+                          <button onClick={() => { if (confirm(`¿Eliminar "${centro}"?`)) deleteCentro(centro); }} style={{
+                            background: 'none', border: 'none', cursor: 'pointer', padding: '4px', color: '#ef4444'
+                          }} title="Eliminar">
+                            <Trash2 style={{ height: '14px', width: '14px' }} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={newCentro}
+                    onChange={(e) => setNewCentro(e.target.value)}
+                    placeholder="Nombre del centro médico"
+                    style={{
+                      flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
+                      fontSize: '13px', outline: 'none', boxSizing: 'border-box'
+                    }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') addCentro(); }}
+                  />
+                  <button
+                    onClick={addCentro}
+                    disabled={!newCentro.trim()}
+                    style={{
+                      padding: '8px 14px', borderRadius: '8px', border: 'none',
+                      fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                      backgroundColor: newCentro.trim() ? '#2563eb' : '#d1d5db',
+                      color: newCentro.trim() ? 'white' : '#9ca3af',
+                      transition: 'all 0.2s', whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Agregar
+                  </button>
+                </div>
+                {centrosList.length > 1 && (
+                  <p style={{ fontSize: '10px', color: '#6b7280', margin: '6px 0 0', fontStyle: 'italic' }}>
+                    Al ingresar se le pedirá elegir el centro médico donde trabaja hoy.
+                  </p>
+                )}
+              </div>
+
+              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginBottom: '8px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#374151', marginBottom: '10px' }}>Ayudantes</div>
+              </div>
+
+              {/* Lista de ayudantes */}
               {ayudantesList.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '24px 0', color: '#9ca3af' }}>
                   <p style={{ fontSize: '14px', margin: 0 }}>No hay ayudantes configurados</p>

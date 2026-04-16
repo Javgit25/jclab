@@ -74,6 +74,12 @@ function App() {
     return `doctor_${normalizedEmail}`;
   }, []);
 
+  // Generar sufijo de centro para separar datos por hospital
+  const getCentroSuffix = useCallback((hospital?: string) => {
+    if (!hospital || !hospital.trim()) return '';
+    return `_centro_${hospital.trim().toLowerCase().replace(/\s+/g, '_')}`;
+  }, []);
+
   // Función para cargar datos guardados
   const loadSavedData = useCallback(() => {
     try {
@@ -87,6 +93,15 @@ function App() {
         if (parsedDoctorInfo.email) {
           setDoctorInfo(parsedDoctorInfo);
           setCurrentScreen('main');
+          // Refrescar labConfig desde Supabase si no hay datos locales
+          const labCfg = localStorage.getItem('labConfig');
+          if (!labCfg || labCfg === '{}') {
+            const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+            const doc = docs.find((d: any) => d.email?.toLowerCase() === parsedDoctorInfo.email.toLowerCase());
+            if (doc?.labCode) {
+              db.getLabConfig(doc.labCode).catch(() => {});
+            }
+          }
         } else {
           console.log('App - Doctor guardado sin email, requiere nuevo login');
           localStorage.removeItem('currentDoctorInfo');
@@ -99,8 +114,9 @@ function App() {
         if (parsedDoctorInfo.email) {
           const today = new Date().toDateString();
           const doctorKey = generateDoctorKey(parsedDoctorInfo.email);
-          const todayKey = `${doctorKey}_today_${today}`;
-          
+          const centroSuffix = getCentroSuffix(parsedDoctorInfo.hospital);
+          const todayKey = `${doctorKey}_today_${today}${centroSuffix}`;
+
           const savedTodayBiopsies = localStorage.getItem(todayKey);
           if (savedTodayBiopsies) {
             const parsedBiopsies = JSON.parse(savedTodayBiopsies);
@@ -164,10 +180,11 @@ function App() {
         // Guardar información del doctor
         localStorage.setItem('currentDoctorInfo', JSON.stringify(doctorInfo));
 
-        // Guardar biopsias del día
+        // Guardar biopsias del día (separadas por centro médico)
         const today = new Date().toDateString();
         const doctorKey = generateDoctorKey(doctorInfo.email);
-        const todayKey = `${doctorKey}_today_${today}`;
+        const centroSuffix = getCentroSuffix(doctorInfo.hospital);
+        const todayKey = `${doctorKey}_today_${today}${centroSuffix}`;
         localStorage.setItem(todayKey, JSON.stringify(todayBiopsies));
       }
 
@@ -241,7 +258,7 @@ function App() {
   // Función para login - CORREGIDA para validar EMAIL
   const handleLogin = useCallback((info: DoctorInfo) => {
     console.log('App - Login exitoso:', info);
-    
+
     // Validar que tenga email
     if (!info.email || info.email.trim() === '') {
       alert('❌ Error: El email es obligatorio para guardar los datos.\n\nPor favor, ingrese un email válido para continuar.');
@@ -257,12 +274,49 @@ function App() {
 
     setDoctorInfo(info);
     setCurrentScreen('main');
-    
-    // Limpiar biopsias del día anterior si es necesario
+
+    // Cargar biopsias del día para este centro médico
     const today = new Date().toDateString();
-    if (info.loginDate !== today) {
+    const doctorKey = generateDoctorKey(info.email);
+    const centroSuffix = getCentroSuffix(info.hospital);
+    const todayKey = `${doctorKey}_today_${today}${centroSuffix}`;
+    try {
+      const saved = localStorage.getItem(todayKey);
+      setTodayBiopsies(saved ? JSON.parse(saved) : []);
+    } catch {
       setTodayBiopsies([]);
     }
+
+    // Cargar labConfig (logo, nombre, datos del lab) desde Supabase
+    const loadLabConfig = async () => {
+      try {
+        const doctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+        const doc = doctors.find((d: any) => d.email?.toLowerCase() === info.email.toLowerCase());
+        if (doc?.labCode) {
+          // Traer lab_config (nombre, logo, dirección, etc.)
+          await db.getLabConfig(doc.labCode);
+          // Si lab_config no tiene logo, intentar traer de las columnas del lab
+          const labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}');
+          if (!labCfg.logoUrl || !labCfg.nombre) {
+            const labs = await db.getLabs();
+            const lab = labs.find((l: any) => l.labCode === doc.labCode);
+            if (lab) {
+              const merged = {
+                nombre: labCfg.nombre || lab.nombre || '',
+                direccion: labCfg.direccion || lab.direccion || '',
+                telefono: labCfg.telefono || lab.telefono || '',
+                email: labCfg.email || lab.email || '',
+                logoUrl: labCfg.logoUrl || lab.logoUrl || '',
+                logoMarginTop: labCfg.logoMarginTop ?? lab.logoMarginTop ?? 0,
+                infoMarginTop: labCfg.infoMarginTop ?? lab.infoMarginTop ?? 0,
+              };
+              localStorage.setItem('labConfig', JSON.stringify(merged));
+            }
+          }
+        }
+      } catch (e) { console.error('Error cargando labConfig:', e); }
+    };
+    loadLabConfig();
 
     console.log('App - Login completado para email:', info.email);
   }, []);
@@ -825,11 +879,20 @@ function App() {
   }
 
   if (currentScreen === 'history') {
-    // Recargar historial fresco desde localStorage cada vez que se entra
-    const historyEntries = Object.values(historyData).map((entry: any) => ({
-      ...entry,
-      id: entry.id || `${entry.date}_${entry.timestamp}` // Asegurar que tenga ID
-    }));
+    // Recargar historial fresco, filtrado por centro médico actual
+    const currentHospital = doctorInfo?.hospital || '';
+    const historyEntries = Object.values(historyData)
+      .map((entry: any) => ({
+        ...entry,
+        id: entry.id || `${entry.date}_${entry.timestamp}`
+      }))
+      .filter((entry: any) => {
+        // Si no hay hospital actual o el remito no tiene hospital, mostrar todo
+        if (!currentHospital) return true;
+        const entryHospital = entry.doctorInfo?.hospital || '';
+        if (!entryHospital) return true;
+        return entryHospital === currentHospital;
+      });
 
     return (
       <HistoryScreen

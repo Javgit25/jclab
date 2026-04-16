@@ -839,6 +839,11 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           Cargado por: {(entry as any).cargadoPor}
                         </span>
                       )}
+                      {(entry.doctorInfo?.hospital || (entry as any).hospital) && (
+                        <span style={{ fontSize: '9px', fontWeight: '700', color: 'white', background: '#2563eb', padding: '2px 8px', borderRadius: '4px' }}>
+                          {entry.doctorInfo?.hospital || (entry as any).hospital}
+                        </span>
+                      )}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
@@ -1347,6 +1352,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   <div>
                     <div style={{ fontSize: '7pt', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Médico</div>
                     <div style={{ fontSize: '11pt', fontWeight: 700, color: '#1e293b' }}>Dr/a. {doc.name || 'N/A'}</div>
+                    {(doc.hospital || (re as any).hospital) && <div style={{ fontSize: '9pt', color: '#2563eb', fontWeight: 600 }}>{doc.hospital || (re as any).hospital}</div>}
                     {(re as any).cargadoPor && <div style={{ fontSize: '8pt', color: '#d97706', fontWeight: 600 }}>Cargado por: {(re as any).cargadoPor}</div>}
                   </div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'flex-start', flexWrap: 'wrap', justifyContent: 'flex-end' }}>

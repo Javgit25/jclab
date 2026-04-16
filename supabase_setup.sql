@@ -49,10 +49,12 @@ CREATE TABLE registered_doctors (
   last_name TEXT NOT NULL,
   email TEXT NOT NULL,
   hospital TEXT DEFAULT '',
+  hospitales JSONB DEFAULT '[]',
   whatsapp TEXT DEFAULT '',
   lab_code TEXT NOT NULL REFERENCES laboratories(lab_code),
   password TEXT NOT NULL,
   active BOOLEAN DEFAULT true,
+  ayudantes JSONB DEFAULT '[]',
   registered_at TIMESTAMPTZ DEFAULT now(),
   profile_changes JSONB DEFAULT '[]',
   updated_at TIMESTAMPTZ DEFAULT now()
