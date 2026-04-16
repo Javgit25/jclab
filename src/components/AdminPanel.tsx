@@ -1329,11 +1329,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       '<h2 style="margin:0;font-size:17px;">' + fn + '</h2>' +
       (info ? '<p style="margin:4px 0 0;font-size:10px;opacity:0.7;">' + info + '</p>' : '') + '</div>' +
       '<div style="padding:20px;">' +
+      (bt ? '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:20px;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
       '<table style="width:100%;margin-bottom:16px;"><tr><td><div style="font-size:16px;font-weight:700;color:#0f172a;">Detalle de Facturación' + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
       '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-top:3px;">Dr/a. ' + medico + '</div>' +
       '<div style="font-size:11px;color:#888;margin-top:3px;">' + fa + ' · ' + rmF.length + ' rem. · ' + totP + ' pac.</div></td>' +
       '<td style="text-align:right;vertical-align:top;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:24px;font-weight:800;color:#0f172a;">$' + totG.toLocaleString() + '</div></td></tr></table>' +
-      (bt ? '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:16px;padding:12px 0;border-bottom:1px solid #eee;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
       det + pie +
       '<div style="text-align:center;padding:12px 0;margin-top:16px;color:#aaa;font-size:9px;border-top:1px solid #eee;">' + fa + ' · BiopsyTracker</div>' +
       '</div></div>';
