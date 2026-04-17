@@ -1248,7 +1248,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const emailYaEnviado = (medico: string, centro?: string): boolean => {
     try {
       const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-      const key = `emailsFacturacion_${mes.replace(/\s+/g, '_')}`;
+      const key = `emailsFact_${currentLabCode}_${mes.replace(/\s+/g, '_')}`;
       const historial = JSON.parse(localStorage.getItem(key) || '[]');
       return historial.some((e: any) => e.medico === medico && (!centro || e.centro === centro));
     } catch { return false; }
@@ -1259,7 +1259,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const registrarEmailEnviado = (medico: string, email: string, centro?: string) => {
     try {
       const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-      const key = `emailsFacturacion_${mes.replace(/\s+/g, '_')}`;
+      const key = `emailsFact_${currentLabCode}_${mes.replace(/\s+/g, '_')}`;
       const historial = JSON.parse(localStorage.getItem(key) || '[]');
       historial.push({
         medico,
@@ -3189,14 +3189,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               {/* Historial de emails enviados */}
               {(() => {
                 const mesActual = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
-                const keyActual = `emailsFacturacion_${mesActual.replace(/\s+/g, '_')}`;
+                const keyActual = `emailsFact_${mesActual.replace(/\s+/g, '_')}`;
                 const emailsDelMes: any[] = JSON.parse(localStorage.getItem(keyActual) || '[]');
                 // Buscar meses anteriores
                 const mesesConEmails: string[] = [];
                 for (let i = 0; i < localStorage.length; i++) {
                   const k = localStorage.key(i);
-                  if (k?.startsWith('emailsFacturacion_')) {
-                    const mes = k.replace('emailsFacturacion_', '').replace(/_/g, ' ');
+                  if (k?.startsWith('emailsFact_')) {
+                    const mes = k.replace('emailsFact_', '').replace(/_/g, ' ');
                     if (!mesesConEmails.includes(mes)) mesesConEmails.push(mes);
                   }
                 }
@@ -3232,7 +3232,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {mesesConEmails.length > 1 && (
                         <div className="px-3 pb-2 border-t border-gray-100 pt-2">
                           <div className="text-xs text-gray-400">Meses anteriores: {mesesConEmails.filter(m => m !== mesActual).map(m => {
-                            const cnt = JSON.parse(localStorage.getItem(`emailsFacturacion_${m.replace(/\s+/g, '_')}`) || '[]').length;
+                            const cnt = JSON.parse(localStorage.getItem(`emailsFact_${m.replace(/\s+/g, '_')}`) || '[]').length;
                             return `${m} (${cnt})`;
                           }).join(' · ')}</div>
                         </div>
@@ -4841,7 +4841,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         for (const d of deudores) {
                           if (!d.email) continue;
                           // Verificar si ya se envió este mes
-                          const mesKey = `recordatoriosDeuda_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
+                          const mesKey = `recDeuda_${currentLabCode}_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
                           const yaEnviados: any[] = JSON.parse(localStorage.getItem(mesKey) || '[]');
                           if (yaEnviados.some((e: any) => e.medico === d.medico)) continue;
                           try {
@@ -4895,7 +4895,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </button>
                     {/* Mostrar a quién ya se envió */}
                     {(() => {
-                      const mesKey = `recordatoriosDeuda_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
+                      const mesKey = `recDeuda_${currentLabCode}_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
                       const enviados: any[] = JSON.parse(localStorage.getItem(mesKey) || '[]');
                       if (enviados.length === 0) return null;
                       return (
