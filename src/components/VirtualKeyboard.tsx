@@ -236,12 +236,6 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             onClick={() => onKeyPress('backspace')}
             className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-3 px-2 rounded-lg transition-colors text-sm"
           >
-            ←
-          </button>
-          <button
-            onClick={() => onKeyPress('backspace')}
-            className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-3 px-2 rounded-lg transition-colors text-sm"
-          >
             ← Borrar
           </button>
           <button
