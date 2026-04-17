@@ -3463,13 +3463,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     onClick={() => {
                       localStorage.setItem('adminConfig', JSON.stringify(configuracion));
                       if (currentLabCode) db.saveAdminConfig(currentLabCode, configuracion).catch(console.error);
-                      alert('✅ Configuración guardada exitosamente');
+                      alert('✅ Configuración guardada exitosamente.\n\nLos nuevos precios ya se aplican en Facturación y en la tablet del médico.');
                     }}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
                   >
                     <Save size={16} />
                     <span>Guardar Cambios</span>
                   </button>
+                </div>
+              </div>
+
+              {/* === SECCIÓN: PRECIOS Y FACTURACIÓN === */}
+              <div className="mt-2 mb-3 px-1">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex-1 border-t border-gray-200"></div>
+                  <span>Precios y Facturación</span>
+                  <div className="flex-1 border-t border-gray-200"></div>
                 </div>
               </div>
 
@@ -3480,6 +3489,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   Configuración de Precios
                 </h3>
                 
+                {/* Aumento porcentual */}
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 flex-wrap">
+                  <span className="text-sm font-semibold text-green-800">Aumentar todos los precios:</span>
+                  {[5, 10, 15, 20, 25, 30].map(pct => (
+                    <button key={pct} onClick={() => {
+                      if (!confirm(`¿Aumentar todos los precios un ${pct}%?`)) return;
+                      setConfiguracion(prev => {
+                        const updated = { ...prev };
+                        const keys = ['precioCassette', 'precioCassetteUrgente', 'precioProfundizacion', 'precioPAP', 'precioPAPUrgente', 'precioCitologia', 'precioCitologiaUrgente', 'precioCorteBlanco', 'precioCorteBlancoIHQ', 'precioGiemsaPASMasson'];
+                        keys.forEach(k => { (updated as any)[k] = Math.round((updated as any)[k] * (1 + pct / 100)); });
+                        return updated;
+                      });
+                    }}
+                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors">
+                      +{pct}%
+                    </button>
+                  ))}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Precios Normales */}
                   <div className="border border-gray-200 rounded-xl overflow-hidden">
@@ -3501,7 +3529,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
                                 <input type="number" value={(configuracion as any)[key]} min="0"
-                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Math.round(Number(e.target.value)) }))} step="1"
                                   className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500" />
                               </div>
                             </td>
@@ -3527,7 +3555,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               <div className="relative">
                                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
                                 <input type="number" value={(configuracion as any)[key]} min="0"
-                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Number(e.target.value) }))}
+                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Math.round(Number(e.target.value)) }))} step="1"
                                   className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-red-500" />
                               </div>
                             </td>
@@ -3720,6 +3748,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     <p className="text-sm">Agregue tipos de tejido para que aparezcan en los formularios</p>
                   </div>
                 )}
+              </div>
+
+              {/* === SECCIÓN: LABORATORIO === */}
+              <div className="mt-6 mb-3 px-1">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex-1 border-t border-gray-200"></div>
+                  <span>Laboratorio y Email</span>
+                  <div className="flex-1 border-t border-gray-200"></div>
+                </div>
               </div>
 
               {/* Configuración del Laboratorio */}
@@ -3965,6 +4002,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </div>
                   );
                 })()}
+              </div>
+
+              {/* === SECCIÓN: SEGURIDAD Y USUARIOS === */}
+              <div className="mt-6 mb-3 px-1">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <div className="flex-1 border-t border-gray-200"></div>
+                  <span>Seguridad y Usuarios</span>
+                  <div className="flex-1 border-t border-gray-200"></div>
+                </div>
               </div>
 
               {/* Cambio de Credenciales Admin */}
