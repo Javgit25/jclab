@@ -4272,7 +4272,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   Resumen de Suscripción Mensual
                 </h3>
                 {(() => {
-                  const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                  const allDocs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                  const registeredDoctors = currentLabCode ? allDocs.filter((d: any) => (d.labCode || '').toUpperCase() === currentLabCode) : allDocs;
                   const activeDoctors = registeredDoctors.filter((d: any) => d.active !== false).length;
                   let pricePerDoctor = 35000;
                   try { pricePerDoctor = JSON.parse(localStorage.getItem('superAdmin_config') || '{}').precioMedico || 35000; } catch {}
