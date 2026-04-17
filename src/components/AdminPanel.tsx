@@ -4662,8 +4662,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
           {currentView === 'analytics' && (() => {
             const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
+            // Filtrar pagos solo de médicos de este lab
+            const medicosDelLab = new Set(medicos);
             let totalCobrado = 0;
-            try { totalCobrado = JSON.parse(localStorage.getItem('doctorPayments') || '[]').reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
+            try { totalCobrado = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => medicosDelLab.has(p.medico)).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
             const totalDeuda = Math.max(0, totalFacturado - totalCobrado);
 
             return (
