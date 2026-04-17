@@ -128,13 +128,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     try {
       const saved = localStorage.getItem('labConfig');
       return saved ? JSON.parse(saved) : {
-        nombre: 'Laboratorio de Anatomía Patológica',
+        nombre: '',
         direccion: '',
         telefono: '',
         email: '',
         logoUrl: ''
       };
-    } catch { return { nombre: 'Laboratorio de Anatomía Patológica', direccion: '', telefono: '', email: '', logoUrl: '' }; }
+    } catch { return { nombre: '', direccion: '', telefono: '', email: '', logoUrl: '' }; }
   });
 
   const saveLabConfig = (config: typeof labConfig) => {
@@ -194,9 +194,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         // Si Supabase falla, cargar de localStorage como fallback
         loadFromLocalStorage();
       });
-      // Cargar config
+      // Cargar config de precios
       db.getAdminConfig(currentLabCode).then((cfg: any) => {
         if (cfg && Object.keys(cfg).length > 0) setConfiguracion((prev: any) => ({ ...prev, ...cfg }));
+      }).catch(() => {});
+      // Cargar emailjsConfig desde Supabase si no hay en localStorage
+      db.getLabs().then((labs: any[]) => {
+        const lab = labs.find((l: any) => l.labCode === currentLabCode);
+        if (lab?.emailjsConfig && Object.keys(lab.emailjsConfig).length > 0) {
+          const existing = localStorage.getItem('emailjsConfig');
+          if (!existing || existing === '{}') {
+            localStorage.setItem('emailjsConfig', JSON.stringify(lab.emailjsConfig));
+          }
+        }
       }).catch(() => {});
       return;
     }
@@ -3929,9 +3939,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const pKey = (document.getElementById('emailjs_publicKey') as HTMLInputElement)?.value || '';
                           const bodyText = (document.getElementById('emailjs_body') as HTMLTextAreaElement)?.value || '';
                           const footerText = (document.getElementById('emailjs_footer') as HTMLTextAreaElement)?.value || '';
-                          localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId: sId, templateId: tId, publicKey: pKey, bodyText, footerText }));
+                          const emailCfgData = { serviceId: sId, templateId: tId, publicKey: pKey, bodyText, footerText };
+                          localStorage.setItem('emailjsConfig', JSON.stringify(emailCfgData));
+                          // Guardar en Supabase para que persista entre dispositivos
+                          if (currentLabCode) {
+                            try {
+                              const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+                              const labIdx = labs.findIndex((l: any) => l.labCode === currentLabCode);
+                              if (labIdx >= 0) { labs[labIdx].emailjsConfig = emailCfgData; localStorage.setItem('superAdmin_laboratories', JSON.stringify(labs)); }
+                              db.saveLab({ ...labs[labIdx], emailjsConfig: emailCfgData }).catch(() => {});
+                            } catch {}
+                          }
                           alert('Configuración de EmailJS guardada correctamente.');
-                          setRemitos([...remitos]); // forzar re-render
+                          setRemitos([...remitos]);
                         }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
                           <Save size={14} /> Guardar
                         </button>
@@ -4183,7 +4203,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   Control de Médicos Registrados
                 </h3>
                 {(() => {
-                  const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                  const allDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+                  const registeredDoctors = currentLabCode ? allDoctors.filter((d: any) => (d.labCode || '').toUpperCase() === currentLabCode) : allDoctors;
                   return (
                     <div>
                       <div className="flex items-center gap-4 mb-4">
