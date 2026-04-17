@@ -583,7 +583,11 @@ function App() {
         remitoNumber: remito.remitoNumber,
         timestamp: remito.timestamp,
         doctorEmail: remito.doctorInfo.email,
-        cargadoPor: (remito as any).cargadoPor || ''
+        cargadoPor: (remito as any).cargadoPor || '',
+        // Congelar precios al momento de crear el remito
+        preciosSnapshot: (() => {
+          try { return JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch { return null; }
+        })()
       };
       
       // No verificar duplicados por médico/fecha, siempre agregar

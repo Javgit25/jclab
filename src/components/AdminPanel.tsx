@@ -436,7 +436,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       pendientes: remitos.filter(r => r.estado === 'pendiente').length,
       facturados: remitos.filter(r => r.estado === 'facturado').length,
       medicos: medicos.length,
-      totalFacturado: remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0)
+      totalFacturado: remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot), 0)
     };
     
     const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
@@ -507,8 +507,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     onGoBack();
   };
 
-  const calcularTotalBiopsia = (biopsia: AdminBiopsia) => {
+  const calcularTotalBiopsia = (biopsia: AdminBiopsia, preciosOverride?: any) => {
     if ((biopsia as any).noVino) return 0;
+    // Usar precios del snapshot si existen, sino los actuales
+    const cfg = preciosOverride || configuracion;
     const servicios = biopsia.servicios || {
       cassetteNormal: 0,
       cassetteUrgente: 0,
@@ -530,81 +532,66 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     if (esIHQ) {
       const tpc = (biopsia as any).trozoPorCassette || [];
       const totalVidrios = tpc.length > 0 ? tpc.reduce((s: number, v: number) => s + (v || 1), 0) : totalCassettes;
-      total += totalVidrios * configuracion.precioCorteBlancoIHQ;
+      total += totalVidrios * cfg.precioCorteBlancoIHQ;
       return total;
     }
 
     // Cálculo de cassettes
     if (totalCassettes > 0) {
       if (esCassetteUrgente) {
-        // Primer cassette urgente, los adicionales son profundización
-        total += configuracion.precioCassetteUrgente;
+        total += cfg.precioCassetteUrgente;
         if (totalCassettes > 1) {
-          total += (totalCassettes - 1) * configuracion.precioProfundizacion;
+          total += (totalCassettes - 1) * cfg.precioProfundizacion;
         }
       } else {
-        // Primer cassette normal, los adicionales son profundización
-        total += configuracion.precioCassette;
+        total += cfg.precioCassette;
         if (totalCassettes > 1) {
-          total += (totalCassettes - 1) * configuracion.precioProfundizacion;
+          total += (totalCassettes - 1) * cfg.precioProfundizacion;
         }
       }
     }
-    
+
     // Cálculo de PAP
     const papCantidad = biopsia.papQuantity || 0;
     const esPapUrgente = (servicios.papUrgente || 0) > 0;
     if (papCantidad > 0) {
-      if (esPapUrgente) {
-        // TODOS los PAP son urgentes
-        total += papCantidad * configuracion.precioPAPUrgente;
-      } else {
-        // TODOS los PAP son normales
-        total += papCantidad * configuracion.precioPAP;
-      }
+      total += papCantidad * (esPapUrgente ? cfg.precioPAPUrgente : cfg.precioPAP);
     }
-    
-    // Cálculo de Citología — PAAF/Líquidos cobra 1 paciente, independiente de vidrios
+
+    // Cálculo de Citología — PAAF/Líquidos cobra 1 paciente
     const citologiaCantidad = biopsia.citologiaQuantity || 0;
     const esCitologiaUrgente = (servicios.citologiaUrgente || 0) > 0;
     const citoSubType = (biopsia as any).citologiaSubType || '';
     if (citologiaCantidad > 0) {
-      // PAAF y Líquidos = 1 × precio (independiente de vidrios)
-      // Sin subtipo (datos viejos) = cobra por vidrio como antes
       const unidadesACobrar = (citoSubType === 'PAAF' || citoSubType === 'Líquidos') ? 1 : citologiaCantidad;
-      if (esCitologiaUrgente) {
-        total += unidadesACobrar * configuracion.precioCitologiaUrgente;
-      } else {
-        total += unidadesACobrar * configuracion.precioCitologia;
-      }
+      total += unidadesACobrar * (esCitologiaUrgente ? cfg.precioCitologiaUrgente : cfg.precioCitologia);
     }
-    
-    // Profundizaciones solicitadas (adicionales a las de cassettes)
-    total += (servicios.profundizacion || 0) * configuracion.precioProfundizacion;
+
+    // Profundizaciones solicitadas
+    total += (servicios.profundizacion || 0) * cfg.precioProfundizacion;
 
     // Otros estudios
-    total += (servicios.corteBlanco || 0) * configuracion.precioCorteBlanco;
-    total += (servicios.corteBlancoIHQ || 0) * configuracion.precioCorteBlancoIHQ;
-    
+    total += (servicios.corteBlanco || 0) * cfg.precioCorteBlanco;
+    total += (servicios.corteBlancoIHQ || 0) * cfg.precioCorteBlancoIHQ;
+
     // Giemsa/PAS/Masson: cobrar por cada cassette seleccionado × técnicas
     const giemsaTecnicas = typeof servicios.giemsaPASMasson === 'number'
       ? servicios.giemsaPASMasson
       : (servicios.giemsaPASMasson ? 1 : 0);
     const giemsaCassCount = (servicios as any).giemsaCassettes?.length || 0;
-    // Si hay cassettes específicos seleccionados, cobrar por cada uno; sino cobrar por técnicas
     const giemsaTotal = giemsaCassCount > 0 ? giemsaCassCount * giemsaTecnicas : giemsaTecnicas;
-    total += giemsaTotal * configuracion.precioGiemsaPASMasson;
+    total += giemsaTotal * cfg.precioGiemsaPASMasson;
 
     // Citología incluida en biopsia (cobra 1 paciente)
     if ((servicios as any).incluyeCitologia) {
-      total += configuracion.precioCitologia;
+      total += cfg.precioCitologia;
     }
 
     return Number(total) || 0;
   };
 
-  const calcularTotalRemito = (biopsias: AdminBiopsia[]) => {
-    return biopsias.reduce((total, biopsia) => total + calcularTotalBiopsia(biopsia), 0);
+  const calcularTotalRemito = (biopsias: AdminBiopsia[], preciosSnapshot?: any) => {
+    return biopsias.reduce((total, biopsia) => total + calcularTotalBiopsia(biopsia, preciosSnapshot), 0);
   };
 
   const cambiarEstadoRemito = (remitoId: string, nuevoEstado: 'pendiente' | 'facturado') => {
@@ -1015,7 +1002,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const remitosDelMedico = remitos.filter(r => r.medico === medico && (!centroFilter || (r.hospital || '') === centroFilter));
     const fechaActual = new Date().toLocaleDateString('es-AR');
     
-    const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias), 0);
+    const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot), 0);
     
     const totalPacientes = remitosDelMedico.reduce((s, r) => s + r.biopsias.length, 0);
     const totalBX = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo !== 'PQ' && b.tejido !== 'PAP' && b.tejido !== 'Citología').length, 0);
@@ -1199,7 +1186,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   '<td>' + tipoDisplay + '</td>' +
                   '<td>' + cantLabel + '</td>' +
                   '<td class="servicios-cell">' + (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
-                  '<td class="subtotal">$' + calcularTotalBiopsia(biopsia).toLocaleString() + '</td>' +
+                  '<td class="subtotal">$' + calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot).toLocaleString() + '</td>' +
                   '</tr>';
               }).join('')
             ).join('')}
@@ -1321,7 +1308,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const th = 'padding:6px 8px;text-align:left;font-size:10px;color:#fff;';
 
     const seccion = (rm: any[], tit?: string) => {
-      const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+      const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
       const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
         const tipo = (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
         if (b.noVino) return '<tr style="color:#aaa;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + '">No recibido</td><td style="' + td + 'text-align:right;">$0</td></tr>';
@@ -1333,7 +1320,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         if ((b.servicios?.profundizacion || 0) > 0) sv.push('Prof x' + b.servicios.profundizacion);
         const ihq = tipo === 'IHQ' ? ((b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || parseInt(b.cassettes) || 0) : 0;
         const cant = tipo === 'IHQ' ? (parseInt(b.cassettes) || 0) + '/' + ihq + 'v' : tipo === 'PAP' ? (b.papQuantity || 1) + 'v' : tipo === 'CITO' ? (b.citologiaQuantity || 1) + 'v' : String(parseInt(b.cassettes) || 0);
-        return '<tr><td style="' + td + 'font-weight:600;">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + 'font-weight:700;color:#1e40af;">' + tipo + '</td><td style="' + td + 'text-align:center;">' + cant + '</td><td style="' + td + 'font-size:11px;">' + (sv.length ? sv.join(', ') : '-') + '</td><td style="' + td + 'text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b).toLocaleString() + '</td></tr>';
+        return '<tr><td style="' + td + 'font-weight:600;">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + 'font-weight:700;color:#1e40af;">' + tipo + '</td><td style="' + td + 'text-align:center;">' + cant + '</td><td style="' + td + 'font-size:11px;">' + (sv.length ? sv.join(', ') : '-') + '</td><td style="' + td + 'text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b, r.preciosSnapshot).toLocaleString() + '</td></tr>';
       })).join('');
       return (tit ? '<h3 style="color:#1e40af;font-size:13px;margin:16px 0 6px;border-bottom:2px solid #dbeafe;padding-bottom:4px;">' + tit + ' (' + rm.length + ' rem.)</h3>' : '') +
         '<table style="width:100%;border-collapse:collapse;">' +
@@ -1343,7 +1330,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     };
 
     const rmF = centroFilter ? rmAll.filter(r => (r.hospital || '') === centroFilter) : rmAll;
-    const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+    const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
     const totP = rmF.reduce((s, r) => s + r.biopsias.length, 0);
 
     let det = '';
@@ -1382,7 +1369,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     
     remitosFiltro.forEach(remito => {
       remito.biopsias.forEach(biopsia => {
-        const totalBiopsia = calcularTotalBiopsia(biopsia);
+        const totalBiopsia = calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot);
         
         csvContent += [
           remito.medico, remito.fecha, remito.hospital, biopsia.numero, biopsia.tejido, biopsia.tipo,
@@ -1885,7 +1872,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <td className="py-2 px-3 text-center">
                             <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs font-bold">{dashFilter === 'listos' ? listasCount : pendientesCount}/{totalBiopsias}</span>
                           </td>
-                          <td className="py-2 px-3 text-right text-xs font-bold text-gray-900">{userRole === 'admin' ? `$${calcularTotalRemito(remito.biopsias).toLocaleString()}` : '—'}</td>
+                          <td className="py-2 px-3 text-right text-xs font-bold text-gray-900">{userRole === 'admin' ? `$${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot).toLocaleString()}` : '—'}</td>
                           <td className="py-2 px-3 text-center">
                             {hasUrgent ? (
                               <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-200">URGENTE</span>
@@ -2483,7 +2470,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4 text-center">
                           <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">{remito.biopsias.length}</span>
                         </td>
-                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot).toLocaleString()}</td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex flex-col gap-1 items-center">
                             {(remito as any).estadoEnvio === 'listo' ? (
@@ -2646,7 +2633,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     </button>
                                   )}
                                 </td>
-                                <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">${calcularTotalBiopsia(biopsia).toLocaleString()}</td>
+                                <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">${calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot).toLocaleString()}</td>
                               </tr>
                               );
                             })}
@@ -2946,7 +2933,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           )}
 
           {currentView === 'facturacion' && (() => {
-            const totalGeneral = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+            const totalGeneral = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
             const allBiopsias = remitos.flatMap(r => r.biopsias);
             const totalPacientes = allBiopsias.length;
             const countBX = allBiopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length;
@@ -3028,8 +3015,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {(() => {
                         // Agrupar por médico, y dentro de cada médico por centro
                         const medicosSorted = [...medicos].sort((a, b) => {
-                          const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
-                          const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                          const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
+                          const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                           return tB - tA;
                         });
                         const rows: React.ReactNode[] = [];
@@ -3037,7 +3024,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const rmMedico = remitos.filter(r => r.medico === medico);
                           const centros = [...new Set(rmMedico.map(r => r.hospital || 'Sin centro'))];
                           const tieneCentros = centros.length > 1 || (centros.length === 1 && centros[0] !== 'Sin centro');
-                          const totalMedico = rmMedico.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                          const totalMedico = rmMedico.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
 
                           if (tieneCentros && centros.length > 1) {
                             // Médico con múltiples centros: fila header del médico + subfila por centro
@@ -3077,7 +3064,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             );
                             centros.forEach((centro) => {
                               const rm = rmMedico.filter(r => (r.hospital || 'Sin centro') === centro);
-                              const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                              const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                               const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
                               const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
                               const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
@@ -4649,7 +4636,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           })()}
 
           {currentView === 'analytics' && (() => {
-            const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+            const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
             let totalCobrado = 0;
             try { totalCobrado = JSON.parse(localStorage.getItem('doctorPayments') || '[]').reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
             const totalDeuda = Math.max(0, totalFacturado - totalCobrado);
@@ -4715,7 +4702,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {medicos.filter((medico) => {
                         if (cobrosFilter === 'todos') return true;
                         const rm = remitos.filter(r => r.medico === medico);
-                        const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                         let pag = 0;
                         try { pag = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
                         const debe = Math.max(0, tot - pag);
@@ -4724,7 +4711,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         return true;
                       }).map((medico) => {
                         const remitosM = remitos.filter(r => r.medico === medico);
-                        const totalM = remitosM.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                        const totalM = remitosM.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                         const pacientes = remitosM.reduce((s, r) => s + r.biopsias.length, 0);
                         let pagadoM = 0;
                         try { const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]'); pagadoM = payments.filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
@@ -4775,7 +4762,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     <div className="flex gap-2 flex-wrap">
                                       {centrosM.map((c, ci) => {
                                         const rmC = remitosM.filter(r => r.hospital === c);
-                                        const totC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                                        const totC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                                         return (
                                           <div key={ci} className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs">
                                             <span className="font-semibold text-blue-600">{c}</span>
@@ -4826,7 +4813,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 const deudores: { medico: string; email: string; deuda: number }[] = [];
                 medicos.forEach(medico => {
                   const rm = remitos.filter(r => r.medico === medico);
-                  const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias), 0);
+                  const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                   let pag = 0;
                   try { pag = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
                   const debe = Math.max(0, tot - pag);

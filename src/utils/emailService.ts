@@ -40,12 +40,17 @@ export const sendEmail = async (params: {
     throw new Error('EmailJS no está configurado. Configurá Service ID, Template ID y Public Key en Configuración.');
   }
 
-  const templateParams = {
+  // Obtener reply_to del email del laboratorio en labConfig
+  let replyTo = '';
+  try { replyTo = JSON.parse(localStorage.getItem('labConfig') || '{}').email || ''; } catch {}
+
+  const templateParams: any = {
     to_email: params.toEmail,
     to_name: params.toName,
     subject: params.subject,
     message_html: params.messageHtml,
     from_name: params.fromName,
+    reply_to: replyTo || undefined,
   };
 
   const response = await emailjs.send(
