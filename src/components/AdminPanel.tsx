@@ -3567,16 +3567,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
 
                 <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center mt-0.5">
-                      <span className="text-white text-xs font-bold">i</span>
-                    </div>
-                    <div>
-                      <p className="text-sm text-blue-800">
-                        <strong>Información:</strong> Los precios se actualizarán inmediatamente en todos los cálculos del sistema. 
-                        Los remitos existentes mantendrán sus valores originales hasta que se recalculen.
-                      </p>
-                    </div>
+                  <div className="text-sm font-bold text-blue-800 mb-2">Lógica de cobro</div>
+                  <ul className="text-xs text-blue-700 space-y-1.5 list-none pl-0">
+                    <li><strong>BX / PQ:</strong> El primer cassette se cobra como Cassette Normal (o Urgente). A partir del segundo cassette del mismo paciente se cobra como Profundización.</li>
+                    <li><strong>PAP:</strong> Se cobra por cada vidrio al precio PAP (o PAP Urgente).</li>
+                    <li><strong>Citología PAAF / Líquidos:</strong> Se cobra 1 solo paciente independiente de la cantidad de vidrios.</li>
+                    <li><strong>IHQ (Inmunohistoquímica):</strong> Se cobra por vidrio al precio Corte Blanco IHQ.</li>
+                    <li><strong>Giemsa / PAS / Masson:</strong> Se cobra por cada cassette seleccionado × cada técnica solicitada.</li>
+                    <li><strong>Corte en Blanco / Corte IHQ:</strong> Se cobra por cantidad solicitada.</li>
+                    <li><strong>Urgente:</strong> El precio urgente reemplaza al normal (no se suma).</li>
+                    <li><strong>NO VINO:</strong> Si el material no llegó al laboratorio, no se cobra.</li>
+                  </ul>
+                  <div className="mt-3 pt-2 border-t border-blue-200 text-xs text-blue-600">
+                    Los cambios de precios aplican solo a remitos nuevos. Los remitos existentes conservan los precios con los que fueron creados.
                   </div>
                 </div>
               </div>
