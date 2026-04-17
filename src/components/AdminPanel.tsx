@@ -1257,7 +1257,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     return htmlContent;
   };
 
+  // Verificar si ya se envió email de facturación este mes
+  const emailYaEnviado = (medico: string, centro?: string): boolean => {
+    try {
+      const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+      const key = `emailsFacturacion_${mes.replace(/\s+/g, '_')}`;
+      const historial = JSON.parse(localStorage.getItem(key) || '[]');
+      return historial.some((e: any) => e.medico === medico && (!centro || e.centro === centro));
+    } catch { return false; }
+  };
+
   // Registrar envío de email de facturación
+  const [emailSentCounter, setEmailSentCounter] = useState(0);
   const registrarEmailEnviado = (medico: string, email: string, centro?: string) => {
     try {
       const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
@@ -1271,6 +1282,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         mes
       });
       localStorage.setItem(key, JSON.stringify(historial));
+      setEmailSentCounter(prev => prev + 1); // Forzar re-render
     } catch {}
   };
 
@@ -3057,8 +3069,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       registrarEmailEnviado(medico, doctorEmail);
                                       alert('Email unificado enviado a ' + doctorEmail);
                                     } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
-                                  }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold" title="Enviar email con todos los centros">
-                                    <Mail size={12} />
+                                  }} className={`${emailYaEnviado(medico) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico) ? 'Ya enviado — click para reenviar' : 'Enviar email con todos los centros'}>
+                                    {emailYaEnviado(medico) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
                                   </button>
                                 </td>
                               </tr>
@@ -3102,8 +3114,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           registrarEmailEnviado(medico, doctorEmail, centro);
                                           alert('Email de ' + centro + ' enviado a ' + doctorEmail);
                                         } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
-                                      }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
-                                        <Mail size={12} />
+                                      }} className={`${emailYaEnviado(medico, centro) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico, centro) ? 'Ya enviado — click para reenviar' : 'Enviar email de ' + centro}>
+                                        {emailYaEnviado(medico, centro) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
                                       </button>
                                     </div>
                                   </td>
@@ -3160,8 +3172,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         registrarEmailEnviado(medico, doctorEmail, centroName || undefined);
                                         alert('Email enviado a ' + doctorEmail);
                                       } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
-                                    }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold">
-                                      <Mail size={12} />
+                                    }} className={`${emailYaEnviado(medico, centroName || undefined) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico, centroName || undefined) ? 'Ya enviado — click para reenviar' : 'Enviar email'}>
+                                      {emailYaEnviado(medico, centroName || undefined) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
                                     </button>
                                   </div>
                                 </td>
