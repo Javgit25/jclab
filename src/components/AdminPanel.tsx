@@ -4800,49 +4800,84 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       try {
                         const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
                         if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración → Email.'); return; }
+                        const info = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
+                        let footerPago = '';
+                        try { footerPago = JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch {}
+                        const msgDeuda = (configuracion as any).mensajeRecordatorioDeuda || 'Nos dirigimos a usted a fin de recordarle que, al día de la fecha, registra un saldo pendiente correspondiente al período del mes anterior por los servicios brindados por nuestro laboratorio.';
                         let enviados = 0;
                         for (const d of deudores) {
                           if (!d.email) continue;
+                          // Verificar si ya se envió este mes
+                          const mesKey = `recordatoriosDeuda_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
+                          const yaEnviados: any[] = JSON.parse(localStorage.getItem(mesKey) || '[]');
+                          if (yaEnviados.some((e: any) => e.medico === d.medico)) continue;
                           try {
+                            const emailHtml = '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;">' +
+                              '<div style="background:#0f172a;color:#fff;padding:20px;text-align:center;">' +
+                              '<h2 style="margin:0;font-size:17px;">' + labNombre + '</h2>' +
+                              (info ? '<p style="margin:4px 0 0;font-size:10px;opacity:0.7;">' + info + '</p>' : '') + '</div>' +
+                              '<div style="padding:24px;">' +
+                              '<h3 style="color:#1e3a5f;margin:0 0 4px;font-size:16px;">Recordatorio de Saldo Pendiente</h3>' +
+                              '<p style="color:#64748b;font-size:12px;margin:0 0 20px;">Ref: Servicios de ' + mesAnterior + '</p>' +
+                              '<p style="font-size:14px;line-height:1.7;color:#1a1a1a;">Estimado/a <strong>Dr./Dra. ' + d.medico + '</strong>,</p>' +
+                              '<p style="font-size:14px;line-height:1.7;color:#1a1a1a;">' + msgDeuda + '</p>' +
+                              '<div style="background:#fef2f2;border:2px solid #fecaca;border-radius:10px;padding:20px;text-align:center;margin:20px 0;">' +
+                              '<p style="font-size:11px;color:#64748b;margin:0 0 6px;text-transform:uppercase;">Saldo pendiente — ' + mesAnterior + '</p>' +
+                              '<span style="font-size:32px;font-weight:800;color:#dc2626;">$' + d.deuda.toLocaleString() + '</span></div>' +
+                              '<p style="font-size:14px;line-height:1.7;color:#1a1a1a;">Le solicitamos tenga a bien regularizar dicha situación a la mayor brevedad posible. Una vez efectuado el pago, le agradecemos enviar el comprobante correspondiente a esta misma dirección de correo.</p>' +
+                              '<p style="font-size:14px;line-height:1.7;color:#1a1a1a;">Quedamos a su disposición ante cualquier consulta.</p>' +
+                              (footerPago ? '<div style="margin-top:20px;padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;"><div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:6px;">Datos de pago</div><div style="font-size:12px;color:#1e293b;line-height:1.5;">' + footerPago.replace(/\n/g, '<br>') + '</div></div>' : '') +
+                              '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">' +
+                              '<p style="margin:0;font-size:14px;">Sin otro particular, lo saludamos atentamente.</p>' +
+                              '<p style="margin:12px 0 0;font-weight:700;color:#1e3a5f;">Administración</p>' +
+                              '<p style="margin:2px 0;font-weight:700;font-size:15px;">' + labNombre + '</p>' +
+                              (info ? '<p style="margin:2px 0;font-size:12px;color:#64748b;">' + info + '</p>' : '') +
+                              '</div></div>' +
+                              '<div style="text-align:center;padding:12px;color:#aaa;font-size:9px;">BiopsyTracker</div></div>';
                             await sendEmail({
                               toEmail: d.email,
                               toName: `Dr/a. ${d.medico}`,
                               subject: `Recordatorio de pago pendiente — ${labNombre}`,
-                              messageHtml: `<div style="font-family:Georgia,'Times New Roman',serif;max-width:600px;margin:0 auto;padding:30px;color:#1a1a1a;line-height:1.7;">
-                                <div style="border-bottom:2px solid #1e3a5f;padding-bottom:16px;margin-bottom:24px;">
-                                  <h2 style="color:#1e3a5f;margin:0;font-size:18px;">Recordatorio de Saldo Pendiente</h2>
-                                  <p style="color:#64748b;font-size:12px;margin:4px 0 0;">Ref: Servicios de ${mesAnterior}</p>
-                                </div>
-                                <p>Estimado/a <strong>Dr./Dra. ${d.medico}</strong>,</p>
-                                <p>${(configuracion as any).mensajeRecordatorioDeuda || 'Nos dirigimos a usted a fin de recordarle que, al día de la fecha, registra un saldo pendiente correspondiente al período del mes anterior por los servicios brindados por nuestro laboratorio.'}</p>
-                                <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:20px;text-align:center;margin:20px 0;">
-                                  <p style="font-size:12px;color:#64748b;margin:0 0 6px;">Saldo pendiente — ${mesAnterior}</p>
-                                  <span style="font-size:32px;font-weight:bold;color:#dc2626;">$${d.deuda.toLocaleString()}</span>
-                                </div>
-                                <p>Le solicitamos tenga a bien regularizar dicha situación a la mayor brevedad posible. Una vez efectuado el pago, le agradecemos enviar el comprobante correspondiente a esta misma dirección de correo, a fin de poder actualizar nuestros registros.</p>
-                                <p>Quedamos a su disposición ante cualquier consulta o aclaración que considere necesaria.</p>
-                                <div style="margin-top:30px;padding-top:20px;border-top:1px solid #e2e8f0;">
-                                  <p style="margin:0;">Sin otro particular, lo saludamos atentamente.</p>
-                                  <p style="margin:16px 0 0;font-weight:700;color:#1e3a5f;">Administración</p>
-                                  <p style="margin:2px 0;font-weight:700;font-size:16px;">${labNombre}</p>
-                                  ${labConfig.direccion ? '<p style="margin:2px 0;font-size:13px;color:#64748b;">' + labConfig.direccion + '</p>' : ''}
-                                  ${labConfig.telefono ? '<p style="margin:2px 0;font-size:13px;color:#64748b;">Tel: ' + labConfig.telefono + '</p>' : ''}
-                                  ${labConfig.email ? '<p style="margin:2px 0;font-size:13px;color:#64748b;">' + labConfig.email + '</p>' : ''}
-                                </div>
-                              </div>`,
+                              messageHtml: emailHtml,
                               fromName: labNombre,
                             });
+                            // Registrar envío
+                            yaEnviados.push({ medico: d.medico, email: d.email, deuda: d.deuda, fecha: new Date().toISOString() });
+                            localStorage.setItem(mesKey, JSON.stringify(yaEnviados));
                             enviados++;
                             await new Promise(r => setTimeout(r, 500));
                           } catch {}
                         }
-                        alert(`✅ Recordatorio enviado a ${enviados} de ${deudores.length} médico(s).`);
+                        setEmailSentCounter(prev => prev + 1);
+                        if (enviados === 0 && deudores.length > 0) {
+                          alert('Todos los recordatorios ya fueron enviados este mes.');
+                        } else {
+                          alert(`✅ Recordatorio enviado a ${enviados} de ${deudores.length} médico(s).`);
+                        }
                       } catch (e: any) { alert('Error: ' + (e.message || 'Verificá la configuración de email')); }
                     }}
                       className="w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors">
                       <Mail size={16} />
                       Enviar recordatorio de deuda a {deudores.length} médico(s) — mes de {mesAnterior}
                     </button>
+                    {/* Mostrar a quién ya se envió */}
+                    {(() => {
+                      const mesKey = `recordatoriosDeuda_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
+                      const enviados: any[] = JSON.parse(localStorage.getItem(mesKey) || '[]');
+                      if (enviados.length === 0) return null;
+                      return (
+                        <div className="mt-2 bg-red-50 border border-red-200 rounded-lg p-2">
+                          <div className="text-xs font-bold text-red-700 mb-1">Recordatorios enviados este mes ({enviados.length}):</div>
+                          <div className="flex flex-wrap gap-1">
+                            {enviados.map((e: any, i: number) => (
+                              <span key={i} className="text-xs bg-white border border-red-200 rounded px-2 py-0.5 text-red-800">
+                                Dr./Dra. {e.medico} · ${e.deuda?.toLocaleString()} · {new Date(e.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })()}
