@@ -166,7 +166,10 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
   const activeLabs = labs.filter(l => l.estado === 'activo').length;
   const vencidos = labs.filter(l => l.estado === 'vencido').length;
   const allDoctors = allDoctorsState;
-  const totalRevenue = labs.filter(l => l.estado === 'activo').reduce((s, l) => s + l.medicosActivos * config.precioMedico, 0);
+  const totalRevenue = labs.filter(l => l.estado === 'activo').reduce((s, l) => {
+    const docs = allDoctorsState.filter((d: any) => d.labCode === l.labCode && d.active !== false).length;
+    return s + docs * config.precioMedico;
+  }, 0);
   const totalRemitos = remitosCount;
 
   const filtered = labs.filter(l => l.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || l.email.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -291,7 +294,8 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
                 const dias = getDays(lab.fechaVencimiento);
                 const isExpanded = expandedLab === lab.id;
                 const doctors = lab.labCode ? allDoctorsState.filter((d: any) => d.labCode === lab.labCode) : allDoctorsState;
-                const mensual = lab.medicosActivos * config.precioMedico;
+                const medicosReales = doctors.filter((d: any) => d.active !== false).length;
+                const mensual = medicosReales * config.precioMedico;
 
                 return (
                   <div key={lab.id} style={{ background: 'white', borderRadius: '10px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
@@ -309,7 +313,7 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
                         </div>
                       </div>
                       <div style={{ textAlign: 'center', width: '50px' }}>
-                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e40af' }}>{lab.medicosActivos}</div>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: '#1e40af' }}>{medicosReales}</div>
                         <div style={{ fontSize: '8px', color: '#94a3b8' }}>Médicos</div>
                       </div>
                       <div style={{ textAlign: 'center', width: '80px' }}>
