@@ -87,6 +87,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
       newValue = newValue.slice(0, -1);
     } else if (key === 'SPACE' || key === 'space') {
       newValue += ' ';
+    } else if (key === 'shift' || key === 'SHIFT' || key === 'clear') {
+      // Ignorar teclas de control (no escribir como texto)
+      if (key === 'clear') newValue = '';
+      else return; // shift no hace nada en el valor
     } else {
       newValue += key;
     }
@@ -98,7 +102,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onGoToAdmin, onGoToS
     else if (f === 'password') { setPassword(newValue); setErrors({}); }
     else if (f === 'firstName') { setFirstName(newValue.charAt(0).toUpperCase() + newValue.slice(1).toLowerCase()); }
     else if (f === 'lastName') { setLastName(newValue.charAt(0).toUpperCase() + newValue.slice(1).toLowerCase()); }
-    else if (f === 'hospitalName') { setHospitalName(newValue); }
+    else if (f === 'hospitalName') { setHospitalName(newValue.charAt(0).toUpperCase() + newValue.slice(1)); }
     else if (f === 'labCode') { setLabCode(newValue.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6)); }
     else if (f === 'whatsapp') { setWhatsapp(newValue.replace(/\D/g, '')); }
     else if (f === 'confirmPassword') { setConfirmPassword(newValue); }
