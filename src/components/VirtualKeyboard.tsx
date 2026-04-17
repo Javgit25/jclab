@@ -233,14 +233,10 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             Espacio
           </button>
           <button
-            onClick={() => onKeyPress('shift')}
-            className={`font-medium py-3 px-2 rounded-lg transition-colors text-sm ${
-              isShiftPressed 
-                ? 'bg-blue-500 hover:bg-blue-600 text-white' 
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-            }`}
+            onClick={() => onKeyPress('backspace')}
+            className="bg-red-100 hover:bg-red-200 text-red-800 font-medium py-3 px-2 rounded-lg transition-colors text-sm"
           >
-            {isShiftPressed ? 'ABC' : 'abc'}
+            ←
           </button>
           <button
             onClick={() => onKeyPress('backspace')}
