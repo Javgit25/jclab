@@ -3868,7 +3868,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     value={newCentro}
                     onChange={(e) => setNewCentro(e.target.value)}
                     placeholder="Nombre del centro médico"
-                    inputMode="none"
                     style={{
                       flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
                       fontSize: '13px', outline: 'none', boxSizing: 'border-box'
@@ -3954,7 +3953,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     value={newAyudanteNombre}
                     onChange={(e) => setNewAyudanteNombre(e.target.value)}
                     placeholder="Dr/a. Nombre Apellido"
-                    inputMode="none"
                     style={{
                       padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
                       fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'
@@ -3965,7 +3963,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     value={newAyudantePassword}
                     onChange={(e) => setNewAyudantePassword(e.target.value)}
                     placeholder="Contraseña (mín. 4 caracteres)"
-                    inputMode="none"
                     style={{
                       padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
                       fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box'

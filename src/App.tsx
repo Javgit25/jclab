@@ -298,25 +298,23 @@ function App() {
         const doctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
         const doc = doctors.find((d: any) => d.email?.toLowerCase() === info.email.toLowerCase());
         if (doc?.labCode) {
-          // Traer lab_config (nombre, logo, dirección, etc.)
+          // Traer lab_config (nombre, logo, dirección, etc.) — siempre refrescar
           await db.getLabConfig(doc.labCode);
-          // Si lab_config no tiene logo, intentar traer de las columnas del lab
           const labCfg = JSON.parse(localStorage.getItem('labConfig') || '{}');
-          if (!labCfg.logoUrl || !labCfg.nombre) {
-            const labs = await db.getLabs();
-            const lab = labs.find((l: any) => l.labCode === doc.labCode);
-            if (lab) {
-              const merged = {
-                nombre: labCfg.nombre || lab.nombre || '',
-                direccion: labCfg.direccion || lab.direccion || '',
-                telefono: labCfg.telefono || lab.telefono || '',
-                email: labCfg.email || lab.email || '',
-                logoUrl: labCfg.logoUrl || lab.logoUrl || '',
-                logoMarginTop: labCfg.logoMarginTop ?? lab.logoMarginTop ?? 0,
-                infoMarginTop: labCfg.infoMarginTop ?? lab.infoMarginTop ?? 0,
-              };
-              localStorage.setItem('labConfig', JSON.stringify(merged));
-            }
+          // Complementar con datos del lab de SuperAdmin si faltan
+          const labs = await db.getLabs();
+          const lab = labs.find((l: any) => l.labCode === doc.labCode);
+          if (lab) {
+            const merged = {
+              nombre: labCfg.nombre || lab.nombre || '',
+              direccion: labCfg.direccion || lab.direccion || '',
+              telefono: labCfg.telefono || lab.telefono || '',
+              email: labCfg.email || lab.email || '',
+              logoUrl: labCfg.logoUrl || lab.logoUrl || '',
+              logoMarginTop: labCfg.logoMarginTop ?? lab.logoMarginTop ?? 0,
+              infoMarginTop: labCfg.infoMarginTop ?? lab.infoMarginTop ?? 0,
+            };
+            localStorage.setItem('labConfig', JSON.stringify(merged));
           }
         }
       } catch (e) { console.error('Error cargando labConfig:', e); }

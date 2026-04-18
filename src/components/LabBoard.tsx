@@ -148,7 +148,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
             }
             if ((sv.profundizacion || 0) > 0) items.push('Profundización x' + sv.profundizacion);
             if (items.length > 0) {
-              svcs.push({ numero: b.numero, tejido: b.tejido, medico: r.medico, remitoNumber: r.remito_number, servicios: items });
+              svcs.push({ numero: b.numero, tejido: b.tejido, medico: r.medico, remitoNumber: r.remito_number, fecha: r.timestamp || r.fecha, servicios: items });
             }
           });
         });
@@ -509,6 +509,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                     </div>
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Pac. #{s.numero} · {s.tejido} · Remito #{s.remitoNumber}</div>
+                  {s.fecha && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(s.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>}
                 </div>
               ))}
             </div>

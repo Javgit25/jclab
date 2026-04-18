@@ -811,7 +811,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   });
                 } catch { return false; }
               })();
-              const totalBX = entry.biopsies.filter(b => b.type !== 'PQ' && b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.tissueType !== 'Inmunohistoquímica' && b.tissueType !== 'Taco en Consulta').length;
+              const totalBX = entry.biopsies.filter(b => b.type !== 'PQ' && b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.tissueType !== 'Inmunohistoquímica' && b.tissueType !== 'Inmunohistoquimica' && b.tissueType !== 'Taco en Consulta' && b.type !== 'IHQ').length;
               const totalPQ = entry.biopsies.filter(b => b.type === 'PQ').length;
               const totalPAP = entry.biopsies.reduce((s, b) => s + (b.papQuantity || 0), 0);
               const totalCito = entry.biopsies.reduce((s, b) => s + (b.citologiaQuantity || 0), 0);
@@ -1314,7 +1314,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
         const bios = re.biopsies || [];
         const labCfg = (() => { try { return JSON.parse(localStorage.getItem('labConfig') || '{}'); } catch { return {}; } })();
         const fechaRemito = (() => { try { return new Date(re.timestamp || re.date).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' }); } catch { return String(re.date || ''); } })();
-        const totalBX = bios.filter((b: any) => b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.tissueType !== 'Inmunohistoquímica' && b.tissueType !== 'Taco en Consulta' && b.type !== 'PQ').length;
+        const totalBX = bios.filter((b: any) => b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.tissueType !== 'Inmunohistoquímica' && b.tissueType !== 'Inmunohistoquimica' && b.tissueType !== 'Taco en Consulta' && b.type !== 'IHQ' && b.type !== 'PQ').length;
         const totalPQ = bios.filter((b: any) => b.type === 'PQ').length;
         const totalPAP = bios.reduce((s: number, b: any) => s + (b.papQuantity || 0), 0);
         const totalCito = bios.reduce((s: number, b: any) => s + (b.citologiaQuantity || 0), 0);
