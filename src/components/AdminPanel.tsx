@@ -1996,6 +1996,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     const subsGi = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
                                     svcList.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + subsGi);
                                   }
+                                  if ((sv.profundizacion || 0) > 0) svcList.push(`Profundización ×${sv.profundizacion}`);
                                   if (sv.incluyeCitologia) {
                                     const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
                                     svcList.push(`+ Cito (${fmt})`);
@@ -2159,6 +2160,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             const subsGi = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
                             svc.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + subsGi);
                           }
+                          if ((sv.profundizacion || 0) > 0) svc.push('Profundización ×' + sv.profundizacion);
                           if (sv.incluyeCitologia) {
                             const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : (sv.citologiaVidriosQty || 1) + ' vid.';
                             svc.push('Citología (' + fmt + ')');
@@ -4392,7 +4394,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       // Auto-facturar: agregar servicios al remito original
                       if (nuevoEstado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
                         try {
-                          const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber);
+                          const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber || r.id?.includes(sol.remitoNumber));
+                          console.log('🔵 Auto-facturar:', { tipo: sol.tipo, remitoNumber: sol.remitoNumber, found: !!remitoOrig, paciente: sol.numeroPaciente });
                           if (remitoOrig) {
                             const desc = sol.descripcion || '';
                             const biopsiaIdx = remitoOrig.biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
