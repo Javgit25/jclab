@@ -4448,21 +4448,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 setRemitos(updatedRemitos as any);
                                 localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
                                 db.saveRemito(updatedRemito).catch(console.error);
-                                // Sincronizar con historial del médico
+                                // Sincronizar con historial del médico (doctor_history)
                                 const docEmail = ((remitoOrig as any).doctorEmail || remitoOrig.email || '').toLowerCase().trim();
                                 const remitoNum = (remitoOrig as any).remitoNumber || '';
-                                if (docEmail && remitoNum) {
+                                if (docEmail) {
                                   db.getDoctorHistory(docEmail).then(history => {
+                                    let synced = false;
                                     Object.keys(history).forEach(key => {
+                                      if (synced) return;
                                       const entry = history[key];
-                                      if (entry?.remitoNumber === remitoNum || entry?.id?.includes(remitoNum)) {
-                                        const bioIdx = (entry.biopsies || []).findIndex((b: any) => b.number === sol.numeroPaciente);
+                                      if (!entry?.biopsies) return;
+                                      // Buscar por remitoNumber o por paciente
+                                      const matchRemito = remitoNum && (entry.remitoNumber === remitoNum || entry.id?.includes(remitoNum));
+                                      const matchPaciente = !matchRemito && entry.biopsies.some((b: any) => b.number === sol.numeroPaciente);
+                                      if (matchRemito || matchPaciente) {
+                                        const bioIdx = entry.biopsies.findIndex((b: any) => b.number === sol.numeroPaciente);
                                         if (bioIdx >= 0) {
-                                          entry.biopsies[bioIdx].servicios = { ...entry.biopsies[bioIdx].servicios, ...sv };
-                                          db.saveDoctorHistoryEntry(docEmail, currentLabCode, entry).catch(console.error);
+                                          // Sumar profundización/servicio a los servicios del médico
+                                          const currentSvc = entry.biopsies[bioIdx].servicios || {};
+                                          if (sol.tipo === 'profundizacion') {
+                                            currentSvc.profundizacion = (currentSvc.profundizacion || 0) + 1;
+                                          } else {
+                                            Object.assign(currentSvc, sv);
+                                          }
+                                          entry.biopsies[bioIdx].servicios = currentSvc;
+                                          db.saveDoctorHistoryEntry(docEmail, currentLabCode, entry).then(() => {
+                                            console.log('🔵 ✅ Historial médico sincronizado');
+                                          }).catch(console.error);
+                                          synced = true;
                                         }
                                       }
                                     });
+                                    if (!synced) console.log('🔵 ⚠️ No se encontró entry en historial del médico');
                                   }).catch(console.error);
                                 }
                                 console.log('🔵 ✅ Servicio sumado al remito del mismo mes');
