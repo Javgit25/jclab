@@ -103,33 +103,36 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       </section>
 
       {/* Funcionalidades */}
-      <section id="funcionalidades" style={{ padding: '80px 24px', background: 'white' }}>
-        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+      <section id="funcionalidades" style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.04, backgroundImage: 'radial-gradient(circle at 50% 50%, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Todo lo que necesitás</h2>
-            <p style={{ fontSize: '16px', color: '#64748b' }}>Un sistema completo para cada etapa del proceso</p>
+            <h2 style={{ fontSize: '36px', fontWeight: 800, color: 'white', margin: '0 0 12px' }}>Todo lo que necesitás</h2>
+            <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)' }}>Un sistema completo para cada etapa del proceso</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
             {[
-              { icon: '📱', title: 'Tablet del Médico', color: '#2563eb', bg: '#eff6ff' },
-              { icon: '🖥️', title: 'Panel del Lab', color: '#0f766e', bg: '#f0fdfa' },
-              { icon: '💰', title: 'Facturación', color: '#16a34a', bg: '#f0fdf4' },
-              { icon: '🔔', title: 'Notificaciones', color: '#ea580c', bg: '#fff7ed' },
-              { icon: '📊', title: 'Pizarrón Digital', color: '#7c3aed', bg: '#f5f3ff' },
-              { icon: '📧', title: 'Emails', color: '#dc2626', bg: '#fef2f2' },
-              { icon: '🎙️', title: 'Dictado por Voz', color: '#0891b2', bg: '#ecfeff' },
-              { icon: '🔒', title: 'Multi-laboratorio', color: '#475569', bg: '#f8fafc' },
+              { icon: '📱', title: 'Tablet del Médico', desc: 'Carga de biopsias desde el consultorio. Sin papel, sin errores.', color: '#60a5fa' },
+              { icon: '🖥️', title: 'Panel del Lab', desc: 'Recibí remitos al instante. Gestioná muestras y estados.', color: '#34d399' },
+              { icon: '💰', title: 'Facturación', desc: 'Detalle mensual automático por médico y centro médico.', color: '#fbbf24' },
+              { icon: '🔔', title: 'Notificaciones', desc: 'El médico sabe cuándo su material llega y cuándo está listo.', color: '#fb923c' },
+              { icon: '📊', title: 'Pizarrón Digital', desc: 'Pantalla en tiempo real para TV. Urgentes, pendientes y listos.', color: '#a78bfa' },
+              { icon: '📧', title: 'Emails', desc: 'Facturación y recordatorios con diseño profesional por email.', color: '#f87171' },
+              { icon: '🎙️', title: 'Dictado por Voz', desc: 'Dictá la macroscopía y se transcribe automáticamente.', color: '#22d3ee' },
+              { icon: '🔒', title: 'Multi-laboratorio', desc: 'Cada lab con sus datos, médicos y facturación independientes.', color: '#94a3b8' },
             ].map((f, i) => (
               <div key={i} style={{
-                background: f.bg, borderRadius: '16px', padding: '28px 20px',
-                textAlign: 'center', border: `2px solid ${f.bg}`,
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '28px 20px',
+                textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)',
+                transition: 'transform 0.2s, background 0.2s',
+                backdropFilter: 'blur(4px)'
               }}
-                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.08)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
               >
-                <div style={{ fontSize: '48px', marginBottom: '12px', lineHeight: 1 }}>{f.icon}</div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: f.color }}>{f.title}</div>
+                <div style={{ fontSize: '44px', marginBottom: '12px', lineHeight: 1 }}>{f.icon}</div>
+                <div style={{ fontSize: '15px', fontWeight: 700, color: f.color, marginBottom: '6px' }}>{f.title}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{f.desc}</div>
               </div>
             ))}
           </div>
