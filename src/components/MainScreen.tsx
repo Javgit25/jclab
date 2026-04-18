@@ -3777,17 +3777,17 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: 2000,
+          zIndex: 9999,
           backgroundColor: 'white',
           borderTop: '1px solid #e5e7eb',
           boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
         }}>
           <VirtualKeyboard
-            keyboard={{ 
-              isOpen: showKeyboard, 
-              type: keyboardType, 
+            keyboard={{
+              isOpen: showKeyboard,
+              type: keyboardType,
               targetField: activeField || '',
-              targetValue: activeField === 'solicitud-paciente' ? solicitudPaciente : activeField === 'solicitud-descripcion' ? solicitudDescripcion : searchFilters.query 
+              targetValue: activeField === 'solicitud-paciente' ? solicitudPaciente : activeField === 'solicitud-descripcion' ? solicitudDescripcion : activeField === 'ayudante-nombre' ? newAyudanteNombre : activeField === 'ayudante-password' ? newAyudantePassword : activeField === 'centro-nombre' ? newCentro : searchFilters.query
             }}
             onKeyPress={handleKeyPress}
             onConfirm={handleKeyboardConfirm}
