@@ -3771,7 +3771,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       })()}
 
       {/* Teclado Virtual para Búsqueda y Solicitudes */}
-      {showKeyboard && (showSearchModal || showSolicitudes || showAyudantesModal) && (
+      {showKeyboard && (
         <div style={{
           position: 'fixed',
           bottom: 0,
