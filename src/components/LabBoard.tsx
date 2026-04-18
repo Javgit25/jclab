@@ -249,9 +249,26 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
 
     try {
       await db.saveSolicitud(updated);
+      // Notificar al médico
+      const tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : 'Serv. Adicional';
+      const mensajes: Record<string, string> = {
+        en_proceso: `${tipoMsg} en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
+        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
+      };
+      if (mensajes[updated.estado]) {
+        const notif = {
+          id: `NOTIF_SOL_${Date.now()}`,
+          remitoId: sol.id,
+          medicoEmail: sol.doctorEmail || '',
+          mensaje: mensajes[updated.estado],
+          fecha: new Date().toISOString(),
+          leida: false,
+          tipo: updated.estado === 'entregado' ? 'listo' : 'material_recibido'
+        };
+        db.saveNotification(notif).catch(console.error);
+      }
     } catch (err) {
       console.error('Error saving solicitud:', err);
-      // Revert on error
       setSolicitudes(prev => prev.map(s => s.id === sol.id ? sol : s));
     }
   }, []);

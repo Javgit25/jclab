@@ -4375,27 +4375,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     const updated = { ...sol, estado: nuevoEstado, ...(nuevoEstado === 'entregado' ? { entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' } : {}) };
                     await db.saveSolicitud(updated);
                     setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
-                    // Solo notificar entregado y rechazado (no en_proceso)
-                    if (nuevoEstado === 'entregado' || nuevoEstado === 'rechazado') {
+                    // Notificar al médico en todos los cambios de estado
+                    {
                       const tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : 'Servicio Adicional';
+                      const mensajes: Record<string, string> = {
+                        en_proceso: `${tipoMsg} en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
+                        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
+                        rechazado: `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
+                      };
                       const notif = {
                         id: `NOTIF_SOL_${Date.now()}`,
                         remitoId: sol.id,
                         medicoEmail: sol.doctorEmail || '',
-                        mensaje: nuevoEstado === 'entregado'
-                          ? `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
-                          : `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
+                        mensaje: mensajes[nuevoEstado] || `${tipoMsg} actualizado: ${nuevoEstado}`,
                         fecha: new Date().toISOString(),
                         leida: false,
-                        tipo: nuevoEstado === 'entregado' ? 'listo' : 'parcial'
+                        tipo: nuevoEstado === 'entregado' ? 'listo' : nuevoEstado === 'en_proceso' ? 'material_recibido' : 'parcial'
                       };
                       db.saveNotification(notif).catch(console.error);
 
                       // Auto-facturar: agregar servicios al remito original
                       if (nuevoEstado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
                         try {
-                          const remitoOrig = remitos.find(r => (r as any).remitoNumber === sol.remitoNumber || r.id?.includes(sol.remitoNumber));
-                          console.log('🔵 Auto-facturar:', { tipo: sol.tipo, remitoNumber: sol.remitoNumber, found: !!remitoOrig, paciente: sol.numeroPaciente });
+                          const solRN = (sol.remitoNumber || '').replace('#', '').trim();
+                          // Buscar remito por remitoNumber, o por paciente + médico
+                          let remitoOrig = remitos.find(r => {
+                            const rRN = ((r as any).remitoNumber || '').replace('#', '').trim();
+                            return rRN === solRN || r.id?.includes(solRN);
+                          });
+                          // Fallback: buscar por paciente + email del doctor
+                          if (!remitoOrig && sol.numeroPaciente && sol.doctorEmail) {
+                            remitoOrig = remitos.find(r =>
+                              ((r as any).doctorEmail || r.email || '').toLowerCase() === sol.doctorEmail.toLowerCase() &&
+                              r.biopsias.some((b: any) => b.numero === sol.numeroPaciente)
+                            );
+                          }
+                          console.log('🔵 Auto-facturar:', { tipo: sol.tipo, remitoNumber: solRN, found: !!remitoOrig, paciente: sol.numeroPaciente, totalRemitos: remitos.length });
                           if (remitoOrig) {
                             const desc = sol.descripcion || '';
                             const biopsiaIdx = remitoOrig.biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
@@ -4423,6 +4438,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               const remitoFecha = new Date(remitoOrig.fecha);
                               const mismoMes = remitoFecha.getMonth() === now.getMonth() && remitoFecha.getFullYear() === now.getFullYear();
 
+                              console.log('🔵 Sumando al remito:', { biopsiaIdx, tipo: sol.tipo, servicios: sv });
                               if (mismoMes) {
                                 // MISMO MES: agregar al remito original
                                 const updatedBiopsias = [...remitoOrig.biopsias];
@@ -4432,6 +4448,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 setRemitos(updatedRemitos as any);
                                 localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
                                 db.saveRemito(updatedRemito).catch(console.error);
+                                console.log('🔵 ✅ Servicio sumado al remito del mismo mes');
                               } else {
                                 // MES ANTERIOR: crear remito nuevo en el mes actual
                                 const mesOriginal = remitoFecha.toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
