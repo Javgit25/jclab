@@ -267,11 +267,52 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         };
         db.saveNotification(notif).catch(console.error);
       }
+      // Auto-facturar: sumar profundización/servicio al remito cuando se marca entregado
+      if (updated.estado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
+        try {
+          const { supabase: sb } = await import('../lib/supabase');
+          const { data: remitosData } = await sb.from('remitos').select('*').eq('lab_code', labCode);
+          if (remitosData) {
+            const solRN = (sol.remitoNumber || '').replace('#', '').trim();
+            let remitoOrig = remitosData.find((r: any) => (r.remito_number || '').replace('#', '').trim() === solRN);
+            if (!remitoOrig && sol.numeroPaciente && sol.doctorEmail) {
+              remitoOrig = remitosData.find((r: any) =>
+                ((r.doctor_email || r.email || '').toLowerCase() === sol.doctorEmail.toLowerCase()) &&
+                (r.biopsias || []).some((b: any) => b.numero === sol.numeroPaciente)
+              );
+            }
+            if (remitoOrig) {
+              const biopsias = [...(remitoOrig.biopsias || [])];
+              const biopsiaIdx = biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
+              if (biopsiaIdx >= 0) {
+                const biopsia = { ...biopsias[biopsiaIdx] };
+                const sv = { ...(biopsia.servicios || {}) } as any;
+                if (sol.tipo === 'profundizacion') {
+                  sv.profundizacion = (sv.profundizacion || 0) + 1;
+                } else {
+                  const desc = sol.descripcion || '';
+                  if (desc.includes('Giemsa') || desc.includes('PAS') || desc.includes('Masson')) {
+                    const tCount = (desc.includes('Giemsa') ? 1 : 0) + (desc.includes('PAS') ? 1 : 0) + (desc.includes('Masson') ? 1 : 0);
+                    sv.giemsaPASMasson = (sv.giemsaPASMasson || 0) + tCount;
+                  }
+                }
+                biopsia.servicios = sv;
+                biopsias[biopsiaIdx] = biopsia;
+                await sb.from('remitos').update({
+                  biopsias,
+                  modificado_por_solicitud: true,
+                  modificado_at: new Date().toISOString()
+                }).eq('id', remitoOrig.id);
+              }
+            }
+          }
+        } catch (e) { console.error('Error auto-facturando desde pizarrón:', e); }
+      }
     } catch (err) {
       console.error('Error saving solicitud:', err);
       setSolicitudes(prev => prev.map(s => s.id === sol.id ? sol : s));
     }
-  }, []);
+  }, [labCode]);
 
   const pendientes = solicitudes.filter(s => s.estado === 'pendiente');
   const enProceso = solicitudes.filter(s => s.estado === 'en_proceso');
