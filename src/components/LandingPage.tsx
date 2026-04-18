@@ -5,51 +5,6 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
-  const features = [
-    {
-      icon: '📱',
-      title: 'Tablet del Médico',
-      desc: 'El médico carga biopsias desde su tablet en el consultorio. Sin papel, sin errores. Cada muestra queda registrada al instante.',
-      details: ['Carga rápida con teclado virtual optimizado', 'Múltiples centros médicos', 'Historial completo de remitos', 'Estadísticas y facturación en tiempo real']
-    },
-    {
-      icon: '🖥️',
-      title: 'Panel del Laboratorio',
-      desc: 'El laboratorio recibe los remitos al instante. Gestiona muestras, marca estados y notifica al médico cuando están listas.',
-      details: ['Dashboard en tiempo real', 'Gestión de biopsias y servicios adicionales', 'Impresión de pendientes', 'Control de material recibido']
-    },
-    {
-      icon: '💰',
-      title: 'Facturación Automática',
-      desc: 'Facturación mensual automática por médico y centro. Envío por email con un click. Cobros y deudas bajo control.',
-      details: ['Detalle por médico y centro médico', 'Precios congelados al momento del remito', 'Envío de facturación por email', 'Control de cobros y recordatorio de deuda']
-    },
-    {
-      icon: '🔔',
-      title: 'Notificaciones',
-      desc: 'El médico recibe notificaciones cuando su material llega al lab, cuando está en proceso y cuando está listo para retirar.',
-      details: ['Notificación de material recibido', 'Alerta de estudio listo', 'Sonido en la tablet', 'Historial de notificaciones']
-    },
-    {
-      icon: '📊',
-      title: 'Pizarrón Digital',
-      desc: 'Pantalla en tiempo real para el laboratorio. Muestra urgentes, pendientes y listos. Ideal para TV o monitor dedicado.',
-      details: ['Actualización automática', 'Urgentes destacados', 'Sin necesidad de PC', 'Compatible con Raspberry Pi']
-    },
-    {
-      icon: '📧',
-      title: 'Emails Profesionales',
-      desc: 'Envío de facturación y recordatorios con diseño profesional. Datos bancarios incluidos. Control de envíos realizados.',
-      details: ['Detalle de facturación por email', 'Recordatorio de deuda automático', 'Datos de pago configurables', 'Historial de emails enviados']
-    },
-    {
-      icon: '🎙️',
-      title: 'Dictado por Voz',
-      desc: 'El médico dicta la descripción macroscópica y las observaciones en vez de tipear. Se transcribe automáticamente y queda guardado en la nube.',
-      details: ['Transcripción automática en tiempo real', 'Registro de macroscopía detallada', 'Guardado en la nube (accesible desde cualquier dispositivo)', 'Reemplaza servicios de dictado externo']
-    }
-  ];
-
   const workflow = [
     { step: '1', title: 'El médico carga', desc: 'Desde su tablet, registra cada biopsia con tipo de tejido, cassettes y servicios especiales.' },
     { step: '2', title: 'El lab recibe', desc: 'El remito llega al instante al panel del laboratorio. Se marca como recibido y se procesa.' },
@@ -149,39 +104,32 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
 
       {/* Funcionalidades */}
       <section id="funcionalidades" style={{ padding: '80px 24px', background: 'white' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Todo lo que necesitás</h2>
-            <p style={{ fontSize: '16px', color: '#64748b', maxWidth: '500px', margin: '0 auto' }}>Un sistema completo que conecta al médico con el laboratorio en cada etapa del proceso.</p>
+            <p style={{ fontSize: '16px', color: '#64748b' }}>Un sistema completo para cada etapa del proceso</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-            {features.map((f, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+            {[
+              { icon: '📱', title: 'Tablet del Médico', color: '#2563eb', bg: '#eff6ff' },
+              { icon: '🖥️', title: 'Panel del Lab', color: '#0f766e', bg: '#f0fdfa' },
+              { icon: '💰', title: 'Facturación', color: '#16a34a', bg: '#f0fdf4' },
+              { icon: '🔔', title: 'Notificaciones', color: '#ea580c', bg: '#fff7ed' },
+              { icon: '📊', title: 'Pizarrón Digital', color: '#7c3aed', bg: '#f5f3ff' },
+              { icon: '📧', title: 'Emails', color: '#dc2626', bg: '#fef2f2' },
+              { icon: '🎙️', title: 'Dictado por Voz', color: '#0891b2', bg: '#ecfeff' },
+              { icon: '🔒', title: 'Multi-laboratorio', color: '#475569', bg: '#f8fafc' },
+            ].map((f, i) => (
               <div key={i} style={{
-                display: 'grid', gridTemplateColumns: '56px 1fr', gap: '20px',
-                padding: '28px 0',
-                borderBottom: i < features.length - 1 ? '1px solid #f1f5f9' : 'none',
-                alignItems: 'start'
-              }}>
-                <div style={{
-                  width: '56px', height: '56px', borderRadius: '14px',
-                  background: i % 2 === 0 ? '#eff6ff' : '#f8fafc',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '28px', flexShrink: 0
-                }}>{f.icon}</div>
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>{f.title}</h3>
-                  <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, margin: '0 0 10px' }}>{f.desc}</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {f.details.map((d, j) => (
-                      <span key={j} style={{
-                        fontSize: '12px', color: '#475569', padding: '4px 10px',
-                        background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0'
-                      }}>
-                        {d}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                background: f.bg, borderRadius: '16px', padding: '28px 20px',
+                textAlign: 'center', border: `2px solid ${f.bg}`,
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.08)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                <div style={{ fontSize: '48px', marginBottom: '12px', lineHeight: 1 }}>{f.icon}</div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: f.color }}>{f.title}</div>
               </div>
             ))}
           </div>
