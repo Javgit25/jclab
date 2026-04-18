@@ -492,22 +492,23 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {serviciosEspeciales.map((s, i) => (
                 <div key={i} style={{
-                  background: '#1a1a1a', border: '1px solid #7c3aed', borderRadius: '10px',
-                  padding: '8px 12px', minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
+                  background: '#1a1a1a', border: '2px solid #7c3aed', borderRadius: '10px',
+                  padding: '10px 14px', minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0' }}>#{s.numero}</span>
-                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>R#{s.remitoNumber}</span>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#c4b5fd' }}>
+                      {s.medico?.startsWith('Dr') ? s.medico : 'Dr./Dra. ' + s.medico}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      {s.servicios.map((svc: string, j: number) => (
+                        <span key={j} style={{
+                          background: svc.includes('IHQ') ? '#1e40af' : svc.includes('Giemsa') || svc.includes('PAS') || svc.includes('Masson') ? '#7c3aed' : svc.includes('Prof') ? '#0369a1' : '#475569',
+                          color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700
+                        }}>{svc}</span>
+                      ))}
+                    </div>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '4px' }}>{s.tejido} · {s.medico}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                    {s.servicios.map((svc: string, j: number) => (
-                      <span key={j} style={{
-                        background: svc.includes('IHQ') ? '#1e40af' : svc.includes('Giemsa') || svc.includes('PAS') || svc.includes('Masson') ? '#7c3aed' : svc.includes('Prof') ? '#0369a1' : '#475569',
-                        color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600
-                      }}>{svc}</span>
-                    ))}
-                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Pac. #{s.numero} · {s.tejido} · Remito #{s.remitoNumber}</div>
                 </div>
               ))}
             </div>

@@ -2945,7 +2945,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             const totalGeneral = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
             const allBiopsias = remitos.flatMap(r => r.biopsias);
             const totalPacientes = allBiopsias.length;
-            const countBX = allBiopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length;
+            const countBX = allBiopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta' && b.tipo !== 'PQ' && b.tipo !== 'IHQ').length;
             const countPQ = allBiopsias.filter(b => b.tipo === 'PQ').length;
             const countPAP = allBiopsias.reduce((s, b) => s + (b.papQuantity || 0), 0);
             const countCito = allBiopsias.reduce((s, b) => s + (b.citologiaQuantity || 0), 0);
@@ -3075,7 +3075,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               const rm = rmMedico.filter(r => (r.hospital || 'Sin centro') === centro);
                               const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot), 0);
                               const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
-                              const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
+                              const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta' && b.tipo !== 'PQ' && b.tipo !== 'IHQ').length, 0);
                               const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
                               const pap = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.papQuantity || 0), 0), 0);
                               const cito = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.citologiaQuantity || 0), 0), 0);
@@ -3123,7 +3123,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             const rm = rmMedico;
                             const total = totalMedico;
                             const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
-                            const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tipo !== 'PQ').length, 0);
+                            const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta' && b.tipo !== 'PQ' && b.tipo !== 'IHQ').length, 0);
                             const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
                             const pap = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.papQuantity || 0), 0), 0);
                             const cito = rm.reduce((s, r) => s + r.biopsias.reduce((ss, b) => ss + (b.citologiaQuantity || 0), 0), 0);
