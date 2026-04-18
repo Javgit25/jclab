@@ -144,7 +144,9 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
               const opts = sv.giemsaOptions || {};
               const t = [opts.giemsa && 'Giemsa', opts.pas && 'PAS', opts.masson && 'Masson'].filter(Boolean);
               const gi = sv.giemsaCassettes || [];
-              items.push((t.length > 0 ? t.join('/') : 'Tinción') + (gi.length > 0 ? ' x' + gi.length : ''));
+              const cn = b.cassettesNumbers || [];
+              const subsLabel = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((ci: number) => { const c = cn[ci]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${ci+1}`; }).join(', ') + ']' : (gi.length > 0 ? ' x' + gi.length : '');
+              items.push((t.length > 0 ? t.join('/') : 'Tinción') + subsLabel);
             }
             if ((sv.profundizacion || 0) > 0) items.push('Profundización x' + sv.profundizacion);
             if (items.length > 0) {

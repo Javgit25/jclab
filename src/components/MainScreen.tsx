@@ -614,7 +614,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         const esPAP = (biopsy.papQuantity || 0) > 0;
         const esCitologia = (biopsy.citologiaQuantity || 0) > 0;
         const esPQ = biopsy.type === 'PQ' || biopsy.tipo === 'PQ';
-        const esBX = !esPAP && !esCitologia && !esPQ;
+        const esIHQ = biopsy.type === 'IHQ' || biopsy.tipo === 'IHQ' || biopsy.tejido === 'Inmunohistoquímica' || biopsy.tissueType === 'Inmunohistoquímica';
+        const esTaco = biopsy.tejido === 'Taco en Consulta' || biopsy.tissueType === 'Taco en Consulta';
+        const esBX = !esPAP && !esCitologia && !esPQ && !esIHQ && !esTaco;
 
         if (esPQ) totalPQ++;
         else if (esBX) totalBX++;

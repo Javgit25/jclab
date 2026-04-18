@@ -997,7 +997,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         setRemitos(updatedRemitos);
                       }}
                     />
-                    <span className="text-green-600 font-medium text-xs">Giemsa/PAS</span>
+                    <span className="text-green-600 font-medium text-xs">
+                      {(() => { const opts = (biopsia.servicios as any)?.giemsaOptions || {}; const t = [opts.giemsa && 'Giemsa', opts.pas && 'PAS', opts.masson && 'Masson'].filter(Boolean); const gi = (biopsia.servicios as any)?.giemsaCassettes || []; const cn = (biopsia as any).cassettesNumbers || []; const subs = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : ''; return (t.length > 0 ? t.join(', ') : 'Giemsa/PAS') + subs; })()}
+                    </span>
                   </div>
                 )}
               </div>
@@ -1989,7 +1991,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     if (opts.giemsa) t.push('Giemsa');
                                     if (opts.pas) t.push('PAS');
                                     if (opts.masson) t.push('Masson');
-                                    svcList.push(t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson');
+                                    const gi = (sv as any).giemsaCassettes || [];
+                                    const cn = (b as any).cassettesNumbers || [];
+                                    const subsGi = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
+                                    svcList.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + subsGi);
                                   }
                                   if (sv.incluyeCitologia) {
                                     const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
@@ -2149,7 +2154,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             if (opts.giemsa) t.push('Giemsa');
                             if (opts.pas) t.push('PAS');
                             if (opts.masson) t.push('Masson');
-                            svc.push(t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson');
+                            const gi = (sv as any).giemsaCassettes || [];
+                            const cn = (b as any).cassettesNumbers || [];
+                            const subsGi = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
+                            svc.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + subsGi);
                           }
                           if (sv.incluyeCitologia) {
                             const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : (sv.citologiaVidriosQty || 1) + ' vid.';
