@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 interface LandingPageProps {
   onGoToApp: () => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
-  const [activeFeature, setActiveFeature] = useState(0);
-
   const features = [
     {
       icon: '📱',
@@ -151,31 +149,39 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
 
       {/* Funcionalidades */}
       <section id="funcionalidades" style={{ padding: '80px 24px', background: 'white' }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '56px' }}>
             <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Todo lo que necesitás</h2>
             <p style={{ fontSize: '16px', color: '#64748b', maxWidth: '500px', margin: '0 auto' }}>Un sistema completo que conecta al médico con el laboratorio en cada etapa del proceso.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
             {features.map((f, i) => (
-              <div key={i}
-                onClick={() => setActiveFeature(i)}
-                style={{
-                  padding: '24px', borderRadius: '16px', cursor: 'pointer',
-                  border: activeFeature === i ? '2px solid #3b82f6' : '2px solid #e2e8f0',
-                  background: activeFeature === i ? '#eff6ff' : 'white',
-                  transition: 'all 0.2s'
-                }}>
-                <div style={{ fontSize: '32px', marginBottom: '12px' }}>{f.icon}</div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 8px' }}>{f.title}</h3>
-                <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, margin: '0 0 12px' }}>{f.desc}</p>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {f.details.map((d, j) => (
-                    <li key={j} style={{ fontSize: '13px', color: '#475569', padding: '3px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: '#3b82f6', fontWeight: 700 }}>✓</span> {d}
-                    </li>
-                  ))}
-                </ul>
+              <div key={i} style={{
+                display: 'grid', gridTemplateColumns: '56px 1fr', gap: '20px',
+                padding: '28px 0',
+                borderBottom: i < features.length - 1 ? '1px solid #f1f5f9' : 'none',
+                alignItems: 'start'
+              }}>
+                <div style={{
+                  width: '56px', height: '56px', borderRadius: '14px',
+                  background: i % 2 === 0 ? '#eff6ff' : '#f8fafc',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '28px', flexShrink: 0
+                }}>{f.icon}</div>
+                <div>
+                  <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>{f.title}</h3>
+                  <p style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6, margin: '0 0 10px' }}>{f.desc}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {f.details.map((d, j) => (
+                      <span key={j} style={{
+                        fontSize: '12px', color: '#475569', padding: '4px 10px',
+                        background: '#f8fafc', borderRadius: '6px', border: '1px solid #e2e8f0'
+                      }}>
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
