@@ -3861,6 +3861,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   <span>Guardar Configuración del Laboratorio</span>
                 </button>
 
+                {/* Link del Pizarrón Digital */}
+                {currentLabCode && (
+                  <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-bold text-purple-800">Pizarrón Digital</div>
+                        <div className="text-xs text-purple-600 mt-1">Abrí este link en una TV o monitor dedicado para ver el estado en tiempo real.</div>
+                      </div>
+                      <button onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}?lab=${currentLabCode}`;
+                        navigator.clipboard.writeText(url).then(() => alert('Link copiado: ' + url)).catch(() => prompt('Copiá este link:', url));
+                      }}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 flex-shrink-0">
+                        📋 Copiar link
+                      </button>
+                    </div>
+                    <div className="mt-2 bg-white rounded-lg px-3 py-2 border border-purple-100">
+                      <code className="text-xs text-purple-700 break-all">{window.location.origin}{window.location.pathname}?lab={currentLabCode}</code>
+                    </div>
+                  </div>
+                )}
+
                 {/* Preview en tiempo real con controles de posición */}
                 <div className="mt-4 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
                   <div className="flex items-center justify-between mb-3">

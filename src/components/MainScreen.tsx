@@ -1593,6 +1593,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       setSolicitudSelectedCassettes([]);
     } else if (activeField === 'solicitud-descripcion') {
       applyKeyToSetter(setSolicitudDescripcion);
+    } else if (activeField === 'ayudante-nombre') {
+      applyKeyToSetter(setNewAyudanteNombre);
+    } else if (activeField === 'ayudante-password') {
+      applyKeyToSetter(setNewAyudantePassword);
+    } else if (activeField === 'centro-nombre') {
+      applyKeyToSetter(setNewCentro);
     }
   };
 
@@ -3867,6 +3873,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     type="text"
                     value={newCentro}
                     onChange={(e) => setNewCentro(e.target.value)}
+                    onFocus={() => handleFieldFocus('centro-nombre')}
+                    onClick={() => handleFieldFocus('centro-nombre')}
+                    inputMode="none" readOnly
                     placeholder="Nombre del centro médico"
                     style={{
                       flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
@@ -3952,6 +3961,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     type="text"
                     value={newAyudanteNombre}
                     onChange={(e) => setNewAyudanteNombre(e.target.value)}
+                    onFocus={() => handleFieldFocus('ayudante-nombre')}
+                    onClick={() => handleFieldFocus('ayudante-nombre')}
+                    inputMode="none" readOnly
                     placeholder="Dr/a. Nombre Apellido"
                     style={{
                       padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
@@ -3962,6 +3974,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     type="text"
                     value={newAyudantePassword}
                     onChange={(e) => setNewAyudantePassword(e.target.value)}
+                    onFocus={() => handleFieldFocus('ayudante-password')}
+                    onClick={() => handleFieldFocus('ayudante-password')}
+                    inputMode="none" readOnly
                     placeholder="Contraseña (mín. 4 caracteres)"
                     style={{
                       padding: '10px 12px', border: '1px solid #d1d5db', borderRadius: '8px',
