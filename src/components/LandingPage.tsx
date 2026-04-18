@@ -88,9 +88,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
         padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>🔬</div>
-            <span style={{ fontSize: '18px', fontWeight: 800, color: 'white' }}>BiopsyTracker</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img src={`${import.meta.env.BASE_URL}biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '28px', filter: 'brightness(0) invert(1)' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a href="#funcionalidades" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Funcionalidades</a>
@@ -545,7 +544,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <footer style={{ background: '#0f172a', padding: '32px 24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'white' }}>🔬 BiopsyTracker</span>
+            <img src={`${import.meta.env.BASE_URL}biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '20px', filter: 'brightness(0) invert(1)' }} />
             <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>— Software para laboratorios de anatomía patológica</span>
           </div>
           <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
