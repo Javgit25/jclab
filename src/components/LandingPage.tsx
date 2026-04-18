@@ -356,58 +356,90 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       </section>
 
       {/* Contador animado */}
-      <section ref={countsRef} style={{ padding: '60px 24px', background: '#0f172a' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', textAlign: 'center' }}>
+      <section ref={countsRef} style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.06, backgroundImage: 'radial-gradient(circle at 30% 70%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', textAlign: 'center', position: 'relative' }}>
           {[
-            { value: counts.biopsias, label: 'Remitos procesados', icon: '📋' },
-            { value: counts.labs, label: 'Laboratorios activos', icon: '🏥' },
-            { value: counts.medicos, label: 'Médicos registrados', icon: '👨‍⚕️' },
+            { value: counts.biopsias, label: 'Remitos procesados', icon: '📋', gradient: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' },
+            { value: counts.labs, label: 'Laboratorios activos', icon: '🏥', gradient: 'linear-gradient(135deg, #10b981, #3b82f6)' },
+            { value: counts.medicos, label: 'Médicos registrados', icon: '👨‍⚕️', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
           ].map((c, i) => (
-            <div key={i} style={{ padding: '24px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '8px' }}>{c.icon}</div>
-              <div style={{ fontSize: '42px', fontWeight: 800, color: 'white', lineHeight: 1 }}>
+            <div key={i} style={{
+              padding: '32px 20px', borderRadius: '20px',
+              background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(4px)',
+              transform: countsVisible ? 'translateY(0)' : 'translateY(30px)',
+              opacity: countsVisible ? 1 : 0,
+              transition: `all 0.6s ease ${i * 0.15}s`
+            }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}>{c.icon}</div>
+              <div style={{
+                fontSize: '48px', fontWeight: 800, lineHeight: 1,
+                background: c.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+              }}>
                 {c.value > 0 ? c.value.toLocaleString() : '—'}
               </div>
-              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '8px', fontWeight: 500 }}>{c.label}</div>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', marginTop: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '1px' }}>{c.label}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* FAQ */}
-      <section style={{ padding: '80px 24px', background: 'white' }}>
+      <section style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f0fdfa 100%)' }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Preguntas frecuentes</h2>
+            <p style={{ fontSize: '15px', color: '#64748b' }}>Todo lo que necesitás saber antes de empezar</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {[
-              { q: '¿Necesito instalar algo?', a: 'No. BiopsyTracker funciona 100% desde el navegador web. Solo necesitás una tablet, PC o celular con internet. No se instala nada.' },
-              { q: '¿Funciona sin internet?', a: 'BiopsyTracker tiene modo offline. Si se corta la conexión, los datos se guardan localmente y se sincronizan automáticamente cuando vuelve internet.' },
-              { q: '¿Mis datos están seguros?', a: 'Sí. Los datos se almacenan en servidores seguros de Supabase (basado en PostgreSQL). Cada laboratorio tiene sus datos completamente aislados de los demás.' },
-              { q: '¿Cuántos médicos puede tener un laboratorio?', a: 'No hay límite. Cada médico se registra con el código del laboratorio y puede tener múltiples centros médicos y ayudantes configurados.' },
-              { q: '¿Puedo probarlo antes de contratar?', a: 'Sí. Ofrecemos el primer mes de prueba gratis para que conozcas todas las funcionalidades del sistema.' },
-              { q: '¿Cómo recibe el médico la facturación?', a: 'El laboratorio envía la facturación por email con un click. El médico recibe un detalle profesional con cada biopsia, servicios y el total a pagar.' },
-              { q: '¿Funciona en tablet Android?', a: 'Sí. Funciona en cualquier tablet, celular o PC con navegador web. Está optimizado especialmente para tablets Android con Fully Kiosk Browser.' },
-              { q: '¿Qué pasa si cambio los precios a mitad de mes?', a: 'Los remitos ya creados conservan los precios con los que fueron cargados. Los nuevos remitos usarán los precios actualizados.' },
+              { q: '¿Necesito instalar algo?', a: 'No. BiopsyTracker funciona 100% desde el navegador web. Solo necesitás una tablet, PC o celular con internet. No se instala nada.', icon: '💻' },
+              { q: '¿Funciona sin internet?', a: 'BiopsyTracker tiene modo offline. Si se corta la conexión, los datos se guardan localmente y se sincronizan automáticamente cuando vuelve internet.', icon: '📶' },
+              { q: '¿Mis datos están seguros?', a: 'Sí. Los datos se almacenan en servidores seguros de Supabase (basado en PostgreSQL). Cada laboratorio tiene sus datos completamente aislados de los demás.', icon: '🔒' },
+              { q: '¿Cuántos médicos puede tener un laboratorio?', a: 'No hay límite. Cada médico se registra con el código del laboratorio y puede tener múltiples centros médicos y ayudantes configurados.', icon: '👥' },
+              { q: '¿Puedo probarlo antes de contratar?', a: 'Sí. Ofrecemos el primer mes de prueba gratis para que conozcas todas las funcionalidades del sistema.', icon: '🎁' },
+              { q: '¿Cómo recibe el médico la facturación?', a: 'El laboratorio envía la facturación por email con un click. El médico recibe un detalle profesional con cada biopsia, servicios y el total a pagar.', icon: '📧' },
+              { q: '¿Funciona en tablet Android?', a: 'Sí. Funciona en cualquier tablet, celular o PC con navegador web. Está optimizado especialmente para tablets Android con Fully Kiosk Browser.', icon: '📱' },
+              { q: '¿Qué pasa si cambio los precios a mitad de mes?', a: 'Los remitos ya creados conservan los precios con los que fueron cargados. Los nuevos remitos usarán los precios actualizados.', icon: '💰' },
             ].map((faq, i) => (
-              <div key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+              <div key={i} style={{
+                background: openFaq === i ? 'white' : 'rgba(255,255,255,0.7)',
+                borderRadius: '12px', overflow: 'hidden',
+                border: openFaq === i ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.06)',
+                boxShadow: openFaq === i ? '0 8px 24px rgba(59,130,246,0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
+                transition: 'all 0.3s ease'
+              }}>
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   style={{
-                    width: '100%', padding: '18px 0', background: 'none', border: 'none',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    width: '100%', padding: '16px 20px', background: 'none', border: 'none',
+                    display: 'flex', alignItems: 'center', gap: '14px',
                     cursor: 'pointer', textAlign: 'left'
                   }}
                 >
-                  <span style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>{faq.q}</span>
-                  <span style={{ fontSize: '20px', color: '#94a3b8', fontWeight: 300, flexShrink: 0, marginLeft: '16px', transform: openFaq === i ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}>+</span>
+                  <span style={{ fontSize: '22px', flexShrink: 0 }}>{faq.icon}</span>
+                  <span style={{ fontSize: '15px', fontWeight: 600, color: openFaq === i ? '#2563eb' : '#1e293b', flex: 1, transition: 'color 0.2s' }}>{faq.q}</span>
+                  <span style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: openFaq === i ? '#2563eb' : '#f1f5f9',
+                    color: openFaq === i ? 'white' : '#94a3b8',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '16px', fontWeight: 300, flexShrink: 0,
+                    transform: openFaq === i ? 'rotate(45deg)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}>+</span>
                 </button>
-                {openFaq === i && (
-                  <div style={{ padding: '0 0 18px', fontSize: '14px', color: '#64748b', lineHeight: 1.6 }}>
+                <div style={{
+                  maxHeight: openFaq === i ? '200px' : '0',
+                  overflow: 'hidden',
+                  transition: 'max-height 0.3s ease, padding 0.3s ease',
+                  padding: openFaq === i ? '0 20px 16px 56px' : '0 20px 0 56px',
+                }}>
+                  <div style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6 }}>
                     {faq.a}
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
