@@ -60,6 +60,17 @@ CREATE TABLE registered_doctors (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- 3b. SOLICITUDES DE CONTACTO (Landing Page)
+CREATE TABLE IF NOT EXISTS contact_requests (
+  id SERIAL PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  email TEXT NOT NULL,
+  laboratorio TEXT DEFAULT '',
+  telefono TEXT DEFAULT '',
+  mensaje TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE INDEX idx_doctors_email ON registered_doctors(email);
 CREATE INDEX idx_doctors_lab_code ON registered_doctors(lab_code);
 

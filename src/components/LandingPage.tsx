@@ -1,10 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
 
 interface LandingPageProps {
   onGoToApp: () => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
+  // Contadores animados
+  const [counts, setCounts] = useState({ biopsias: 0, labs: 0, medicos: 0 });
+  const [countsTarget, setCountsTarget] = useState({ biopsias: 0, labs: 0, medicos: 0 });
+  const [countsVisible, setCountsVisible] = useState(false);
+  const countsRef = useRef<HTMLDivElement>(null);
+
+  // FAQ
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  // Formulario de contacto
+  const [contactForm, setContactForm] = useState({ nombre: '', email: '', laboratorio: '', telefono: '', mensaje: '' });
+  const [contactSent, setContactSent] = useState(false);
+
+  // Cargar datos reales de Supabase
+  useEffect(() => {
+    const loadCounts = async () => {
+      try {
+        const [{ count: biopsias }, { count: labs }, { count: medicos }] = await Promise.all([
+          supabase.from('remitos').select('*', { count: 'exact', head: true }),
+          supabase.from('laboratories').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
+          supabase.from('registered_doctors').select('*', { count: 'exact', head: true }).eq('active', true),
+        ]);
+        setCountsTarget({ biopsias: biopsias || 0, labs: labs || 0, medicos: medicos || 0 });
+      } catch {}
+    };
+    loadCounts();
+  }, []);
+
+  // Animación de conteo al hacer scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !countsVisible) setCountsVisible(true);
+    }, { threshold: 0.3 });
+    if (countsRef.current) observer.observe(countsRef.current);
+    return () => observer.disconnect();
+  }, [countsVisible]);
+
+  useEffect(() => {
+    if (!countsVisible) return;
+    const duration = 1500;
+    const steps = 40;
+    const interval = duration / steps;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      const progress = Math.min(step / steps, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      setCounts({
+        biopsias: Math.round(countsTarget.biopsias * ease),
+        labs: Math.round(countsTarget.labs * ease),
+        medicos: Math.round(countsTarget.medicos * ease),
+      });
+      if (step >= steps) clearInterval(timer);
+    }, interval);
+    return () => clearInterval(timer);
+  }, [countsVisible, countsTarget]);
   const workflow = [
     { step: '1', title: 'El médico carga', desc: 'Desde su tablet, registra cada biopsia con tipo de tejido, cassettes y servicios especiales.' },
     { step: '2', title: 'El lab recibe', desc: 'El remito llega al instante al panel del laboratorio. Se marca como recibido y se procesa.' },
@@ -39,6 +96,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             <a href="#funcionalidades" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Funcionalidades</a>
             <a href="#como-funciona" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Cómo funciona</a>
             <a href="#planes" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Planes</a>
+            <a href="#contacto" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Contacto</a>
             <button onClick={onGoToApp} style={{
               background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
               border: 'none', padding: '8px 20px', borderRadius: '8px', fontSize: '14px',
@@ -294,6 +352,143 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           <p style={{ textAlign: 'center', fontSize: '14px', color: '#94a3b8', marginTop: '24px' }}>
             Consultá por planes y precios escribiendo a <strong>info@biopsytracker.com</strong>
           </p>
+        </div>
+      </section>
+
+      {/* Contador animado */}
+      <section ref={countsRef} style={{ padding: '60px 24px', background: '#0f172a' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', textAlign: 'center' }}>
+          {[
+            { value: counts.biopsias, label: 'Remitos procesados', icon: '📋' },
+            { value: counts.labs, label: 'Laboratorios activos', icon: '🏥' },
+            { value: counts.medicos, label: 'Médicos registrados', icon: '👨‍⚕️' },
+          ].map((c, i) => (
+            <div key={i} style={{ padding: '24px' }}>
+              <div style={{ fontSize: '36px', marginBottom: '8px' }}>{c.icon}</div>
+              <div style={{ fontSize: '42px', fontWeight: 800, color: 'white', lineHeight: 1 }}>
+                {c.value > 0 ? c.value.toLocaleString() : '—'}
+              </div>
+              <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginTop: '8px', fontWeight: 500 }}>{c.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: '80px 24px', background: 'white' }}>
+        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+            <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Preguntas frecuentes</h2>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+            {[
+              { q: '¿Necesito instalar algo?', a: 'No. BiopsyTracker funciona 100% desde el navegador web. Solo necesitás una tablet, PC o celular con internet. No se instala nada.' },
+              { q: '¿Funciona sin internet?', a: 'BiopsyTracker tiene modo offline. Si se corta la conexión, los datos se guardan localmente y se sincronizan automáticamente cuando vuelve internet.' },
+              { q: '¿Mis datos están seguros?', a: 'Sí. Los datos se almacenan en servidores seguros de Supabase (basado en PostgreSQL). Cada laboratorio tiene sus datos completamente aislados de los demás.' },
+              { q: '¿Cuántos médicos puede tener un laboratorio?', a: 'No hay límite. Cada médico se registra con el código del laboratorio y puede tener múltiples centros médicos y ayudantes configurados.' },
+              { q: '¿Puedo probarlo antes de contratar?', a: 'Sí. Ofrecemos el primer mes de prueba gratis para que conozcas todas las funcionalidades del sistema.' },
+              { q: '¿Cómo recibe el médico la facturación?', a: 'El laboratorio envía la facturación por email con un click. El médico recibe un detalle profesional con cada biopsia, servicios y el total a pagar.' },
+              { q: '¿Funciona en tablet Android?', a: 'Sí. Funciona en cualquier tablet, celular o PC con navegador web. Está optimizado especialmente para tablets Android con Fully Kiosk Browser.' },
+              { q: '¿Qué pasa si cambio los precios a mitad de mes?', a: 'Los remitos ya creados conservan los precios con los que fueron cargados. Los nuevos remitos usarán los precios actualizados.' },
+            ].map((faq, i) => (
+              <div key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                <button
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                  style={{
+                    width: '100%', padding: '18px 0', background: 'none', border: 'none',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    cursor: 'pointer', textAlign: 'left'
+                  }}
+                >
+                  <span style={{ fontSize: '15px', fontWeight: 600, color: '#1e293b' }}>{faq.q}</span>
+                  <span style={{ fontSize: '20px', color: '#94a3b8', fontWeight: 300, flexShrink: 0, marginLeft: '16px', transform: openFaq === i ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}>+</span>
+                </button>
+                {openFaq === i && (
+                  <div style={{ padding: '0 0 18px', fontSize: '14px', color: '#64748b', lineHeight: 1.6 }}>
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Formulario de contacto */}
+      <section id="contacto" style={{ padding: '80px 24px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Solicitá una demo</h2>
+            <p style={{ fontSize: '15px', color: '#64748b' }}>Dejanos tus datos y nos ponemos en contacto para mostrarte el sistema</p>
+          </div>
+          {contactSent ? (
+            <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>Mensaje enviado</div>
+              <div style={{ fontSize: '14px', color: '#15803d' }}>Nos pondremos en contacto a la brevedad.</div>
+            </div>
+          ) : (
+            <div style={{ background: 'white', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Nombre *</label>
+                  <input type="text" value={contactForm.nombre} onChange={e => setContactForm(p => ({ ...p, nombre: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="Tu nombre" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Email *</label>
+                  <input type="email" value={contactForm.email} onChange={e => setContactForm(p => ({ ...p, email: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="tu@email.com" />
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Laboratorio</label>
+                  <input type="text" value={contactForm.laboratorio} onChange={e => setContactForm(p => ({ ...p, laboratorio: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="Nombre del laboratorio" />
+                </div>
+                <div>
+                  <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Teléfono</label>
+                  <input type="tel" value={contactForm.telefono} onChange={e => setContactForm(p => ({ ...p, telefono: e.target.value }))}
+                    style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
+                    placeholder="Tu teléfono" />
+                </div>
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Mensaje</label>
+                <textarea value={contactForm.mensaje} onChange={e => setContactForm(p => ({ ...p, mensaje: e.target.value }))}
+                  rows={3}
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '14px', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                  placeholder="Contanos sobre tu laboratorio o consultá lo que necesites" />
+              </div>
+              <button
+                onClick={async () => {
+                  if (!contactForm.nombre.trim() || !contactForm.email.trim()) { alert('Completá nombre y email'); return; }
+                  try {
+                    await supabase.from('contact_requests').insert({
+                      nombre: contactForm.nombre.trim(),
+                      email: contactForm.email.trim(),
+                      laboratorio: contactForm.laboratorio.trim(),
+                      telefono: contactForm.telefono.trim(),
+                      mensaje: contactForm.mensaje.trim(),
+                      created_at: new Date().toISOString()
+                    });
+                  } catch {}
+                  setContactSent(true);
+                }}
+                style={{
+                  width: '100%', padding: '14px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)',
+                  color: 'white', border: 'none', borderRadius: '10px', fontSize: '15px',
+                  fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                Enviar solicitud
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
