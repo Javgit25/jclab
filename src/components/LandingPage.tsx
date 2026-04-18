@@ -89,7 +89,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src={`${import.meta.env.BASE_URL}biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '28px', filter: 'brightness(0) invert(1)' }} />
+            <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '28px', filter: 'brightness(0) invert(1)' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a href="#funcionalidades" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Funcionalidades</a>
@@ -391,16 +391,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Preguntas frecuentes</h2>
             <p style={{ fontSize: '15px', color: '#64748b' }}>Todo lo que necesitás saber antes de empezar</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             {[
-              { q: '¿Necesito instalar algo?', a: 'No. BiopsyTracker funciona 100% desde el navegador web. Solo necesitás una tablet, PC o celular con internet. No se instala nada.', icon: '💻' },
-              { q: '¿Funciona sin internet?', a: 'BiopsyTracker tiene modo offline. Si se corta la conexión, los datos se guardan localmente y se sincronizan automáticamente cuando vuelve internet.', icon: '📶' },
-              { q: '¿Mis datos están seguros?', a: 'Sí. Los datos se almacenan en servidores seguros de Supabase (basado en PostgreSQL). Cada laboratorio tiene sus datos completamente aislados de los demás.', icon: '🔒' },
-              { q: '¿Cuántos médicos puede tener un laboratorio?', a: 'No hay límite. Cada médico se registra con el código del laboratorio y puede tener múltiples centros médicos y ayudantes configurados.', icon: '👥' },
-              { q: '¿Puedo probarlo antes de contratar?', a: 'Sí. Ofrecemos el primer mes de prueba gratis para que conozcas todas las funcionalidades del sistema.', icon: '🎁' },
-              { q: '¿Cómo recibe el médico la facturación?', a: 'El laboratorio envía la facturación por email con un click. El médico recibe un detalle profesional con cada biopsia, servicios y el total a pagar.', icon: '📧' },
-              { q: '¿Funciona en tablet Android?', a: 'Sí. Funciona en cualquier tablet, celular o PC con navegador web. Está optimizado especialmente para tablets Android con Fully Kiosk Browser.', icon: '📱' },
-              { q: '¿Qué pasa si cambio los precios a mitad de mes?', a: 'Los remitos ya creados conservan los precios con los que fueron cargados. Los nuevos remitos usarán los precios actualizados.', icon: '💰' },
+              { q: '¿Necesito instalar algo?', a: 'No. Funciona 100% desde el navegador. Solo necesitás tablet, PC o celular con internet.', icon: '💻' },
+              { q: '¿Funciona sin internet?', a: 'Sí. Los datos se guardan localmente y se sincronizan cuando vuelve la conexión.', icon: '📶' },
+              { q: '¿Mis datos están seguros?', a: 'Sí. Servidores seguros con datos aislados por laboratorio.', icon: '🔒' },
+              { q: '¿Cuántos médicos puede tener?', a: 'Sin límite. Cada médico con múltiples centros y ayudantes.', icon: '👥' },
+              { q: '¿Puedo probarlo gratis?', a: 'Sí. Primer mes de prueba gratis sin compromiso.', icon: '🎁' },
+              { q: '¿Cómo recibe la facturación?', a: 'Por email con detalle profesional de cada biopsia y total.', icon: '📧' },
+              { q: '¿Funciona en tablet Android?', a: 'Sí. Optimizado para tablets Android con Fully Kiosk Browser.', icon: '📱' },
+              { q: '¿Si cambio precios a mitad de mes?', a: 'Los remitos existentes conservan sus precios originales.', icon: '💰' },
             ].map((faq, i) => (
               <div key={i} style={{
                 background: openFaq === i ? 'white' : 'rgba(255,255,255,0.7)',
@@ -544,7 +544,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <footer style={{ background: '#0f172a', padding: '32px 24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src={`${import.meta.env.BASE_URL}biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '20px', filter: 'brightness(0) invert(1)' }} />
+            <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '20px', filter: 'brightness(0) invert(1)' }} />
             <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>— Software para laboratorios de anatomía patológica</span>
           </div>
           <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
