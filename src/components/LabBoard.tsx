@@ -96,6 +96,7 @@ interface UrgenteBiopsia {
 const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [urgentes, setUrgentes] = useState<UrgenteBiopsia[]>([]);
+  const [serviciosEspeciales, setServiciosEspeciales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(true);
@@ -128,6 +129,30 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           });
         });
         setUrgentes(urgs);
+
+        // Extraer servicios especiales de remitos no listos
+        const svcs: any[] = [];
+        data.forEach((r: any) => {
+          const biopsiaListas = r.biopsia_listas || [];
+          (r.biopsias || []).forEach((b: any, idx: number) => {
+            if (biopsiaListas[idx]) return; // ya listo, skip
+            const sv = b.servicios || {};
+            const items: string[] = [];
+            if ((sv.corteBlancoIHQ || 0) > 0) items.push('Corte IHQ x' + sv.corteBlancoIHQ);
+            if ((sv.corteBlanco || 0) > 0) items.push('Corte Blanco x' + sv.corteBlanco);
+            if (sv.giemsaPASMasson) {
+              const opts = sv.giemsaOptions || {};
+              const t = [opts.giemsa && 'Giemsa', opts.pas && 'PAS', opts.masson && 'Masson'].filter(Boolean);
+              const gi = sv.giemsaCassettes || [];
+              items.push((t.length > 0 ? t.join('/') : 'Tinción') + (gi.length > 0 ? ' x' + gi.length : ''));
+            }
+            if ((sv.profundizacion || 0) > 0) items.push('Profundización x' + sv.profundizacion);
+            if (items.length > 0) {
+              svcs.push({ numero: b.numero, tejido: b.tejido, medico: r.medico, remitoNumber: r.remito_number, servicios: items });
+            }
+          });
+        });
+        setServiciosEspeciales(svcs);
       }
     } catch (e) { console.error('Error cargando urgentes:', e); }
   }, [labCode]);
@@ -450,6 +475,39 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                   </div>
                   <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Pac. #{urg.numero} · {urg.tejido} · Remito #{urg.remitoNumber}</div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(urg.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Servicios Especiales */}
+      {serviciosEspeciales.length > 0 && (
+        <div style={{ padding: '8px 12px', flexShrink: 0 }}>
+          <div style={{ background: '#1a1a2e', border: '2px solid #7c3aed', borderRadius: '12px', padding: '10px 14px' }}>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#c4b5fd', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              🧪 SERVICIOS ESPECIALES ({serviciosEspeciales.length})
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {serviciosEspeciales.map((s, i) => (
+                <div key={i} style={{
+                  background: '#1a1a1a', border: '1px solid #7c3aed', borderRadius: '10px',
+                  padding: '8px 12px', minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 700, color: '#e2e8f0' }}>#{s.numero}</span>
+                    <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>R#{s.remitoNumber}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '4px' }}>{s.tejido} · {s.medico}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {s.servicios.map((svc: string, j: number) => (
+                      <span key={j} style={{
+                        background: svc.includes('IHQ') ? '#1e40af' : svc.includes('Giemsa') || svc.includes('PAS') || svc.includes('Masson') ? '#7c3aed' : svc.includes('Prof') ? '#0369a1' : '#475569',
+                        color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600
+                      }}>{svc}</span>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

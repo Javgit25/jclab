@@ -1015,7 +1015,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot), 0);
     
     const totalPacientes = remitosDelMedico.reduce((s, r) => s + r.biopsias.length, 0);
-    const totalBX = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo !== 'PQ' && b.tejido !== 'PAP' && b.tejido !== 'Citología').length, 0);
+    const totalBX = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo !== 'PQ' && b.tipo !== 'IHQ' && b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta').length, 0);
     const totalPQ = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo === 'PQ').length, 0);
     const totalPAP = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.papQuantity || 0), 0), 0);
     const totalCito = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.citologiaQuantity || 0), 0), 0);
@@ -1025,7 +1025,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Facturación ${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })} - ${medico}</title>
+      <title>Facturación ${(() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })()} - ${medico}</title>
       <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, 'Segoe UI', sans-serif; padding: 0; background: white; color: #1e293b; font-size: 13px; }
@@ -1075,7 +1075,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       <div class="content">
         <div class="doc-header">
           <div>
-            <div class="doc-title">Facturación ${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}${centroFilter ? ' — ' + centroFilter : ''}</div>
+            <div class="doc-title">Facturación ${(() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })()}${centroFilter ? ' — ' + centroFilter : ''}</div>
             <div class="doc-medico">Dr/a. ${medico}</div>
             <div class="doc-fecha">${fechaActual} &nbsp;·&nbsp; ${remitosDelMedico.length} remito${remitosDelMedico.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${totalPacientes} paciente${totalPacientes > 1 ? 's' : ''}</div>
           </div>
@@ -1145,8 +1145,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   const fmt = (biopsia.servicios as any).citologiaFormato === 'jeringa' ? 'Jeringa' : (biopsia.servicios as any).citologiaFormato === 'frasco' ? 'Frasco' : ((biopsia.servicios as any).citologiaVidriosQty || 1) + ' vid.';
                   svcs.push('<span class="badge badge-servicio" style="background:#f3e8ff;color:#7c3aed;">Citología (' + fmt + ')</span>');
                 }
-                if ((biopsia.papQuantity || 0) > 0) svcs.push('<span class="badge badge-pap">PAP &times;' + biopsia.papQuantity + '</span>');
-                if ((biopsia.citologiaQuantity || 0) > 0) svcs.push('<span class="badge badge-cito">Cito &times;' + biopsia.citologiaQuantity + '</span>');
+                // PAP y Cito ya se muestran en la columna Cant., no duplicar aquí
 
                 // Calcular diferencia si fue editado por el lab
                 const currCass = Number(biopsia.cassettes) || 0;
@@ -1257,7 +1256,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   // Verificar si ya se envió email de facturación este mes
   const emailYaEnviado = (medico: string, centro?: string): boolean => {
     try {
-      const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+      const mes = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
       const key = `emailsFact_${currentLabCode}_${mes.replace(/\s+/g, '_')}`;
       const historial = JSON.parse(localStorage.getItem(key) || '[]');
       return historial.some((e: any) => e.medico === medico && (!centro || e.centro === centro));
@@ -1268,7 +1267,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [emailSentCounter, setEmailSentCounter] = useState(0);
   const registrarEmailEnviado = (medico: string, email: string, centro?: string) => {
     try {
-      const mes = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+      const mes = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
       const key = `emailsFact_${currentLabCode}_${mes.replace(/\s+/g, '_')}`;
       const historial = JSON.parse(localStorage.getItem(key) || '[]');
       historial.push({
@@ -1290,7 +1289,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const url = URL.createObjectURL(blob);
     const centroSuffix = centroFilter ? `_${centroFilter.replace(/\s+/g, '_')}` : '';
     link.setAttribute('href', url);
-    const mesArchivo = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_');
+    const mesArchivo = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })().replace(/\s+/g, '_');
     link.setAttribute('download', `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}${centroSuffix}.html`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
@@ -1305,7 +1304,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     let ft = '', btRaw = '';
     try { const cfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); ft = cfg.footerText || ''; btRaw = cfg.bodyText || ''; } catch {}
     const info = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
-    const mesActual = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    const mesActual = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
     const defaultBody = `Estimado/a Dr./Dra. ${medico},\nPor medio de la presente, le adjuntamos el detalle completo de las biopsias y pacientes remitidos a nuestro laboratorio durante el mes de ${mesActual}.\nQuedamos a su disposición para cualquier consulta o aclaración que considere necesaria.\nSin otro particular, saludamos a usted muy atentamente.`;
     const bt = btRaw || defaultBody;
 
@@ -2961,7 +2960,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               <div className="flex-shrink-0 px-5 pt-4 pb-3">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">Facturación — {new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' })}</h2>
+                    <h2 className="text-lg font-bold text-gray-900">Facturación — {(() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })()}</h2>
                     <p className="text-xs text-gray-400">{medicos.length} médicos · {remitos.length} remitos</p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -3061,7 +3060,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                       const fromName = labConfig.nombre || 'Laboratorio';
                                       const emailHtml = generarHTMLEmailFacturacion(medico);
-                                      const mesEmail = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                      const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
                                       await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + mesEmail + ' - ' + fromName, messageHtml: emailHtml, fromName });
                                       registrarEmailEnviado(medico, doctorEmail);
                                       alert('Email unificado enviado a ' + doctorEmail);
@@ -3106,7 +3105,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                           if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                           const fromName = labConfig.nombre || 'Laboratorio';
                                           const emailHtml = generarHTMLEmailFacturacion(medico, centro);
-                                          const mesEmail = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                          const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
                                           await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + mesEmail + ' ' + centro + ' - ' + fromName, messageHtml: emailHtml, fromName });
                                           registrarEmailEnviado(medico, doctorEmail, centro);
                                           alert('Email de ' + centro + ' enviado a ' + doctorEmail);
@@ -3164,7 +3163,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
                                         const fromName = labConfig.nombre || 'Laboratorio';
                                         const emailHtml = generarHTMLEmailFacturacion(medico, centroName || undefined);
-                                        const mesEmail = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                                        const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
                                         await sendEmail({ toEmail: doctorEmail, toName: medico, subject: 'Facturación ' + mesEmail + ' - ' + fromName, messageHtml: emailHtml, fromName });
                                         registrarEmailEnviado(medico, doctorEmail, centroName || undefined);
                                         alert('Email enviado a ' + doctorEmail);
@@ -3198,7 +3197,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
               {/* Historial de emails enviados */}
               {(() => {
-                const mesActual = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+                const mesActual = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
                 const keyActual = `emailsFact_${mesActual.replace(/\s+/g, '_')}`;
                 const emailsDelMes: any[] = JSON.parse(localStorage.getItem(keyActual) || '[]');
                 // Buscar meses anteriores
@@ -4868,7 +4867,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         for (const d of deudores) {
                           if (!d.email) continue;
                           // Verificar si ya se envió este mes
-                          const mesKey = `recDeuda_${currentLabCode}_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
+                          const mesKey = `recDeuda_${currentLabCode}_${(() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })().replace(/\s+/g, '_')}`;
                           const yaEnviados: any[] = JSON.parse(localStorage.getItem(mesKey) || '[]');
                           if (yaEnviados.some((e: any) => e.medico === d.medico)) continue;
                           try {
@@ -4922,7 +4921,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </button>
                     {/* Mostrar a quién ya se envió */}
                     {(() => {
-                      const mesKey = `recDeuda_${currentLabCode}_${new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }).replace(/\s+/g, '_')}`;
+                      const mesKey = `recDeuda_${currentLabCode}_${(() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })().replace(/\s+/g, '_')}`;
                       const enviados: any[] = JSON.parse(localStorage.getItem(mesKey) || '[]');
                       if (enviados.length === 0) return null;
                       return (

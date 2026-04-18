@@ -811,7 +811,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   });
                 } catch { return false; }
               })();
-              const totalBX = entry.biopsies.filter(b => b.type !== 'PQ' && b.tissueType !== 'PAP' && b.tissueType !== 'Citología').length;
+              const totalBX = entry.biopsies.filter(b => b.type !== 'PQ' && b.tissueType !== 'PAP' && b.tissueType !== 'Citología' && b.tissueType !== 'Inmunohistoquímica' && b.tissueType !== 'Taco en Consulta').length;
               const totalPQ = entry.biopsies.filter(b => b.type === 'PQ').length;
               const totalPAP = entry.biopsies.reduce((s, b) => s + (b.papQuantity || 0), 0);
               const totalCito = entry.biopsies.reduce((s, b) => s + (b.citologiaQuantity || 0), 0);
