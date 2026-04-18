@@ -2490,14 +2490,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           }}>
             {(() => {
               const msg = listoAlert.mensaje || '';
-              const isMatRecibido = listoAlert.tipo === 'material_recibido';
               const isTaco = msg.includes('Taco/Cassette');
               const isProf = msg.includes('Profundización');
-              const isServ = msg.includes('Servicio Adicional');
+              const isServ = msg.includes('Servicio Adicional') || msg.includes('Serv. Adicional');
               const isSolicitud = isTaco || isProf || isServ;
-              const icon = isMatRecibido ? '📦' : isTaco ? '📦' : isProf ? '🔬' : isServ ? '➕' : '✅';
-              const titulo = isMatRecibido ? 'Laboratorio recibió su material' : isTaco ? 'Taco/Cassette' : isProf ? 'Profundización' : isServ ? 'Servicio Adicional' : 'Material Listo';
-              const subtitulo = isMatRecibido ? 'Su material está siendo procesado' : isSolicitud ? 'Listo para retirar' : 'Listo para retirar';
+              const isEnProceso = msg.includes('en proceso');
+              const isMatRecibido = listoAlert.tipo === 'material_recibido' && !isSolicitud;
+              const icon = isTaco ? '📦' : isProf ? '🔬' : isServ ? '➕' : isMatRecibido ? '📦' : '✅';
+              const titulo = isTaco ? 'Taco/Cassette' : isProf ? 'Profundización' : isServ ? 'Servicio Adicional' : isMatRecibido ? 'Laboratorio recibió su material' : 'Material Listo';
+              const subtitulo = isEnProceso ? 'Su solicitud fue aceptada y está en proceso' : isSolicitud ? 'Listo para retirar' : isMatRecibido ? 'Su material está siendo procesado' : 'Listo para retirar';
               return (
                 <>
                   <div style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</div>
