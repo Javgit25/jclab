@@ -4516,6 +4516,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         } catch (e) {
                           console.error('Error auto-facturando solicitud:', e);
                         }
+                        // Recargar remitos desde Supabase para refrescar facturación
+                        if (currentLabCode) {
+                          db.getRemitos(currentLabCode).then((fresh: any[]) => {
+                            if (fresh && fresh.length >= 0) {
+                              setRemitos(fresh);
+                              const medicosUnicos = [...new Set(fresh.map((r: any) => r.medico))];
+                              setMedicos(medicosUnicos);
+                            }
+                          }).catch(() => {});
+                        }
                       }
                     }
                   };
