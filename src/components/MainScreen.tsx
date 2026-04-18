@@ -2222,6 +2222,37 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     </div>
                   )}
 
+                  {/* Selector de SUB para profundización */}
+                  {solicitudTipo === 'profundizacion' && solicitudSelectedPatient && solicitudSelectedPatient.cassettesNumbers && solicitudSelectedPatient.cassettesNumbers.length > 1 && (
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>¿A qué cassette se le hace la profundización?</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {solicitudSelectedPatient.cassettesNumbers.map((cass: any, i: number) => {
+                          const label = typeof cass === 'object' ? (cass.suffix ? `${cass.base}/${cass.suffix}` : cass.base) : String(cass);
+                          const isSelected = solicitudSelectedCassettes.includes(label);
+                          return (
+                            <button key={i} onClick={() => {
+                              const next = isSelected
+                                ? solicitudSelectedCassettes.filter((c: any) => c !== label)
+                                : [...solicitudSelectedCassettes, label];
+                              setSolicitudSelectedCassettes(next);
+                              setSolicitudCassettes(next.join(', '));
+                            }} style={{
+                              padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+                              border: isSelected ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                              background: isSelected ? '#eff6ff' : 'white',
+                              color: isSelected ? '#1e40af' : '#374151',
+                              fontSize: '12px', fontWeight: '700',
+                              transition: 'all 0.15s'
+                            }}>
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Servicios específicos para Servicio Adicional */}
                   {solicitudTipo === 'servicio_adicional' && (
                     <div>
@@ -2307,13 +2338,16 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     onClick={async () => {
                       const doctors = getRegisteredDoctors();
                       const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
-                      const cassetteLabels = solicitudTipo === 'taco' && solicitudSelectedCassettes.length > 0
+                      const cassetteLabels = (solicitudTipo === 'taco' || solicitudTipo === 'profundizacion') && solicitudSelectedCassettes.length > 0
                         ? solicitudSelectedCassettes
                         : solicitudTipo === 'taco' && solicitudCassettes.trim()
                           ? solicitudCassettes.split(',').map(s => s.trim()).filter(Boolean)
                           : undefined;
                       // Construir descripción con servicios adicionales
                       let descFinal = solicitudDescripcion.trim();
+                      if (solicitudTipo === 'profundizacion' && solicitudSelectedCassettes.length > 0) {
+                        descFinal = `Cassettes: ${solicitudSelectedCassettes.join(', ')}${descFinal ? '\n' + descFinal : ''}`;
+                      }
                       if (solicitudTipo === 'servicio_adicional') {
                         const svcParts: string[] = [];
                         if (solicitudServicios.giemsa) svcParts.push('Giemsa');

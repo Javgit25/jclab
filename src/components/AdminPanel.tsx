@@ -4448,6 +4448,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 setRemitos(updatedRemitos as any);
                                 localStorage.setItem('adminRemitos', JSON.stringify(updatedRemitos));
                                 db.saveRemito(updatedRemito).catch(console.error);
+                                // Sincronizar con historial del médico
+                                const docEmail = ((remitoOrig as any).doctorEmail || remitoOrig.email || '').toLowerCase().trim();
+                                const remitoNum = (remitoOrig as any).remitoNumber || '';
+                                if (docEmail && remitoNum) {
+                                  db.getDoctorHistory(docEmail).then(history => {
+                                    Object.keys(history).forEach(key => {
+                                      const entry = history[key];
+                                      if (entry?.remitoNumber === remitoNum || entry?.id?.includes(remitoNum)) {
+                                        const bioIdx = (entry.biopsies || []).findIndex((b: any) => b.number === sol.numeroPaciente);
+                                        if (bioIdx >= 0) {
+                                          entry.biopsies[bioIdx].servicios = { ...entry.biopsies[bioIdx].servicios, ...sv };
+                                          db.saveDoctorHistoryEntry(docEmail, currentLabCode, entry).catch(console.error);
+                                        }
+                                      }
+                                    });
+                                  }).catch(console.error);
+                                }
                                 console.log('🔵 ✅ Servicio sumado al remito del mismo mes');
                               } else {
                                 // MES ANTERIOR: crear remito nuevo en el mes actual
