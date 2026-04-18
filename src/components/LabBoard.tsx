@@ -464,6 +464,13 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           Pac. #{sol.numeroPaciente || '---'}{sol.tejido ? ` · ${sol.tejido}` : ''} · Remito #{sol.remitoNumber || '---'}
         </div>
 
+        {/* Cassettes/SUBs */}
+        {sol.cassetteLabels && sol.cassetteLabels.length > 0 && (
+          <div style={{ fontSize: '0.9rem', color: '#60a5fa', fontWeight: 700, marginBottom: '2px' }}>
+            Cassettes: {sol.cassetteLabels.join(', ')}
+          </div>
+        )}
+
         {/* Description (truncated) */}
         {sol.descripcion && (
           <div style={{

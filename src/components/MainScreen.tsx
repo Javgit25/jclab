@@ -2253,6 +2253,37 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     </div>
                   )}
 
+                  {/* Selector de SUB para servicio adicional */}
+                  {solicitudTipo === 'servicio_adicional' && solicitudSelectedPatient && solicitudSelectedPatient.cassettesNumbers && solicitudSelectedPatient.cassettesNumbers.length > 1 && (
+                    <div>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>¿A qué cassette se le solicita el servicio?</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        {solicitudSelectedPatient.cassettesNumbers.map((cass: any, i: number) => {
+                          const label = typeof cass === 'object' ? (cass.suffix ? `${cass.base}/${cass.suffix}` : cass.base) : String(cass);
+                          const isSelected = solicitudSelectedCassettes.includes(label);
+                          return (
+                            <button key={i} onClick={() => {
+                              const next = isSelected
+                                ? solicitudSelectedCassettes.filter((c: any) => c !== label)
+                                : [...solicitudSelectedCassettes, label];
+                              setSolicitudSelectedCassettes(next);
+                              setSolicitudCassettes(next.join(', '));
+                            }} style={{
+                              padding: '6px 12px', borderRadius: '6px', cursor: 'pointer',
+                              border: isSelected ? '2px solid #7c3aed' : '2px solid #e5e7eb',
+                              background: isSelected ? '#f5f3ff' : 'white',
+                              color: isSelected ? '#7c3aed' : '#374151',
+                              fontSize: '12px', fontWeight: '700',
+                              transition: 'all 0.15s'
+                            }}>
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Servicios específicos para Servicio Adicional */}
                   {solicitudTipo === 'servicio_adicional' && (
                     <div>
@@ -2338,7 +2369,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     onClick={async () => {
                       const doctors = getRegisteredDoctors();
                       const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
-                      const cassetteLabels = (solicitudTipo === 'taco' || solicitudTipo === 'profundizacion') && solicitudSelectedCassettes.length > 0
+                      const cassetteLabels = (solicitudTipo === 'taco' || solicitudTipo === 'profundizacion' || solicitudTipo === 'servicio_adicional') && solicitudSelectedCassettes.length > 0
                         ? solicitudSelectedCassettes
                         : solicitudTipo === 'taco' && solicitudCassettes.trim()
                           ? solicitudCassettes.split(',').map(s => s.trim()).filter(Boolean)
@@ -2356,7 +2387,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         if (solicitudServicios.vidriosIHQ > 0) svcParts.push(`Vidrios IHQ ×${solicitudServicios.vidriosIHQ}`);
                         if (solicitudServicios.vidriosBlanco > 0) svcParts.push(`Vidrios Blanco ×${solicitudServicios.vidriosBlanco}`);
                         if (svcParts.length > 0) {
-                          descFinal = `Servicios: ${svcParts.join(', ')}${descFinal ? '\n' + descFinal : ''}`;
+                          const subsInfo = solicitudSelectedCassettes.length > 0 ? ` [${solicitudSelectedCassettes.join(', ')}]` : '';
+                          descFinal = `Servicios: ${svcParts.join(', ')}${subsInfo}${descFinal ? '\n' + descFinal : ''}`;
                         }
                       }
                       const sol: Solicitud = {
@@ -2447,6 +2479,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                               </span>
                               <span>{sol.tejido}</span>
                             </div>
+                          )}
+                          {sol.cassetteLabels && sol.cassetteLabels.length > 0 && (
+                            <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: '600', marginBottom: '2px' }}>Cassettes: {sol.cassetteLabels.join(', ')}</div>
                           )}
                           {sol.descripcion && (
                             <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px' }}>{sol.descripcion}</div>
