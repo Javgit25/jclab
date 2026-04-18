@@ -88,8 +88,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
         padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '28px', filter: 'brightness(0) invert(1)' }} />
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '50px', filter: 'brightness(0) invert(1)' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a href="#funcionalidades" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Funcionalidades</a>
