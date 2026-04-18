@@ -10,11 +10,16 @@ import HistoryScreen from './components/HistoryScreen';
 import AdminPanel from './components/AdminPanel';
 import SuperAdminPanel from './components/SuperAdminPanel';
 import LabBoard from './components/LabBoard';
+import LandingPage from './components/LandingPage';
 
-type ScreenType = 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard';
+type ScreenType = 'landing' | 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard';
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
+  const [currentScreen, setCurrentScreen] = useState<ScreenType>(() => {
+    // Si hay sesión guardada, ir directo al login/main; sino landing
+    if (localStorage.getItem('currentDoctorInfo')) return 'login';
+    return 'landing';
+  });
   const [openRemitoId, setOpenRemitoId] = useState<string | null>(null);
   const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
   const [todayBiopsies, setTodayBiopsies] = useState<BiopsyForm[]>([]);
@@ -806,6 +811,10 @@ function App() {
         }}
       />
     );
+  }
+
+  if (currentScreen === 'landing') {
+    return <LandingPage onGoToApp={() => setCurrentScreen('login')} />;
   }
 
   if (currentScreen === 'login') {
