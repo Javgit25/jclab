@@ -91,9 +91,7 @@ export const TodayListScreen: React.FC<TodayListScreenProps> = ({
                 const subsLabel = gi.length > 0 && cn.length > 0
                   ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']'
                   : '';
-                const gQty2 = typeof biopsy.servicios.giemsaPASMasson === 'number' ? biopsy.servicios.giemsaPASMasson : 1;
-                const gCQ2 = gi.length || 1;
-                const gT2 = gCQ2 > 1 ? gCQ2 * gQty2 : gQty2;
+                const gT2 = typeof biopsy.servicios.giemsaPASMasson === 'number' ? biopsy.servicios.giemsaPASMasson : 1;
                 servicioLabel = giemsaSelected.join(', ') + (gT2 > 1 ? ` ×${gT2}` : '') + subsLabel;
               } else {
                 // Si no hay sub-opciones seleccionadas, no mostrar nada

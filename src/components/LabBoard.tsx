@@ -114,6 +114,22 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   const [urgentes, setUrgentes] = useState<UrgenteBiopsia[]>([]);
   const [serviciosEspeciales, setServiciosEspeciales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [doctorNames, setDoctorNames] = useState<Record<string, string>>({});
+
+  // Cargar nombres de doctores desde Supabase
+  useEffect(() => {
+    const loadNames = async () => {
+      try {
+        const doctors = await db.getDoctors();
+        const names: Record<string, string> = {};
+        doctors.forEach((d: any) => {
+          names[d.email.toLowerCase()] = `${d.firstName || ''} ${d.lastName || ''}`.trim();
+        });
+        setDoctorNames(names);
+      } catch {}
+    };
+    loadNames();
+  }, []);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(true);
 
@@ -508,17 +524,10 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         {/* Doctor name - BIG */}
         <div style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '4px', lineHeight: 1.2, color: '#f1f5f9' }}>
           {(() => {
-            let nombre = '';
-            try {
-              const remitosLocal = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
-              const r = remitosLocal.find((rem: any) => rem.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
-              nombre = r?.medico || '';
-              if (nombre) {
-                const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
-                nombre = nombre + cargado;
-              }
-            } catch {}
-            if (!nombre) nombre = getDoctorName(sol);
+            const email = (sol.doctorEmail || '').toLowerCase();
+            const docName = doctorNames[email] || '';
+            const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
+            const nombre = docName ? docName + cargado : getDoctorName(sol);
             return nombre.startsWith('Dr') ? nombre : 'Dr./Dra. ' + nombre;
           })()}
         </div>

@@ -1709,9 +1709,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       const gi = servicios.giemsaCassettes || [];
       const cn = result.cassettesNumbers || [];
       const subs = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']' : '';
-      const gQ = typeof servicios.giemsaPASMasson === 'number' ? servicios.giemsaPASMasson : 1;
-      const gCQ = gi.length || 1;
-      const gTot = gCQ > 1 ? gCQ * gQ : gQ;
+      const gTot = typeof servicios.giemsaPASMasson === 'number' ? servicios.giemsaPASMasson : 1;
       services.push((tec.length > 0 ? tec.join(', ') : 'Tinción') + (gTot > 1 ? ` ×${gTot}` : '') + subs);
     }
     if (servicios.pap) services.push('PAP');
@@ -3495,8 +3493,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       if (opts.giemsa) t.push('Giemsa');
                       if (opts.pas) t.push('PAS');
                       if (opts.masson) t.push('Masson');
-                      const cassLabel = (svc.giemsaCassettes || []).map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ');
-                      serviciosDetail.push((t.length > 0 ? t.join(', ') : 'Tinciones') + (cassLabel ? ' [' + cassLabel + ']' : ''));
+                      const gi2 = svc.giemsaCassettes || [];
+                      const gQty = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : 1;
+                      const gCassQty = gi2.length || 1;
+                      const gTotal = gCassQty > 1 ? gCassQty * gQty : gQty;
+                      const cassLabel = gi2.map((c: number) => { const cc = cn[c]; return cc ? (cc.suffix ? `${cc.base}/${cc.suffix}` : cc.base) : `S${c+1}`; }).join(', ');
+                      serviciosDetail.push((t.length > 0 ? t.join(', ') : 'Tinción') + ` ×${gTotal}` + (cassLabel ? ' [' + cassLabel + ']' : ''));
                     }
 
                     return (
