@@ -2346,7 +2346,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                             ].filter(Boolean).join(' · ')}
                           </div>
                         )}
-                      </div>
                     </div>
                   )}
 
