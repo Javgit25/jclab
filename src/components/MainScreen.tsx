@@ -2226,6 +2226,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   {solicitudTipo === 'profundizacion' && solicitudSelectedPatient && solicitudSelectedPatient.cassettesNumbers && solicitudSelectedPatient.cassettesNumbers.length > 1 && (
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>¿A qué cassette se le hace la profundización?</label>
+                      {solicitudSelectedCassettes.length === 0 && (
+                        <p style={{ fontSize: '11px', color: '#b45309', fontStyle: 'italic', margin: '0 0 6px', background: '#fef3c7', padding: '6px 10px', borderRadius: '6px', border: '1px solid #fde68a' }}>Si no se selecciona ningún cassette, se profundizarán todos.</p>
+                      )}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {solicitudSelectedPatient.cassettesNumbers.map((cass: any, i: number) => {
                           const label = typeof cass === 'object' ? (cass.suffix ? `${cass.base}/${cass.suffix}` : cass.base) : String(cass);
