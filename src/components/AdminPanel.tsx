@@ -4478,10 +4478,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         if (bioIdx >= 0) {
                                           // Sumar profundización/servicio a los servicios del médico
                                           const currentSvc = entry.biopsies[bioIdx].servicios || {};
+                                          const desc2 = sol.descripcion || '';
                                           if (sol.tipo === 'profundizacion') {
                                             currentSvc.profundizacion = (currentSvc.profundizacion || 0) + 1;
                                           } else {
-                                            Object.assign(currentSvc, sv);
+                                            // Servicios adicionales: sumar cada tipo específico
+                                            if (desc2.includes('Giemsa') || desc2.includes('PAS') || desc2.includes('Masson')) {
+                                              const addGiemsa = desc2.includes('Giemsa');
+                                              const addPas = desc2.includes('PAS');
+                                              const addMasson = desc2.includes('Masson');
+                                              const addCount = (addGiemsa ? 1 : 0) + (addPas ? 1 : 0) + (addMasson ? 1 : 0);
+                                              currentSvc.giemsaPASMasson = (typeof currentSvc.giemsaPASMasson === 'number' ? currentSvc.giemsaPASMasson : (currentSvc.giemsaPASMasson ? 1 : 0)) + addCount;
+                                              // Actualizar giemsaOptions
+                                              if (!currentSvc.giemsaOptions) currentSvc.giemsaOptions = {};
+                                              if (addGiemsa) currentSvc.giemsaOptions.giemsa = true;
+                                              if (addPas) currentSvc.giemsaOptions.pas = true;
+                                              if (addMasson) currentSvc.giemsaOptions.masson = true;
+                                            }
+                                            const ihqMatch2 = desc2.match(/Vidrios IHQ ×(\d+)/);
+                                            if (ihqMatch2) {
+                                              currentSvc.corteBlancoIHQ = true;
+                                              currentSvc.corteBlancoIHQQuantity = (currentSvc.corteBlancoIHQQuantity || 0) + parseInt(ihqMatch2[1]);
+                                            }
+                                            const blancoMatch2 = desc2.match(/Vidrios Blanco ×(\d+)/);
+                                            if (blancoMatch2) {
+                                              currentSvc.corteBlancoComun = true;
+                                              currentSvc.corteBlancoComunQuantity = (currentSvc.corteBlancoComunQuantity || 0) + parseInt(blancoMatch2[1]);
+                                            }
                                           }
                                           entry.biopsies[bioIdx].servicios = currentSvc;
                                           db.saveDoctorHistoryEntry(docEmail, currentLabCode, entry).then(() => {
