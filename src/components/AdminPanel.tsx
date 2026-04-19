@@ -4433,9 +4433,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               if (sol.tipo === 'profundizacion') {
                                 sv.profundizacion = (sv.profundizacion || 0) + 1;
                               } else {
-                                if (desc.includes('Giemsa') || desc.includes('PAS') || desc.includes('Masson')) {
-                                  const tCount = (desc.includes('Giemsa') ? 1 : 0) + (desc.includes('PAS') ? 1 : 0) + (desc.includes('Masson') ? 1 : 0);
-                                  sv.giemsaPASMasson = (sv.giemsaPASMasson || 0) + tCount;
+                                const addG = desc.includes('Giemsa');
+                                const addP = desc.includes('PAS');
+                                const addM = desc.includes('Masson');
+                                if (addG || addP || addM) {
+                                  const cassLabels = sol.cassetteLabels || [];
+                                  const cassCount = cassLabels.length || 1;
+                                  const tecCount = (addG ? 1 : 0) + (addP ? 1 : 0) + (addM ? 1 : 0);
+                                  sv.giemsaPASMasson = (sv.giemsaPASMasson || 0) + (cassCount * tecCount);
+                                  if (!sv.giemsaOptions) sv.giemsaOptions = {};
+                                  if (addG) sv.giemsaOptions.giemsa = true;
+                                  if (addP) sv.giemsaOptions.pas = true;
+                                  if (addM) sv.giemsaOptions.masson = true;
+                                  // Agregar cassettes seleccionados
+                                  if (cassLabels.length > 0) {
+                                    const cn = (biopsia as any).cassettesNumbers || [];
+                                    const newIdx = cassLabels.map((l: string) => cn.findIndex((c: any) => (c.suffix ? `${c.base}/${c.suffix}` : c.base) === l)).filter((i: number) => i >= 0);
+                                    sv.giemsaCassettes = [...new Set([...(sv.giemsaCassettes || []), ...newIdx])];
+                                  }
                                 }
                                 const ihqMatch = desc.match(/Vidrios IHQ ×(\d+)/);
                                 if (ihqMatch) sv.corteBlancoIHQ = (sv.corteBlancoIHQ || 0) + parseInt(ihqMatch[1]);
@@ -4477,23 +4492,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         const bioIdx = entry.biopsies.findIndex((b: any) => b.number === sol.numeroPaciente);
                                         if (bioIdx >= 0) {
                                           // Sumar profundización/servicio a los servicios del médico
-                                          const currentSvc = entry.biopsies[bioIdx].servicios || {};
+                                          const currentSvc = { ...(entry.biopsies[bioIdx].servicios || {}) };
                                           const desc2 = sol.descripcion || '';
                                           if (sol.tipo === 'profundizacion') {
                                             currentSvc.profundizacion = (currentSvc.profundizacion || 0) + 1;
                                           } else {
                                             // Servicios adicionales: sumar cada tipo específico
-                                            if (desc2.includes('Giemsa') || desc2.includes('PAS') || desc2.includes('Masson')) {
-                                              const addGiemsa = desc2.includes('Giemsa');
-                                              const addPas = desc2.includes('PAS');
-                                              const addMasson = desc2.includes('Masson');
-                                              const addCount = (addGiemsa ? 1 : 0) + (addPas ? 1 : 0) + (addMasson ? 1 : 0);
-                                              currentSvc.giemsaPASMasson = (typeof currentSvc.giemsaPASMasson === 'number' ? currentSvc.giemsaPASMasson : (currentSvc.giemsaPASMasson ? 1 : 0)) + addCount;
-                                              // Actualizar giemsaOptions
-                                              if (!currentSvc.giemsaOptions) currentSvc.giemsaOptions = {};
+                                            const addGiemsa = desc2.includes('Giemsa');
+                                            const addPas = desc2.includes('PAS');
+                                            const addMasson = desc2.includes('Masson');
+                                            if (addGiemsa || addPas || addMasson) {
+                                              // Calcular cantidad de cassettes seleccionados
+                                              const cassLabels = sol.cassetteLabels || [];
+                                              const cassCount = cassLabels.length || 1;
+                                              const tecCount = (addGiemsa ? 1 : 0) + (addPas ? 1 : 0) + (addMasson ? 1 : 0);
+                                              currentSvc.giemsaPASMasson = (typeof currentSvc.giemsaPASMasson === 'number' ? currentSvc.giemsaPASMasson : (currentSvc.giemsaPASMasson ? 1 : 0)) + (cassCount * tecCount);
+                                              if (!currentSvc.giemsaOptions) currentSvc.giemsaOptions = { giemsa: false, pas: false, masson: false };
                                               if (addGiemsa) currentSvc.giemsaOptions.giemsa = true;
                                               if (addPas) currentSvc.giemsaOptions.pas = true;
                                               if (addMasson) currentSvc.giemsaOptions.masson = true;
+                                              // Agregar cassettes seleccionados
+                                              if (cassLabels.length > 0) {
+                                                const cn = entry.biopsies[bioIdx].cassettesNumbers || [];
+                                                const newIndices = cassLabels.map((label: string) => {
+                                                  return cn.findIndex((c: any) => {
+                                                    const cLabel = c.suffix ? `${c.base}/${c.suffix}` : c.base;
+                                                    return cLabel === label;
+                                                  });
+                                                }).filter((i: number) => i >= 0);
+                                                currentSvc.giemsaCassettes = [...new Set([...(currentSvc.giemsaCassettes || []), ...newIndices])];
+                                              }
                                             }
                                             const ihqMatch2 = desc2.match(/Vidrios IHQ ×(\d+)/);
                                             if (ihqMatch2) {
@@ -4507,6 +4535,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                             }
                                           }
                                           entry.biopsies[bioIdx].servicios = currentSvc;
+                                          console.log('🔵 Servicios actualizados en doctor_history:', JSON.stringify(currentSvc));
                                           db.saveDoctorHistoryEntry(docEmail, currentLabCode, entry).then(() => {
                                             console.log('🔵 ✅ Historial médico sincronizado');
                                           }).catch(console.error);
