@@ -491,7 +491,10 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 const subsLabel = gi.length > 0 && cn.length > 0
                   ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']'
                   : '';
-                services.push(`• ${tecnicas.length > 0 ? tecnicas.join(', ') : 'Tinción'}${subsLabel}`);
+                const giemsaQty = typeof biopsy.servicios.giemsaPASMasson === 'number' ? biopsy.servicios.giemsaPASMasson : 1;
+                const giemsaCassQty = gi.length || 1;
+                const giemsaTotal = giemsaCassQty > 1 ? giemsaCassQty * giemsaQty : giemsaQty;
+                services.push(`• ${tecnicas.length > 0 ? tecnicas.join(', ') : 'Tinción'} ×${giemsaTotal}${subsLabel}`);
               }
               
               const cassetteNumbers = biopsy.cassettesNumbers?.map(c => `${c.base}${c.suffix}`).join(', ') || 'N/A';
@@ -1417,7 +1420,13 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                         if (sv.giemsaOptions?.giemsa) tecnicas.push('Giemsa');
                         if (sv.giemsaOptions?.pas) tecnicas.push('PAS');
                         if (sv.giemsaOptions?.masson) tecnicas.push('Masson');
-                        services.push(tecnicas.length > 0 ? tecnicas.join(', ') : 'Tinciones');
+                        const gi2 = sv.giemsaCassettes || [];
+                        const cn2 = b.cassettesNumbers || [];
+                        const gQty = typeof sv.giemsaPASMasson === 'number' ? sv.giemsaPASMasson : 1;
+                        const gCassQty = gi2.length || 1;
+                        const gTotal = gCassQty > 1 ? gCassQty * gQty : gQty;
+                        const gSubs = gi2.length > 0 && cn2.length > 0 ? ' [' + gi2.map((idx: number) => { const c = cn2[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
+                        services.push(`${tecnicas.length > 0 ? tecnicas.join(', ') : 'Tinción'} ×${gTotal}${gSubs}`);
                       }
                       if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
                       if (sv.incluyeCitologia) {

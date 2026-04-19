@@ -1709,7 +1709,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       const gi = servicios.giemsaCassettes || [];
       const cn = result.cassettesNumbers || [];
       const subs = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']' : '';
-      services.push((tec.length > 0 ? tec.join(', ') : 'Tinción') + subs);
+      const gQ = typeof servicios.giemsaPASMasson === 'number' ? servicios.giemsaPASMasson : 1;
+      const gCQ = gi.length || 1;
+      const gTot = gCQ > 1 ? gCQ * gQ : gQ;
+      services.push((tec.length > 0 ? tec.join(', ') : 'Tinción') + (gTot > 1 ? ` ×${gTot}` : '') + subs);
     }
     if (servicios.pap) services.push('PAP');
     if (servicios.papUrgente) services.push('PAP Urgente');
