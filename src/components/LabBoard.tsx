@@ -72,6 +72,16 @@ function formatTime(dateStr: string): string {
 }
 
 function getDoctorName(sol: Solicitud): string {
+  // Buscar nombre del doctor desde remitos
+  try {
+    const remitosLocal = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+    const r = remitosLocal.find((rem: any) => rem.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
+    const nombre = r?.medico || '';
+    if (nombre) {
+      const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
+      return nombre + cargado;
+    }
+  } catch {}
   if (sol.solicitadoPor) return sol.solicitadoPor;
   if (sol.doctorEmail) {
     const parts = sol.doctorEmail.split('@')[0].split('.');
