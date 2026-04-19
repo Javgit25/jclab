@@ -4513,7 +4513,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         // SIEMPRE sincronizar con historial del médico
                         try {
                           const docEmail2 = (sol.doctorEmail || sol.email || '').toLowerCase().trim();
-                          alert('DEBUG: Sincronizando doctor_history para ' + docEmail2 + ' pac: ' + sol.numeroPaciente);
                           if (docEmail2) {
                             const history2 = await db.getDoctorHistory(docEmail2);
                             const solRN2 = (sol.remitoNumber || '').replace('#', '').trim();

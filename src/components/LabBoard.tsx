@@ -296,6 +296,37 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
       }
       // Auto-facturar: sumar profundización/servicio al remito cuando se marca entregado
       if (updated.estado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
+        const desc = sol.descripcion || '';
+        const aG = desc.includes('Giemsa'), aP = desc.includes('PAS'), aM = desc.includes('Masson');
+        const cL = sol.cassetteLabels || [];
+        const cC = cL.length || 1;
+        const tC = (aG?1:0)+(aP?1:0)+(aM?1:0);
+
+        // Función para actualizar servicios
+        const updateSvc = (sv: any, cassettesNumbers?: any[]) => {
+          if (sol.tipo === 'profundizacion') {
+            sv.profundizacion = (sv.profundizacion || 0) + 1;
+          } else {
+            if (aG || aP || aM) {
+              sv.giemsaPASMasson = (sv.giemsaPASMasson || 0) + (cC * tC);
+              if (!sv.giemsaOptions) sv.giemsaOptions = { giemsa: false, pas: false, masson: false };
+              if (aG) sv.giemsaOptions.giemsa = true;
+              if (aP) sv.giemsaOptions.pas = true;
+              if (aM) sv.giemsaOptions.masson = true;
+              if (cL.length > 0 && cassettesNumbers) {
+                const ni = cL.map((l: string) => cassettesNumbers.findIndex((c: any) => (c.suffix ? `${c.base}/${c.suffix}` : c.base) === l)).filter((i: number) => i >= 0);
+                sv.giemsaCassettes = [...new Set([...(sv.giemsaCassettes || []), ...ni])];
+              }
+            }
+            const im = desc.match(/Vidrios IHQ ×(\d+)/);
+            if (im) { sv.corteBlancoIHQ = (sv.corteBlancoIHQ || 0) + parseInt(im[1]); }
+            const bm = desc.match(/Vidrios Blanco ×(\d+)/);
+            if (bm) { sv.corteBlanco = (sv.corteBlanco || 0) + parseInt(bm[1]); }
+          }
+          return sv;
+        };
+
+        // 1. Actualizar remito en Supabase
         try {
           const { supabase: sb } = await import('../lib/supabase');
           const { data: remitosData } = await sb.from('remitos').select('*').eq('lab_code', labCode);
@@ -313,27 +344,36 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
               const biopsiaIdx = biopsias.findIndex((b: any) => b.numero === sol.numeroPaciente);
               if (biopsiaIdx >= 0) {
                 const biopsia = { ...biopsias[biopsiaIdx] };
-                const sv = { ...(biopsia.servicios || {}) } as any;
-                if (sol.tipo === 'profundizacion') {
-                  sv.profundizacion = (sv.profundizacion || 0) + 1;
-                } else {
-                  const desc = sol.descripcion || '';
-                  if (desc.includes('Giemsa') || desc.includes('PAS') || desc.includes('Masson')) {
-                    const tCount = (desc.includes('Giemsa') ? 1 : 0) + (desc.includes('PAS') ? 1 : 0) + (desc.includes('Masson') ? 1 : 0);
-                    sv.giemsaPASMasson = (sv.giemsaPASMasson || 0) + tCount;
-                  }
-                }
-                biopsia.servicios = sv;
+                biopsia.servicios = updateSvc({ ...(biopsia.servicios || {}) }, biopsia.cassettesNumbers);
                 biopsias[biopsiaIdx] = biopsia;
-                await sb.from('remitos').update({
-                  biopsias,
-                  modificado_por_solicitud: true,
-                  modificado_at: new Date().toISOString()
-                }).eq('id', remitoOrig.id);
+                await sb.from('remitos').update({ biopsias, modificado_por_solicitud: true, modificado_at: new Date().toISOString() }).eq('id', remitoOrig.id);
               }
             }
           }
         } catch (e) { console.error('Error auto-facturando desde pizarrón:', e); }
+
+        // 2. Sincronizar con doctor_history
+        try {
+          const docEmail = (sol.doctorEmail || '').toLowerCase().trim();
+          if (docEmail) {
+            const history = await db.getDoctorHistory(docEmail);
+            const solRN = (sol.remitoNumber || '').replace('#', '').trim();
+            Object.keys(history).forEach(key => {
+              const entry = history[key];
+              if (!entry?.biopsies) return;
+              const match = (solRN && (entry.remitoNumber === solRN || entry.id?.includes(solRN))) ||
+                entry.biopsies.some((b: any) => b.number === sol.numeroPaciente);
+              if (match) {
+                const bioIdx = entry.biopsies.findIndex((b: any) => b.number === sol.numeroPaciente);
+                if (bioIdx >= 0) {
+                  const svc = { ...(entry.biopsies[bioIdx].servicios || {}) };
+                  entry.biopsies[bioIdx].servicios = updateSvc(svc, entry.biopsies[bioIdx].cassettesNumbers);
+                  db.saveDoctorHistoryEntry(docEmail, labCode, entry);
+                }
+              }
+            });
+          }
+        } catch (e) { console.error('Error sincronizando doctor_history desde pizarrón:', e); }
       }
     } catch (err) {
       console.error('Error saving solicitud:', err);
