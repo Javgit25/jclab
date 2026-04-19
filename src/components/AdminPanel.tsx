@@ -1140,7 +1140,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   if (opts?.pas) t.push('PAS');
                   if (opts?.masson) t.push('Masson');
                   const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
+                  svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Tinción') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
                 }
                 if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
                 if ((biopsia.servicios as any)?.incluyeCitologia) {
@@ -1994,7 +1994,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     const gi = (sv as any).giemsaCassettes || [];
                                     const cn = (b as any).cassettesNumbers || [];
                                     const subsGi = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
-                                    svcList.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + subsGi);
+                                    svcList.push((t.length > 0 ? t.join(', ') : 'Tinción') + subsGi);
                                   }
                                   if ((sv.profundizacion || 0) > 0) svcList.push(`Profundización ×${sv.profundizacion}`);
                                   if (sv.incluyeCitologia) {
@@ -2158,7 +2158,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             const gi = (sv as any).giemsaCassettes || [];
                             const cn = (b as any).cassettesNumbers || [];
                             const subsGi = gi.length > 0 && cn.length > 0 ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : '';
-                            svc.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + subsGi);
+                            svc.push((t.length > 0 ? t.join(', ') : 'Tinción') + subsGi);
                           }
                           if ((sv.profundizacion || 0) > 0) svc.push('Profundización ×' + sv.profundizacion);
                           if (sv.incluyeCitologia) {
@@ -2584,7 +2584,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   if (opts.giemsa) t.push('Giemsa');
                                   if (opts.pas) t.push('PAS');
                                   if (opts.masson) t.push('Masson');
-                                  servicios.push((t.length > 0 ? t.join(', ') : 'Giemsa/PAS/Masson') + cassLabel);
+                                  servicios.push((t.length > 0 ? t.join(', ') : 'Tinción') + cassLabel);
                                 } else {
                                   servicios.push('Giemsa/PAS/Masson' + cassLabel);
                                 }
@@ -4377,10 +4377,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
                     // Notificar al médico en todos los cambios de estado
                     {
-                      const tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : 'Servicio Adicional';
+                      // Extraer detalle del servicio de la descripción
+                      const desc = sol.descripcion || '';
+                      let tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : '';
+                      if (sol.tipo === 'servicio_adicional') {
+                        const svcNames: string[] = [];
+                        if (desc.includes('Giemsa')) svcNames.push('Giemsa');
+                        if (desc.includes('PAS')) svcNames.push('PAS');
+                        if (desc.includes('Masson')) svcNames.push('Masson');
+                        if (desc.includes('Vidrios IHQ')) svcNames.push('Corte IHQ');
+                        if (desc.includes('Vidrios Blanco')) svcNames.push('Corte Blanco');
+                        tipoMsg = svcNames.length > 0 ? svcNames.join(', ') : 'Servicio Adicional';
+                      }
+                      const cassInfo = sol.cassetteLabels?.length > 0 ? `\nCassettes: ${sol.cassetteLabels.join(', ')}` : '';
                       const mensajes: Record<string, string> = {
-                        en_proceso: `${tipoMsg} en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
-                        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
+                        en_proceso: `Su solicitud de ${tipoMsg} fue aceptada y está en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
+                        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
                         rechazado: `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
                       };
                       const notif = {

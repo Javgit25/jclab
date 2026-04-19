@@ -491,7 +491,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                 const subsLabel = gi.length > 0 && cn.length > 0
                   ? ' [' + gi.map((idx: number) => { const c = cn[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `SUB ${idx+1}`; }).join(', ') + ']'
                   : '';
-                services.push(`• ${tecnicas.length > 0 ? tecnicas.join(', ') : 'Giemsa/PAS/Masson'}${subsLabel}`);
+                services.push(`• ${tecnicas.length > 0 ? tecnicas.join(', ') : 'Tinción'}${subsLabel}`);
               }
               
               const cassetteNumbers = biopsy.cassettesNumbers?.map(c => `${c.base}${c.suffix}`).join(', ') || 'N/A';

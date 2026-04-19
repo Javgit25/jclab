@@ -250,10 +250,21 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
     try {
       await db.saveSolicitud(updated);
       // Notificar al médico
-      const tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : 'Serv. Adicional';
+      const desc = sol.descripcion || '';
+      let tipoMsg = sol.tipo === 'taco' ? 'Taco/Cassette' : sol.tipo === 'profundizacion' ? 'Profundización' : '';
+      if (sol.tipo === 'servicio_adicional') {
+        const sn: string[] = [];
+        if (desc.includes('Giemsa')) sn.push('Giemsa');
+        if (desc.includes('PAS')) sn.push('PAS');
+        if (desc.includes('Masson')) sn.push('Masson');
+        if (desc.includes('Vidrios IHQ')) sn.push('Corte IHQ');
+        if (desc.includes('Vidrios Blanco')) sn.push('Corte Blanco');
+        tipoMsg = sn.length > 0 ? sn.join(', ') : 'Servicio Adicional';
+      }
+      const cassInfo = sol.cassetteLabels?.length > 0 ? `\nCassettes: ${sol.cassetteLabels.join(', ')}` : '';
       const mensajes: Record<string, string> = {
-        en_proceso: `${tipoMsg} en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`,
-        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
+        en_proceso: `Su solicitud de ${tipoMsg} fue aceptada y está en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
+        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`
       };
       if (mensajes[updated.estado]) {
         const notif = {
