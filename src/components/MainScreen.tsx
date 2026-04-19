@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail, Settings, Trash2, ToggleLeft, ToggleRight, UserPlus } from 'lucide-react';
+import { Plus, FileText, History, LogOut, TrendingUp, Star, Activity, BarChart3, PieChart, Calendar, Clock, DollarSign, CheckCircle, Target, QrCode, Share, Download, Copy, Search, Filter, X, Wifi, Printer, Cloud, Bell, Mail, Settings, Trash2, ToggleLeft, ToggleRight, UserPlus, Mic } from 'lucide-react';
 import { BiopsyForm, DoctorInfo, RegisteredDoctor, Ayudante, Solicitud } from '../types';
 import { db } from '../lib/database';
 import { ConnectionStatus } from './ConnectionStatus';
@@ -15,6 +15,7 @@ interface MainScreenProps {
   onStartNewBiopsy: () => void;
   onViewToday: () => void;
   onViewHistory: () => void;
+  onGoToDictado: () => void;
   onLogout: () => void;
 }
 
@@ -26,6 +27,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   syncQueueLength,
   onStartNewBiopsy,
   onViewToday,
+  onGoToDictado,
   onViewHistory,
   onLogout
 }) => {
@@ -1943,12 +1945,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <span style={{ fontSize: '14px', opacity: 0.7, fontWeight: '500' }}>#{todayBiopsiesCount + 1}</span>
         </button>
 
-        {/* Grid 3 botones secundarios - más grandes con glass effect */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', flex: 1 }}>
+        {/* Grid 4 botones secundarios */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', flex: 1 }}>
           {[
             { onClick: () => setShowSearchModal(true), icon: <Search style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Búsqueda', sub: 'Filtrar' },
             { onClick: onViewHistory, icon: <History style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Historial', sub: `${stats.totalRemitos} remitos` },
-            { onClick: () => { loadRemitosForBilling(); setShowStatistics(true); }, icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' }
+            { onClick: () => { loadRemitosForBilling(); setShowStatistics(true); }, icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' },
+            { onClick: onGoToDictado, icon: <Mic style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Dictado', sub: 'Macroscopía' }
           ].map((btn, i) => (
             <button
               key={i}

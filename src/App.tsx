@@ -11,8 +11,9 @@ import AdminPanel from './components/AdminPanel';
 import SuperAdminPanel from './components/SuperAdminPanel';
 import LabBoard from './components/LabBoard';
 import LandingPage from './components/LandingPage';
+import DictadoMacroscopia from './components/DictadoMacroscopia';
 
-type ScreenType = 'landing' | 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard';
+type ScreenType = 'landing' | 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard' | 'dictado';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>(() => {
@@ -844,6 +845,7 @@ function App() {
           loadHistoryData();
           setCurrentScreen('history');
         }}
+        onGoToDictado={() => setCurrentScreen('dictado')}
         onLogout={() => {
           console.log('App - Cerrando sesión');
           // Limpiar datos y volver al login
@@ -887,6 +889,10 @@ function App() {
         onFinishDailyReport={finishDailyReport}
       />
     );
+  }
+
+  if (currentScreen === 'dictado') {
+    return <DictadoMacroscopia doctorInfo={doctorInfo!} onGoBack={() => setCurrentScreen('main')} />;
   }
 
   if (currentScreen === 'history') {

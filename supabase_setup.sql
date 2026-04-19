@@ -60,7 +60,27 @@ CREATE TABLE registered_doctors (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- 3b. SOLICITUDES DE CONTACTO (Landing Page)
+-- 3b. MACROSCOPÍA (Dictado por voz)
+CREATE TABLE IF NOT EXISTS macroscopia (
+  id TEXT PRIMARY KEY,
+  doctor_email TEXT NOT NULL,
+  lab_code TEXT NOT NULL,
+  numero_paciente TEXT NOT NULL,
+  tejido TEXT DEFAULT '',
+  remito_number TEXT DEFAULT '',
+  transcripcion TEXT NOT NULL DEFAULT '',
+  duracion_segundos INTEGER DEFAULT 0,
+  dictado_por TEXT DEFAULT '',
+  hospital TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_macroscopia_doctor ON macroscopia(doctor_email);
+CREATE INDEX IF NOT EXISTS idx_macroscopia_lab ON macroscopia(lab_code);
+CREATE INDEX IF NOT EXISTS idx_macroscopia_paciente ON macroscopia(numero_paciente);
+
+-- 3c. SOLICITUDES DE CONTACTO (Landing Page)
 CREATE TABLE IF NOT EXISTS contact_requests (
   id SERIAL PRIMARY KEY,
   nombre TEXT NOT NULL,
