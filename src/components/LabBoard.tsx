@@ -72,21 +72,27 @@ function formatTime(dateStr: string): string {
 }
 
 function getDoctorName(sol: Solicitud): string {
-  // Buscar nombre del doctor desde remitos
+  let doctorNombre = '';
+  // Buscar nombre del doctor desde médicos registrados
   try {
-    const remitosLocal = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
-    const r = remitosLocal.find((rem: any) => rem.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
-    const nombre = r?.medico || '';
-    if (nombre) {
-      const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
-      return nombre + cargado;
-    }
+    const doctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+    const doc = doctors.find((d: any) => d.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
+    if (doc) doctorNombre = `${doc.firstName || ''} ${doc.lastName || ''}`.trim();
   } catch {}
-  if (sol.solicitadoPor) return sol.solicitadoPor;
-  if (sol.doctorEmail) {
-    const parts = sol.doctorEmail.split('@')[0].split('.');
-    return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+  // Fallback: buscar en remitos
+  if (!doctorNombre) {
+    try {
+      const remitosLocal = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+      const r = remitosLocal.find((rem: any) => rem.email?.toLowerCase() === sol.doctorEmail?.toLowerCase());
+      if (r?.medico) doctorNombre = r.medico;
+    } catch {}
   }
+  // Si encontró nombre del doctor, agregar ayudante si corresponde
+  if (doctorNombre) {
+    const cargado = sol.solicitadoPor && !sol.solicitadoPor.startsWith('Dr') ? ` (${sol.solicitadoPor})` : '';
+    return doctorNombre + cargado;
+  }
+  if (sol.solicitadoPor) return sol.solicitadoPor;
   return 'Desconocido';
 }
 
