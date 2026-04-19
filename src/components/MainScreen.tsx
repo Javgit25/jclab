@@ -3808,7 +3808,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       if (sv.citologiaUrgente) services.push('⚡ Cito Urgente');
                       if (sv.corteBlancoIHQ) services.push(`Corte IHQ ×${sv.corteBlancoIHQQuantity || 1}`);
                       if (sv.corteBlancoComun) services.push(`Corte Blanco ×${sv.corteBlancoComunQuantity || 1}`);
-                      if (sv.giemsaPASMasson) { const t: string[] = []; if (sv.giemsaOptions?.giemsa) t.push('Giemsa'); if (sv.giemsaOptions?.pas) t.push('PAS'); if (sv.giemsaOptions?.masson) t.push('Masson'); services.push(t.length > 0 ? t.join(', ') : 'Tinciones'); }
+                      if (sv.giemsaPASMasson) { const t: string[] = []; if (sv.giemsaOptions?.giemsa) t.push('Giemsa'); if (sv.giemsaOptions?.pas) t.push('PAS'); if (sv.giemsaOptions?.masson) t.push('Masson'); const gT = typeof sv.giemsaPASMasson === 'number' ? sv.giemsaPASMasson : 1; const gi3 = sv.giemsaCassettes || []; const cn3 = b.cassettesNumbers || []; const gSubs = gi3.length > 0 && cn3.length > 0 ? ' [' + gi3.map((idx: number) => { const c = cn3[idx]; return c ? (c.suffix ? `${c.base}/${c.suffix}` : c.base) : `S${idx+1}`; }).join(', ') + ']' : ''; services.push((t.length > 0 ? t.join(', ') : 'Tinción') + ` ×${gT}` + gSubs); }
                       if ((sv.profundizacion || 0) > 0) services.push(`Prof. ×${sv.profundizacion}`);
                       if (sv.incluyeCitologia) {
                         const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
