@@ -23,6 +23,8 @@ interface NewBiopsyScreenProps {
   onFinishDailyReportFromStep7?: (currentBiopsy: BiopsyForm) => void;
   onGoBackToMainScreen: () => void;
   onUpdateFrequentTissues: (tissue: string) => void;
+  precargaNumero?: string;
+  onClearPrecarga?: () => void;
 }
 
 export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
@@ -36,13 +38,15 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   onFinishDailyReport,
   onFinishDailyReportFromStep7,
   onGoBackToMainScreen,
-  onUpdateFrequentTissues
+  onUpdateFrequentTissues,
+  precargaNumero,
+  onClearPrecarga
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   
   // ✅ ESTADO COMPLETAMENTE ACTUALIZADO CON TODOS LOS CAMPOS OBLIGATORIOS
   const [biopsyForm, setBiopsyForm] = useState<BiopsyForm>({
-    number: '',
+    number: precargaNumero || '',
     tissueType: '',
     endoscopiaSubTypes: [],
     type: '',
@@ -83,6 +87,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     targetField: '',
     targetValue: ''
   });
+
+  // Limpiar precarga después de usar
+  React.useEffect(() => {
+    if (precargaNumero && onClearPrecarga) onClearPrecarga();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [autoCompleteOptions, setAutoCompleteOptions] = useState<string[]>([]);
 

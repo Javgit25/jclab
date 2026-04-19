@@ -22,6 +22,7 @@ function App() {
     return 'landing';
   });
   const [openRemitoId, setOpenRemitoId] = useState<string | null>(null);
+  const [precargaNumero, setPrecargaNumero] = useState<string>('');
   const [doctorInfo, setDoctorInfo] = useState<DoctorInfo | null>(null);
   const [todayBiopsies, setTodayBiopsies] = useState<BiopsyForm[]>([]);
   const [frequentTissues, setFrequentTissues] = useState<string[]>([]);
@@ -872,6 +873,8 @@ function App() {
         onFinishDailyReportFromStep7={finishDailyReportFromStep7}
         onGoBackToMainScreen={goBackToMainScreen}
         onUpdateFrequentTissues={updateFrequentTissues}
+        precargaNumero={precargaNumero}
+        onClearPrecarga={() => setPrecargaNumero('')}
       />
     );
   }
@@ -892,7 +895,7 @@ function App() {
   }
 
   if (currentScreen === 'dictado') {
-    return <DictadoMacroscopia doctorInfo={doctorInfo!} onGoBack={() => setCurrentScreen('main')} />;
+    return <DictadoMacroscopia doctorInfo={doctorInfo!} onGoBack={() => setCurrentScreen('main')} onGoToNewBiopsy={(numero: string) => { setPrecargaNumero(numero); setCurrentScreen('newBiopsy'); }} />;
   }
 
   if (currentScreen === 'history') {

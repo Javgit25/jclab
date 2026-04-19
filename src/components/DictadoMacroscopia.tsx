@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Mic, Square, Save, Trash2, Clock, FileText, Search } from 'lucide-react';
+import { ArrowLeft, Mic, Square, Save, Trash2, Clock, FileText, Search, Pause, Play } from 'lucide-react';
 import { DoctorInfo } from '../types';
 import { supabase } from '../lib/supabase';
 
 interface DictadoMacroscopiaProps {
   doctorInfo: DoctorInfo;
   onGoBack: () => void;
+  onGoToNewBiopsy: (numero: string) => void;
 }
 
-const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onGoBack }) => {
+const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onGoBack, onGoToNewBiopsy }) => {
   // Estados
-  const [paso, setPaso] = useState<'numero' | 'grabando' | 'revision'>('numero');
+  const [paso, setPaso] = useState<'numero' | 'grabando' | 'pausado' | 'revision'>('numero');
   const [isRecording, setIsRecording] = useState(false);
   const [transcripcion, setTranscripcion] = useState('');
   const [interimText, setInterimText] = useState('');
@@ -109,8 +110,30 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
     } catch {}
   };
 
-  // Parar grabación
-  const pararGrabacion = () => {
+  // Pausar grabación (sin borrar)
+  const pausarGrabacion = () => {
+    shouldRecordRef.current = false;
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch {}
+    }
+    setIsRecording(false);
+    setInterimText('');
+    setPaso('pausado');
+  };
+
+  // Continuar grabación (sin borrar)
+  const continuarGrabacion = () => {
+    if (!recognitionRef.current) return;
+    shouldRecordRef.current = true;
+    try {
+      recognitionRef.current.start();
+      setIsRecording(true);
+      setPaso('grabando');
+    } catch {}
+  };
+
+  // Finalizar grabación → revisión
+  const finalizarGrabacion = () => {
     shouldRecordRef.current = false;
     if (recognitionRef.current) {
       try { recognitionRef.current.stop(); } catch {}
@@ -142,18 +165,10 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
       setGuardado(true);
       loadHistorial();
 
-      // Auto siguiente: incrementar número de paciente
+      // Ir a nueva biopsia con número precargado
       setTimeout(() => {
-        const num = parseInt(numeroPaciente);
-        const nextNum = isNaN(num) ? numeroPaciente : String(num + 1);
-        setNumeroPaciente(nextNum);
-        setTejido('');
-        setTranscripcion('');
-        setInterimText('');
-        setDuracion(0);
-        setGuardado(false);
-        setPaso('numero');
-      }, 1000);
+        onGoToNewBiopsy(numeroPaciente.trim());
+      }, 800);
     } catch (e) {
       console.error('Error guardando:', e);
       alert('Error al guardar. Verificá la conexión.');
@@ -345,18 +360,73 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
             )}
           </div>
 
-          {/* Botón parar */}
-          <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0, padding: '8px 0' }}>
-            <button onClick={pararGrabacion} style={{
-              width: '100px', height: '100px', borderRadius: '50%',
+          {/* Botones: Pausar + Finalizar */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexShrink: 0, padding: '8px 0' }}>
+            <button onClick={pausarGrabacion} style={{
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(245,158,11,0.3)'
+            }}>
+              <Pause size={32} color="white" fill="white" />
+            </button>
+            <button onClick={finalizarGrabacion} style={{
+              width: '80px', height: '80px', borderRadius: '50%',
               background: 'linear-gradient(135deg, #ef4444, #dc2626)',
               border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 0 40px rgba(239,68,68,0.4)'
+              boxShadow: '0 0 20px rgba(239,68,68,0.3)'
             }}>
-              <Square size={40} color="white" fill="white" />
+              <Square size={32} color="white" fill="white" />
             </button>
           </div>
-          <p style={{ textAlign: 'center', color: '#64748b', fontSize: '12px', margin: 0, flexShrink: 0 }}>Tocá el cuadrado rojo para detener</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', flexShrink: 0 }}>
+            <p style={{ color: '#f59e0b', fontSize: '11px', margin: 0, fontWeight: 600 }}>Pausar</p>
+            <p style={{ color: '#ef4444', fontSize: '11px', margin: 0, fontWeight: 600 }}>Finalizar</p>
+          </div>
+        </div>
+      ) : paso === 'pausado' ? (
+        /* PASO 2b: Pausado */
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ color: '#60a5fa', fontSize: '18px', fontWeight: 800 }}>Pac. #{numeroPaciente}</span>
+              {tejido && <span style={{ color: '#94a3b8', fontSize: '14px', background: '#1e293b', padding: '4px 10px', borderRadius: '6px' }}>{tejido}</span>}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(245,158,11,0.9)', padding: '6px 14px', borderRadius: '20px' }}>
+              <Pause size={12} color="white" />
+              <span style={{ color: 'white', fontSize: '13px', fontWeight: 700 }}>PAUSADO {formatTime(duracion)}</span>
+            </div>
+          </div>
+
+          <div style={{
+            flex: 1, padding: '16px', background: '#1e293b', border: '2px solid #f59e0b',
+            borderRadius: '12px', color: 'white', fontSize: '16px', lineHeight: 1.7, overflow: 'auto', minHeight: 0
+          }}>
+            {transcripcion || <span style={{ color: '#475569' }}>Sin transcripción aún</span>}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexShrink: 0, padding: '8px 0' }}>
+            <button onClick={continuarGrabacion} style={{
+              width: '100px', height: '100px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 40px rgba(34,197,94,0.4)'
+            }}>
+              <Play size={44} color="white" fill="white" />
+            </button>
+            <button onClick={finalizarGrabacion} style={{
+              width: '80px', height: '80px', borderRadius: '50%', alignSelf: 'center',
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 0 20px rgba(239,68,68,0.3)'
+            }}>
+              <Square size={32} color="white" fill="white" />
+            </button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', flexShrink: 0 }}>
+            <p style={{ color: '#22c55e', fontSize: '12px', margin: 0, fontWeight: 600 }}>Continuar</p>
+            <p style={{ color: '#ef4444', fontSize: '12px', margin: 0, fontWeight: 600 }}>Finalizar</p>
+          </div>
         </div>
       ) : (
         /* PASO 3: Revisión */
