@@ -2531,11 +2531,21 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               const isTaco = msg.includes('Taco/Cassette');
               const isProf = msg.includes('Profundización');
               const isServ = msg.includes('Servicio Adicional') || msg.includes('Serv. Adicional');
-              const isSolicitud = isTaco || isProf || isServ;
-              const isEnProceso = msg.includes('en proceso');
+              const isGiemsa = msg.includes('Giemsa') || msg.includes('PAS') || msg.includes('Masson');
+              const isCorte = msg.includes('Corte IHQ') || msg.includes('Corte Blanco');
+              const isSolicitud = isTaco || isProf || isServ || isGiemsa || isCorte;
+              const isEnProceso = msg.includes('en proceso') || msg.includes('fue aceptada');
               const isMatRecibido = listoAlert.tipo === 'material_recibido' && !isSolicitud;
-              const icon = isTaco ? '📦' : isProf ? '🔬' : isServ ? '➕' : isMatRecibido ? '📦' : '✅';
-              const titulo = isTaco ? 'Taco/Cassette' : isProf ? 'Profundización' : isServ ? 'Servicio Adicional' : isMatRecibido ? 'Laboratorio recibió su material' : 'Material Listo';
+              // Extraer nombre del servicio del mensaje
+              let servicioNombre = '';
+              if (isTaco) servicioNombre = 'Taco/Cassette';
+              else if (isProf) servicioNombre = 'Profundización';
+              else if (isGiemsa || isCorte || isServ) {
+                const m = msg.match(/solicitud de (.+?) fue/) || msg.match(/^(.+?) listo/) || msg.match(/^(.+?) en proceso/);
+                servicioNombre = m ? m[1] : 'Servicio Adicional';
+              }
+              const icon = isTaco ? '📦' : isProf ? '🔬' : (isGiemsa || isCorte || isServ) ? '🧪' : isMatRecibido ? '📦' : '✅';
+              const titulo = servicioNombre || (isMatRecibido ? 'Laboratorio recibió su material' : 'Material Listo');
               const subtitulo = isEnProceso ? 'Su solicitud fue aceptada y está en proceso' : isSolicitud ? 'Listo para retirar' : isMatRecibido ? 'Su material está siendo procesado' : 'Listo para retirar';
               return (
                 <>
