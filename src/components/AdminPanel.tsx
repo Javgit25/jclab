@@ -4510,56 +4510,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         } catch (e) {
                           console.error('Error auto-facturando solicitud:', e);
                         }
-                        // SIEMPRE sincronizar con historial del médico
+                        // Sincronizar con doctor_history usando update directo en Supabase
                         try {
                           const docEmail2 = (sol.doctorEmail || sol.email || '').toLowerCase().trim();
                           if (docEmail2) {
-                            const history2 = await db.getDoctorHistory(docEmail2);
                             const solRN2 = (sol.remitoNumber || '').replace('#', '').trim();
-                            let synced2 = false;
-                            Object.keys(history2).forEach(key => {
-                              if (synced2) return;
-                              const entry2 = history2[key];
-                              if (!entry2?.biopsies) return;
-                              const match2 = (solRN2 && (entry2.remitoNumber === solRN2 || entry2.id?.includes(solRN2))) ||
-                                entry2.biopsies.some((b: any) => b.number === sol.numeroPaciente);
-                              if (match2) {
-                                const bioIdx2 = entry2.biopsies.findIndex((b: any) => b.number === sol.numeroPaciente);
-                                if (bioIdx2 >= 0) {
-                                  const svc2 = { ...(entry2.biopsies[bioIdx2].servicios || {}) };
-                                  const d2 = sol.descripcion || '';
-                                  if (sol.tipo === 'profundizacion') {
-                                    svc2.profundizacion = (svc2.profundizacion || 0) + 1;
-                                  } else {
-                                    const aG = d2.includes('Giemsa'), aP = d2.includes('PAS'), aM = d2.includes('Masson');
-                                    if (aG || aP || aM) {
-                                      const cL = sol.cassetteLabels || [];
-                                      const cC = cL.length || 1;
-                                      const tC = (aG?1:0)+(aP?1:0)+(aM?1:0);
-                                      svc2.giemsaPASMasson = (typeof svc2.giemsaPASMasson === 'number' ? svc2.giemsaPASMasson : (svc2.giemsaPASMasson ? 1 : 0)) + (cC * tC);
-                                      if (!svc2.giemsaOptions) svc2.giemsaOptions = { giemsa: false, pas: false, masson: false };
-                                      if (aG) svc2.giemsaOptions.giemsa = true;
-                                      if (aP) svc2.giemsaOptions.pas = true;
-                                      if (aM) svc2.giemsaOptions.masson = true;
-                                      if (cL.length > 0) {
-                                        const cn2 = entry2.biopsies[bioIdx2].cassettesNumbers || [];
-                                        const ni = cL.map((l: string) => cn2.findIndex((c: any) => (c.suffix ? `${c.base}/${c.suffix}` : c.base) === l)).filter((i: number) => i >= 0);
-                                        svc2.giemsaCassettes = [...new Set([...(svc2.giemsaCassettes || []), ...ni])];
-                                      }
-                                    }
-                                    const im = d2.match(/Vidrios IHQ ×(\d+)/);
-                                    if (im) { svc2.corteBlancoIHQ = true; svc2.corteBlancoIHQQuantity = (svc2.corteBlancoIHQQuantity || 0) + parseInt(im[1]); }
-                                    const bm = d2.match(/Vidrios Blanco ×(\d+)/);
-                                    if (bm) { svc2.corteBlancoComun = true; svc2.corteBlancoComunQuantity = (svc2.corteBlancoComunQuantity || 0) + parseInt(bm[1]); }
-                                  }
-                                  entry2.biopsies[bioIdx2].servicios = svc2;
-                                  db.saveDoctorHistoryEntry(docEmail2, currentLabCode, entry2);
-                                  synced2 = true;
-                                  console.log('🟢 Doctor history SINCRONIZADO:', sol.numeroPaciente, JSON.stringify(svc2));
-                                }
+                            // Leer servicios actualizados del remito que acabamos de guardar
+                            const freshRemitos = await db.getRemitos(currentLabCode);
+                            const freshRemito = freshRemitos.find((r: any) => {
+                              const rRN = (r.remitoNumber || '').replace('#', '').trim();
+                              return rRN === solRN2 || r.id?.includes(solRN2);
+                            }) || freshRemitos.find((r: any) => r.biopsias?.some((b: any) => b.numero === sol.numeroPaciente));
+                            if (freshRemito) {
+                              const freshBio = freshRemito.biopsias.find((b: any) => b.numero === sol.numeroPaciente);
+                              if (freshBio?.servicios) {
+                                await db.updateDoctorBiopsyServices(docEmail2, sol.numeroPaciente, solRN2, freshBio.servicios);
                               }
-                            });
-                            if (!synced2) console.log('🔴 Doctor history NO encontrado para:', sol.numeroPaciente, solRN2);
+                            }
                           }
                         } catch (e2) { console.error('Error sincronizando doctor_history:', e2); }
                         // Recargar remitos desde Supabase para refrescar facturación

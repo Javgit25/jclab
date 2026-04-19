@@ -352,26 +352,23 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           }
         } catch (e) { console.error('Error auto-facturando desde pizarrón:', e); }
 
-        // 2. Sincronizar con doctor_history
+        // 2. Sincronizar con doctor_history usando update directo
         try {
+          const { supabase: sb2 } = await import('../lib/supabase');
           const docEmail = (sol.doctorEmail || '').toLowerCase().trim();
+          const solRN = (sol.remitoNumber || '').replace('#', '').trim();
           if (docEmail) {
-            const history = await db.getDoctorHistory(docEmail);
-            const solRN = (sol.remitoNumber || '').replace('#', '').trim();
-            Object.keys(history).forEach(key => {
-              const entry = history[key];
-              if (!entry?.biopsies) return;
-              const match = (solRN && (entry.remitoNumber === solRN || entry.id?.includes(solRN))) ||
-                entry.biopsies.some((b: any) => b.number === sol.numeroPaciente);
-              if (match) {
-                const bioIdx = entry.biopsies.findIndex((b: any) => b.number === sol.numeroPaciente);
-                if (bioIdx >= 0) {
-                  const svc = { ...(entry.biopsies[bioIdx].servicios || {}) };
-                  entry.biopsies[bioIdx].servicios = updateSvc(svc, entry.biopsies[bioIdx].cassettesNumbers);
-                  db.saveDoctorHistoryEntry(docEmail, labCode, entry);
+            // Leer servicios frescos del remito que acabamos de actualizar
+            const { data: freshData } = await sb2.from('remitos').select('biopsias').eq('lab_code', labCode);
+            if (freshData) {
+              const freshRemito = freshData.find((r: any) => (r.biopsias || []).some((b: any) => b.numero === sol.numeroPaciente));
+              if (freshRemito) {
+                const freshBio = freshRemito.biopsias.find((b: any) => b.numero === sol.numeroPaciente);
+                if (freshBio?.servicios) {
+                  await db.updateDoctorBiopsyServices(docEmail, sol.numeroPaciente, solRN, freshBio.servicios);
                 }
               }
-            });
+            }
           }
         } catch (e) { console.error('Error sincronizando doctor_history desde pizarrón:', e); }
       }

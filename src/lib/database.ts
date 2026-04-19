@@ -319,6 +319,44 @@ export const db = {
     } catch (e) { console.error('Error saving history:', e); }
   },
 
+  // Actualizar servicios de una biopsia específica en doctor_history
+  async updateDoctorBiopsyServices(doctorEmail: string, numeroPaciente: string, remitoNumber: string, updatedServices: any) {
+    try {
+      const email = doctorEmail.toLowerCase().trim();
+      const { data } = await supabase.from('doctor_history').select('*').eq('doctor_email', email);
+      if (!data) return false;
+
+      for (const row of data) {
+        const rn = row.remito_number || '';
+        const matchRemito = remitoNumber && (rn === remitoNumber || row.id?.includes(remitoNumber));
+        const biopsies = row.biopsies || [];
+        const matchPaciente = biopsies.some((b: any) => b.number === numeroPaciente);
+
+        if (matchRemito || matchPaciente) {
+          const bioIdx = biopsies.findIndex((b: any) => b.number === numeroPaciente);
+          if (bioIdx >= 0) {
+            // Merge servicios
+            biopsies[bioIdx].servicios = { ...biopsies[bioIdx].servicios, ...updatedServices };
+            await supabase.from('doctor_history').update({ biopsies }).eq('id', row.id);
+            // Actualizar localStorage
+            const key = `doctor_${email.replace(/\s+/g, '')}_history`;
+            try {
+              const local = JSON.parse(localStorage.getItem(key) || '{}');
+              if (local[row.id]) {
+                local[row.id].biopsies = biopsies;
+                localStorage.setItem(key, JSON.stringify(local));
+              }
+            } catch {}
+            console.log('✅ updateDoctorBiopsyServices OK:', numeroPaciente);
+            return true;
+          }
+        }
+      }
+      console.log('⚠️ updateDoctorBiopsyServices: no encontrado', numeroPaciente, remitoNumber);
+      return false;
+    } catch (e) { console.error('❌ updateDoctorBiopsyServices error:', e); return false; }
+  },
+
   // ---- NOTIFICATIONS ----
   async getNotifications(medicoEmail?: string): Promise<any[]> {
     try {
