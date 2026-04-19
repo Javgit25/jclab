@@ -2376,7 +2376,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
                   {/* Submit */}
                   <button
-                    disabled={!solicitudPaciente.trim() || !solicitudRemito.trim() || (solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim())}
+                    disabled={!solicitudPaciente.trim() || !solicitudRemito.trim() || (solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim()) || (solicitudTipo === 'servicio_adicional' && !solicitudServicios.giemsa && !solicitudServicios.pas && !solicitudServicios.masson && solicitudServicios.vidriosIHQ === 0 && solicitudServicios.vidriosBlanco === 0)}
                     onClick={async () => {
                       const doctors = getRegisteredDoctors();
                       const doc = doctors.find(d => d.email.toLowerCase() === (doctorInfo.email || '').toLowerCase());
@@ -2434,8 +2434,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     style={{
                       width: '100%', padding: '12px', borderRadius: '10px', border: 'none',
                       fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-                      background: solicitudPaciente.trim() && solicitudRemito.trim() && !(solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim()) ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#e5e7eb',
-                      color: solicitudPaciente.trim() && solicitudRemito.trim() && !(solicitudTipo === 'taco' && solicitudSelectedCassettes.length === 0 && !solicitudCassettes.trim()) ? 'white' : '#9ca3af',
+                      background: (() => { const svcOk = solicitudTipo !== 'servicio_adicional' || solicitudServicios.giemsa || solicitudServicios.pas || solicitudServicios.masson || solicitudServicios.vidriosIHQ > 0 || solicitudServicios.vidriosBlanco > 0; const tacoOk = solicitudTipo !== 'taco' || solicitudSelectedCassettes.length > 0 || solicitudCassettes.trim(); return solicitudPaciente.trim() && solicitudRemito.trim() && tacoOk && svcOk ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : '#e5e7eb'; })(),
+                      color: (() => { const svcOk = solicitudTipo !== 'servicio_adicional' || solicitudServicios.giemsa || solicitudServicios.pas || solicitudServicios.masson || solicitudServicios.vidriosIHQ > 0 || solicitudServicios.vidriosBlanco > 0; const tacoOk = solicitudTipo !== 'taco' || solicitudSelectedCassettes.length > 0 || solicitudCassettes.trim(); return solicitudPaciente.trim() && solicitudRemito.trim() && tacoOk && svcOk ? 'white' : '#9ca3af'; })(),
                       transition: 'all 0.2s'
                     }}
                   >
