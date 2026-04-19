@@ -2070,7 +2070,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         { value: 'profundizacion', label: 'Profundización', icon: '\ud83d\udd2c', color: '#3b82f6', bg: '#eff6ff', border: '#60a5fa' },
                         { value: 'servicio_adicional', label: 'Serv. Adicional', icon: '\u2795', color: '#8b5cf6', bg: '#f5f3ff', border: '#a78bfa' }
                       ] as const).map(opt => (
-                        <button key={opt.value} onClick={() => setSolicitudTipo(opt.value as any)} style={{
+                        <button key={opt.value} onClick={() => { setSolicitudTipo(opt.value as any); setSolicitudSelectedCassettes([]); setSolicitudCassettes(''); }} style={{
                           flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer',
                           border: solicitudTipo === opt.value ? `2px solid ${opt.border}` : '2px solid #e5e7eb',
                           background: solicitudTipo === opt.value ? opt.bg : 'white',
@@ -2260,6 +2260,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   {solicitudTipo === 'servicio_adicional' && solicitudSelectedPatient && solicitudSelectedPatient.cassettesNumbers && solicitudSelectedPatient.cassettesNumbers.length > 1 && (
                     <div>
                       <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>¿A qué cassette se le solicita el servicio?</label>
+                      {solicitudSelectedCassettes.length === 0 && (
+                        <p style={{ fontSize: '11px', color: '#7c3aed', fontStyle: 'italic', margin: '0 0 6px', background: '#f5f3ff', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e9d5ff' }}>
+                          Si no se selecciona ningún cassette, el servicio se aplicará a todos los cassettes.
+                        </p>
+                      )}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                         {solicitudSelectedPatient.cassettesNumbers.map((cass: any, i: number) => {
                           const label = typeof cass === 'object' ? (cass.suffix ? `${cass.base}/${cass.suffix}` : cass.base) : String(cass);
