@@ -2297,51 +2297,44 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
                   {/* Servicios específicos para Servicio Adicional */}
                   {solicitudTipo === 'servicio_adicional' && (
-                    <div>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '6px', display: 'block' }}>Servicios solicitados</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {/* Tinciones */}
-                        <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
-                          <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>Tinciones especiales</div>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            {(['giemsa', 'pas', 'masson'] as const).map(t => (
-                              <button key={t} onClick={() => setSolicitudServicios(prev => ({ ...prev, [t]: !prev[t] }))}
-                                style={{
-                                  flex: 1, padding: '8px 4px', borderRadius: '8px', cursor: 'pointer', textAlign: 'center',
-                                  border: solicitudServicios[t] ? '2px solid #1e40af' : '2px solid #e5e7eb',
-                                  background: solicitudServicios[t] ? '#dbeafe' : 'white',
-                                  color: solicitudServicios[t] ? '#1e40af' : '#6b7280',
-                                  fontSize: '12px', fontWeight: '700'
-                                }}>
-                                {solicitudServicios[t] ? '✓ ' : ''}{t.charAt(0).toUpperCase() + t.slice(1)}
-                              </button>
-                            ))}
+                    <div style={{ background: '#f8fafc', borderRadius: '8px', padding: '8px', border: '1px solid #e2e8f0' }}>
+                      <div style={{ display: 'flex', gap: '4px', marginBottom: '6px' }}>
+                        {(['giemsa', 'pas', 'masson'] as const).map(t => (
+                          <button key={t} onClick={() => setSolicitudServicios(prev => ({ ...prev, [t]: !prev[t] }))}
+                            style={{
+                              flex: 1, padding: '6px 2px', borderRadius: '6px', cursor: 'pointer', textAlign: 'center',
+                              border: solicitudServicios[t] ? '2px solid #1e40af' : '1px solid #d1d5db',
+                              background: solicitudServicios[t] ? '#dbeafe' : 'white',
+                              color: solicitudServicios[t] ? '#1e40af' : '#6b7280',
+                              fontSize: '11px', fontWeight: '700'
+                            }}>
+                            {solicitudServicios[t] ? '✓ ' : ''}{t.charAt(0).toUpperCase() + t.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', borderRadius: '6px', padding: '4px 8px', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '10px', fontWeight: '600', color: '#64748b' }}>IHQ</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: Math.max(0, prev.vidriosIHQ - 1) }))}
+                              style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>−</button>
+                            <span style={{ fontSize: '14px', fontWeight: '800', color: '#1e3a5f', minWidth: '16px', textAlign: 'center' }}>{solicitudServicios.vidriosIHQ}</span>
+                            <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: prev.vidriosIHQ + 1 }))}
+                              style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>+</button>
                           </div>
                         </div>
-                        {/* Vidrios */}
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>Vidrios para IHQ</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: Math.max(0, prev.vidriosIHQ - 1) }))}
-                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>−</button>
-                              <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a5f', minWidth: '24px', textAlign: 'center' }}>{solicitudServicios.vidriosIHQ}</span>
-                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: prev.vidriosIHQ + 1 }))}
-                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>+</button>
-                            </div>
-                          </div>
-                          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '8px', padding: '10px', border: '1px solid #e2e8f0' }}>
-                            <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', marginBottom: '6px' }}>Vidrios en Blanco</div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: Math.max(0, prev.vidriosBlanco - 1) }))}
-                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>−</button>
-                              <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a5f', minWidth: '24px', textAlign: 'center' }}>{solicitudServicios.vidriosBlanco}</span>
-                              <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: prev.vidriosBlanco + 1 }))}
-                                style={{ width: '32px', height: '32px', borderRadius: '8px', border: 'none', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '16px', fontWeight: '700' }}>+</button>
-                            </div>
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', borderRadius: '6px', padding: '4px 8px', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '10px', fontWeight: '600', color: '#64748b' }}>Blanco</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: Math.max(0, prev.vidriosBlanco - 1) }))}
+                              style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>−</button>
+                            <span style={{ fontSize: '14px', fontWeight: '800', color: '#1e3a5f', minWidth: '16px', textAlign: 'center' }}>{solicitudServicios.vidriosBlanco}</span>
+                            <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: prev.vidriosBlanco + 1 }))}
+                              style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: '#1e3a5f', color: 'white', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>+</button>
                           </div>
                         </div>
-                        {/* Resumen */}
+                      </div>
+                      {/* Resumen */}
                         {(solicitudServicios.giemsa || solicitudServicios.pas || solicitudServicios.masson || solicitudServicios.vidriosIHQ > 0 || solicitudServicios.vidriosBlanco > 0) && (
                           <div style={{ background: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#059669', fontWeight: '600' }}>
                             ✓ {[
