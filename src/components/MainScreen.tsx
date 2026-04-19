@@ -3494,11 +3494,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       if (opts.pas) t.push('PAS');
                       if (opts.masson) t.push('Masson');
                       const gi2 = svc.giemsaCassettes || [];
-                      const gQty = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : 1;
-                      const gCassQty = gi2.length || 1;
-                      const gTotal = gCassQty > 1 ? gCassQty * gQty : gQty;
+                      const gTotal = typeof svc.giemsaPASMasson === 'number' ? svc.giemsaPASMasson : 1;
                       const cassLabel = gi2.map((c: number) => { const cc = cn[c]; return cc ? (cc.suffix ? `${cc.base}/${cc.suffix}` : cc.base) : `S${c+1}`; }).join(', ');
-                      serviciosDetail.push((t.length > 0 ? t.join(', ') : 'Tinción') + ` ×${gTotal}` + (cassLabel ? ' [' + cassLabel + ']' : ''));
+                      serviciosDetail.push((t.length > 0 ? t.join(', ') : 'Tinción') + (gTotal > 1 ? ` ×${gTotal}` : '') + (cassLabel ? ' [' + cassLabel + ']' : ''));
                     }
 
                     return (
