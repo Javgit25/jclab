@@ -87,15 +87,21 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
         background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)',
         padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '50px', filter: 'brightness(0) invert(1)' }} />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
             <a href="#funcionalidades" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Funcionalidades</a>
             <a href="#como-funciona" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Cómo funciona</a>
             <a href="#planes" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Planes</a>
             <a href="#contacto" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Contacto</a>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <button onClick={() => { const url = window.location.origin + window.location.pathname + '?macro='; const code = prompt('Ingresá el código de tu laboratorio:'); if (code) window.location.href = url + code.toUpperCase(); }}
+              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              🎙️ Macroscopía
+            </button>
             <button onClick={onGoToApp} style={{
               background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
               border: 'none', padding: '8px 20px', borderRadius: '8px', fontSize: '14px',
@@ -205,13 +211,16 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
             {workflow.map((w, i) => (
-              <div key={i} style={{ textAlign: 'center', position: 'relative' }}>
+              <div key={i} style={{ textAlign: 'center', position: 'relative', cursor: 'default', transition: 'transform 0.3s ease' }}
+                onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-8px) scale(1.05)'; }}
+                onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0) scale(1)'; }}>
                 <div style={{
                   width: '56px', height: '56px', borderRadius: '50%',
                   background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: '22px', fontWeight: 800, color: 'white',
-                  margin: '0 auto 16px', boxShadow: '0 4px 20px rgba(59,130,246,0.3)'
+                  margin: '0 auto 16px', boxShadow: '0 4px 20px rgba(59,130,246,0.3)',
+                  transition: 'box-shadow 0.3s ease'
                 }}>{w.step}</div>
                 <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'white', margin: '0 0 8px' }}>{w.title}</h3>
                 <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>{w.desc}</p>
@@ -391,7 +400,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Preguntas frecuentes</h2>
             <p style={{ fontSize: '15px', color: '#64748b' }}>Todo lo que necesitás saber antes de empezar</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
             {[
               { q: '¿Necesito instalar algo?', a: 'No. Funciona 100% desde el navegador. Solo necesitás tablet, PC o celular con internet.', icon: '💻' },
               { q: '¿Funciona sin internet?', a: 'Sí. Los datos se guardan localmente y se sincronizan cuando vuelve la conexión.', icon: '📶' },
