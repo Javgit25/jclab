@@ -1951,11 +1951,11 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
         {/* Banner Dictado de Macroscopía */}
         <button onClick={onGoToDictado} style={{
-          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+          background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
           color: 'white', fontWeight: 700, padding: '10px 16px',
           borderRadius: '10px', display: 'flex', alignItems: 'center',
           justifyContent: 'center', gap: '10px', border: 'none', cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(245,158,11,0.3)',
+          boxShadow: '0 4px 12px rgba(124,58,237,0.3)',
           fontSize: '14px', touchAction: 'manipulation'
         }}>
           <Mic size={20} />
