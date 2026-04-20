@@ -304,9 +304,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
         background: 'rgba(15, 23, 42, 0.95)', backdropFilter: 'blur(12px)',
         padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', display: 'flex', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-            <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '60px', filter: 'brightness(0) invert(1)' }} />
+        <div style={{ padding: '0 24px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '32px' }}>
+            <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '45px', filter: 'brightness(0) invert(1)' }} />
           </div>
           <div className="landing-nav-links">
             <a href="#funcionalidades" className="landing-nav-link">Funcionalidades</a>
