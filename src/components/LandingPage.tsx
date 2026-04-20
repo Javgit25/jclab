@@ -724,6 +724,32 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                       mensaje: contactForm.mensaje.trim(),
                       created_at: new Date().toISOString()
                     });
+                    // Enviar notificación por email
+                    try {
+                      // Cargar config de EmailJS desde el primer lab
+                      if (!localStorage.getItem('emailjsConfig')) {
+                        const { data: labs } = await supabase.from('laboratories').select('emailjs_config').eq('estado', 'activo').limit(1);
+                        if (labs?.[0]?.emailjs_config) localStorage.setItem('emailjsConfig', JSON.stringify(labs[0].emailjs_config));
+                      }
+                      const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
+                      if (isEmailConfigured()) {
+                        await sendEmail({
+                          toEmail: 'info@biopsytracker.io',
+                          toName: 'BiopsyTracker',
+                          subject: 'Nueva consulta desde la web — ' + contactForm.nombre.trim(),
+                          messageHtml: '<div style="font-family:Arial,sans-serif;max-width:500px;">' +
+                            '<h2 style="color:#0f172a;">Nueva consulta desde la web</h2>' +
+                            '<p><strong>Nombre:</strong> ' + contactForm.nombre.trim() + '</p>' +
+                            '<p><strong>Email:</strong> ' + contactForm.email.trim() + '</p>' +
+                            (contactForm.laboratorio.trim() ? '<p><strong>Laboratorio:</strong> ' + contactForm.laboratorio.trim() + '</p>' : '') +
+                            (contactForm.telefono.trim() ? '<p><strong>Teléfono:</strong> ' + contactForm.telefono.trim() + '</p>' : '') +
+                            (contactForm.mensaje.trim() ? '<p><strong>Mensaje:</strong> ' + contactForm.mensaje.trim() + '</p>' : '') +
+                            '<hr style="border:none;border-top:1px solid #e2e8f0;margin:16px 0;" />' +
+                            '<p style="color:#94a3b8;font-size:12px;">Enviado desde biopsytracker.io</p></div>',
+                          fromName: 'BiopsyTracker Web',
+                        });
+                      }
+                    } catch {}
                   } catch {}
                   setContactSent(true);
                 }}
