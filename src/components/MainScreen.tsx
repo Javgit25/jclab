@@ -1949,6 +1949,19 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           </div>
         </div>
 
+        {/* Banner Dictado de Macroscopía */}
+        <button onClick={onGoToDictado} style={{
+          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+          color: 'white', fontWeight: 700, padding: '10px 16px',
+          borderRadius: '10px', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', gap: '10px', border: 'none', cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(245,158,11,0.3)',
+          fontSize: '14px', touchAction: 'manipulation'
+        }}>
+          <Mic size={20} />
+          <span>Dictado de Macroscopía</span>
+        </button>
+
         {/* Botón principal: Nuevo Paciente */}
         <button
           onClick={() => { onStartNewBiopsy(); }}
@@ -3898,24 +3911,6 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       })()}
 
       {/* Teclado Virtual para Búsqueda y Solicitudes */}
-      {/* Botón flotante de Dictado — se oculta cuando hay modales */}
-      {!showSearchModal && !showSolicitudes && !showStatistics && !showAyudantesModal && !showNotifications && !showQRModal && !showKeyboard && (
-        <button onClick={onGoToDictado} style={{
-          position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000,
-          width: '60px', height: '60px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-          border: 'none', cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          transition: 'transform 0.2s'
-        }}
-          onTouchStart={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.9)'; }}
-          onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
-        >
-          <Mic size={28} color="white" />
-        </button>
-      )}
-
       {showKeyboard && (
         <div style={{
           position: 'fixed',
