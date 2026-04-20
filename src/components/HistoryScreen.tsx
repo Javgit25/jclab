@@ -96,6 +96,22 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     entry: null
   });
 
+  // Pacientes con dictado de macroscopía
+  const [pacientesConDictado, setPacientesConDictado] = useState<Set<string>>(new Set());
+  React.useEffect(() => {
+    const loadDictados = async () => {
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const { data } = await supabase.from('macroscopia').select('numero_paciente')
+          .eq('doctor_email', doctorInfo.email.toLowerCase().trim());
+        if (data) {
+          setPacientesConDictado(new Set(data.map((d: any) => d.numero_paciente)));
+        }
+      } catch {}
+    };
+    loadDictados();
+  }, [doctorInfo.email]);
+
   // Estado para el proceso de impresión
   const [printStatus, setPrintStatus] = useState<{
     isLoading: boolean;
@@ -860,6 +876,15 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                     </div>
                   </div>
 
+                  {/* Indicador de dictado */}
+                  {entry.biopsies.some(b => pacientesConDictado.has(b.number)) && (
+                    <div style={{ padding: '0 14px', marginTop: '-2px' }}>
+                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(245,158,11,0.2)' }}>
+                        🎙️ Con dictado de macroscopía
+                      </span>
+                    </div>
+                  )}
+
                   {/* Contenido */}
                   <div style={{ padding: '10px 14px' }}>
                     {/* Mini KPIs del remito */}
@@ -1442,6 +1467,7 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                           <td style={{ padding: '5px 4px' }}>
                             <span style={{ fontWeight: 700 }}>{b.number || '-'}</span>
                             {b.numeroExterno && <span style={{ color: '#b45309', fontSize: '7pt', marginLeft: '2px' }}>(Ext: {b.numeroExterno})</span>}
+                            {pacientesConDictado.has(b.number) && <span style={{ fontSize: '10px', marginLeft: '4px' }} title="Tiene dictado de macroscopía">🎙️</span>}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
