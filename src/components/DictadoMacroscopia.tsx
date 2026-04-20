@@ -322,17 +322,6 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
               fontFamily: 'monospace'
             }}
           />
-          <input
-            type="text"
-            value={tejido}
-            onChange={e => setTejido(e.target.value)}
-            placeholder="Tejido (opcional)"
-            style={{
-              width: '250px', padding: '12px', textAlign: 'center',
-              background: '#1e293b', border: '1px solid #334155', borderRadius: '10px',
-              color: 'white', fontSize: '16px', outline: 'none'
-            }}
-          />
           <button
             onClick={iniciarGrabacion}
             disabled={!numeroPaciente.trim()}
