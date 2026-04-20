@@ -3893,6 +3893,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   </div>
                 )}
 
+                {/* Link del Panel de Macroscopía */}
+                {currentLabCode && (
+                  <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-bold text-amber-800">🎙️ Panel de Macroscopía</div>
+                        <div className="text-xs text-amber-600 mt-1">Los médicos pueden acceder desde una PC para ver, buscar y copiar sus transcripciones.</div>
+                      </div>
+                      <button onClick={() => {
+                        const url = `${window.location.origin}${window.location.pathname}?macro=${currentLabCode}`;
+                        navigator.clipboard.writeText(url).then(() => alert('Link copiado: ' + url)).catch(() => prompt('Copiá este link:', url));
+                      }}
+                        className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 flex-shrink-0">
+                        📋 Copiar link
+                      </button>
+                    </div>
+                    <div className="mt-2 bg-white rounded-lg px-3 py-2 border border-amber-100">
+                      <code className="text-xs text-amber-700 break-all">{window.location.origin}{window.location.pathname}?macro={currentLabCode}</code>
+                    </div>
+                  </div>
+                )}
+
                 {/* Preview en tiempo real con controles de posición */}
                 <div className="mt-4 p-4 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
                   <div className="flex items-center justify-between mb-3">

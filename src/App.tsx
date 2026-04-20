@@ -12,8 +12,9 @@ import SuperAdminPanel from './components/SuperAdminPanel';
 import LabBoard from './components/LabBoard';
 import LandingPage from './components/LandingPage';
 import DictadoMacroscopia from './components/DictadoMacroscopia';
+import MacroscopiaPanel from './components/MacroscopiaPanel';
 
-type ScreenType = 'landing' | 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard' | 'dictado';
+type ScreenType = 'landing' | 'login' | 'main' | 'newBiopsy' | 'todayList' | 'history' | 'admin' | 'superadmin' | 'labboard' | 'dictado' | 'macroPanel';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>(() => {
@@ -54,7 +55,11 @@ function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const labParam = params.get('lab');
-    if (labParam) {
+    const macroParam = params.get('macro');
+    if (macroParam) {
+      setLabBoardCode(macroParam);
+      setCurrentScreen('macroPanel');
+    } else if (labParam) {
       setLabBoardCode(labParam);
       setCurrentScreen('labboard');
     }
@@ -797,6 +802,10 @@ function App() {
   }, [historyData, debugHistoryData]);
 
   // Renderizado condicional de pantallas
+  if (currentScreen === 'macroPanel' && labBoardCode) {
+    return <MacroscopiaPanel labCode={labBoardCode} />;
+  }
+
   if (currentScreen === 'labboard' && labBoardCode) {
     return (
       <LabBoard
