@@ -81,29 +81,36 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
     { name: 'PAP', full: 'Papanicolaou', color: '#be185d', bg: '#fce7f3' },
     { name: 'CITO', full: 'Citología', color: '#7c3aed', bg: '#ede9fe' },
     { name: 'IHQ', full: 'Inmunohistoquímica', color: '#0369a1', bg: '#e0f2fe' },
-    { name: 'TC', full: 'Taco en Consulta', color: '#b45309', bg: '#fef3c7' }
+    { name: 'TC', full: 'Taco en Consulta', color: '#b45309', bg: '#fef3c7' },
+    { name: 'CE', full: 'Coloraciones Especiales', color: '#059669', bg: '#d1fae5' }
   ];
 
   const features = [
-    { icon: <Tablet size={32} />, title: 'Tablet del Médico', desc: 'Carga de biopsias desde el consultorio. Sin papel, sin errores.', color: '#60a5fa' },
+    { icon: <Tablet size={32} />, title: 'Tablet del Médico', desc: 'Carga de biopsias desde el laboratorio. Sin papel, sin errores.', color: '#60a5fa' },
     { icon: <Monitor size={32} />, title: 'Panel del Lab', desc: 'Recibí remitos al instante. Gestioná muestras y estados.', color: '#34d399' },
     { icon: <DollarSign size={32} />, title: 'Facturación', desc: 'Detalle mensual automático por médico y centro médico.', color: '#fbbf24' },
     { icon: <Bell size={32} />, title: 'Notificaciones', desc: 'El médico sabe cuándo su material llega y cuándo está listo.', color: '#fb923c' },
-    { icon: <BarChart3 size={32} />, title: 'Pizarrón Digital', desc: 'Pantalla en tiempo real para TV. Urgentes, pendientes y listos.', color: '#a78bfa' },
+    { icon: <BarChart3 size={32} />, title: 'Pizarrón Digital', desc: 'Pantalla en tiempo real de urgentes, pendientes y listos.', color: '#a78bfa' },
     { icon: <Mail size={32} />, title: 'Emails', desc: 'Facturación y recordatorios con diseño profesional por email.', color: '#f87171' },
     { icon: <Mic size={32} />, title: 'Dictado por Voz', desc: 'Dictá la macroscopía y se transcribe automáticamente.', color: '#22d3ee' },
     { icon: <Lock size={32} />, title: 'Multi-laboratorio', desc: 'Cada lab con sus datos, médicos y facturación independientes.', color: '#94a3b8' },
   ];
 
-  const faqs = [
-    { q: '¿Necesito instalar algo?', a: 'No. Funciona 100% desde el navegador. Solo necesitás tablet, PC o celular con internet.', icon: <Laptop size={20} /> },
+  const faqsLab = [
+    { q: '¿Necesito instalar algo en el laboratorio?', a: 'No. Solo necesitás una PC con navegador web y conexión a internet.', icon: <Laptop size={20} /> },
+    { q: '¿Cuántos médicos puedo tener?', a: 'Sin límite. Cada médico con múltiples centros y ayudantes.', icon: <Users size={20} /> },
+    { q: '¿Los datos están seguros?', a: 'Sí. Servidores seguros con datos completamente aislados por laboratorio.', icon: <Lock size={20} /> },
+    { q: '¿Puedo probarlo gratis?', a: 'Sí. Ofrecemos el primer mes de prueba gratis sin compromiso.', icon: <Gift size={20} /> },
+    { q: '¿Puedo cambiar los precios?', a: 'Sí. Los remitos existentes conservan sus precios originales. Los nuevos usan los precios actualizados.', icon: <DollarSign size={20} /> },
+    { q: '¿Cómo se envía la facturación?', a: 'Con un click se envía por email a cada médico con detalle profesional.', icon: <Mail size={20} /> },
+  ];
+  const faqsMedico = [
+    { q: '¿Qué necesito para usar la app?', a: 'Se te entrega una tablet configurada lista para usar. Solo ingresás tu email y contraseña.', icon: <Tablet size={20} /> },
     { q: '¿Funciona sin internet?', a: 'Sí. Los datos se guardan localmente y se sincronizan cuando vuelve la conexión.', icon: <Wifi size={20} /> },
-    { q: '¿Mis datos están seguros?', a: 'Sí. Servidores seguros con datos aislados por laboratorio.', icon: <Lock size={20} /> },
-    { q: '¿Cuántos médicos puede tener?', a: 'Sin límite. Cada médico con múltiples centros y ayudantes.', icon: <Users size={20} /> },
-    { q: '¿Puedo probarlo gratis?', a: 'Sí. Primer mes de prueba gratis sin compromiso.', icon: <Gift size={20} /> },
-    { q: '¿Cómo recibe la facturación?', a: 'Por email con detalle profesional de cada biopsia y total.', icon: <Mail size={20} /> },
-    { q: '¿Funciona en tablet Android?', a: 'Sí. Optimizado para tablets Android con Fully Kiosk Browser.', icon: <Smartphone size={20} /> },
-    { q: '¿Si cambio precios a mitad de mes?', a: 'Los remitos existentes conservan sus precios originales.', icon: <DollarSign size={20} /> },
+    { q: '¿Puedo trabajar en varios centros?', a: 'Sí. Podés configurar múltiples centros médicos y elegir desde cuál trabajás al ingresar.', icon: <Building2 size={20} /> },
+    { q: '¿Cómo sé cuando mi estudio está listo?', a: 'Recibís una notificación con sonido en la tablet cuando el laboratorio marca tu estudio como listo.', icon: <Bell size={20} /> },
+    { q: '¿Qué es el dictado por voz?', a: 'Podés dictar la macroscopía mientras trabajás y se transcribe automáticamente. Queda guardado en la nube.', icon: <Mic size={20} /> },
+    { q: '¿Puedo solicitar servicios adicionales?', a: 'Sí. Podés pedir tacos, profundizaciones y coloraciones especiales desde la tablet.', icon: <Stethoscope size={20} /> },
   ];
 
   const counterItems = [
@@ -342,7 +349,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             </span>
           </h1>
           <p className="landing-hero-sub">
-            Conectamos al médico con el laboratorio en tiempo real. Desde la carga de la biopsia hasta la facturación mensual, todo en un solo sistema.
+            Conectamos al médico patólogo con el laboratorio en tiempo real. Desde la carga de la biopsia hasta la facturación mensual, todo en un solo sistema.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={onGoToApp} style={{
@@ -454,13 +461,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             </div>
             <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #e2e8f0', background: '#f8fafc' }}>
               <div style={{ marginBottom: '12px', color: '#8b5cf6' }}><Stethoscope size={40} /></div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>Médicos que envían biopsias</h3>
+              <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>Médicos Patólogos</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '14px', color: '#475569', lineHeight: 2 }}>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Cargar biopsias desde la tablet</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Dictado por voz de macroscopía</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Múltiples centros médicos</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Notificaciones cuando el estudio está listo</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Historial y búsqueda avanzada</li>
-                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Estadísticas de su práctica</li>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Solicitud de tacos y servicios adicionales</li>
               </ul>
             </div>
@@ -548,9 +555,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Soporte incluido</li>
               </ul>
             </div>
-            <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #3b82f6', background: '#eff6ff', textAlign: 'center', position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#3b82f6', color: 'white', padding: '4px 16px', borderRadius: '12px', fontSize: '12px', fontWeight: 700 }}>Recomendado</div>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Para el médico</div>
+            <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #e2e8f0', textAlign: 'center', position: 'relative' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Para el médico</div>
               <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>Todo desde su tablet</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '14px', color: '#475569', lineHeight: 2, textAlign: 'left' }}>
                 <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Carga de biopsias ilimitada</li>
@@ -595,52 +601,63 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
 
       {/* FAQ */}
       <section style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f0fdfa 100%)' }}>
-        <div style={{ maxWidth: '700px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
             <h2 className="landing-section-title" style={{ color: '#0f172a' }}>Preguntas frecuentes</h2>
             <p style={{ fontSize: '15px', color: '#64748b' }}>Todo lo que necesitás saber antes de empezar</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-            {faqs.map((faq, i) => (
-              <div key={i} style={{
-                background: openFaq === i ? 'white' : 'rgba(255,255,255,0.7)',
-                borderRadius: '12px', overflow: 'hidden',
-                border: openFaq === i ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.06)',
-                boxShadow: openFaq === i ? '0 8px 24px rgba(59,130,246,0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
-                transition: 'all 0.3s ease'
-              }}>
-                <button
-                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  style={{
-                    width: '100%', padding: '16px 20px', background: 'none', border: 'none',
-                    display: 'flex', alignItems: 'center', gap: '14px',
-                    cursor: 'pointer', textAlign: 'left'
-                  }}
-                >
-                  <span style={{ flexShrink: 0, color: openFaq === i ? '#2563eb' : '#64748b', display: 'flex', alignItems: 'center' }}>{faq.icon}</span>
-                  <span style={{ fontSize: '15px', fontWeight: 600, color: openFaq === i ? '#2563eb' : '#1e293b', flex: 1, transition: 'color 0.2s' }}>{faq.q}</span>
-                  <span style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    background: openFaq === i ? '#2563eb' : '#f1f5f9',
-                    color: openFaq === i ? 'white' : '#94a3b8',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '16px', fontWeight: 300, flexShrink: 0,
-                    transform: openFaq === i ? 'rotate(45deg)' : 'none',
-                    transition: 'all 0.3s ease'
-                  }}>+</span>
-                </button>
-                <div style={{
-                  maxHeight: openFaq === i ? '200px' : '0',
-                  overflow: 'hidden',
-                  transition: 'max-height 0.3s ease, padding 0.3s ease',
-                  padding: openFaq === i ? '0 20px 16px 56px' : '0 20px 0 56px',
-                }}>
-                  <div style={{ fontSize: '14px', color: '#64748b', lineHeight: 1.6 }}>
-                    {faq.a}
-                  </div>
-                </div>
+          <div className="landing-para-quien-grid">
+            {/* FAQ Laboratorio */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <Building2 size={18} style={{ color: '#2563eb' }} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '1px' }}>Para el Laboratorio</span>
               </div>
-            ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {faqsLab.map((faq, i) => {
+                  const key = 'lab_' + i;
+                  const isOpen = openFaq === i;
+                  return (
+                    <div key={key} style={{ background: isOpen ? 'white' : 'rgba(255,255,255,0.7)', borderRadius: '10px', overflow: 'hidden', border: isOpen ? '2px solid #2563eb' : '1px solid rgba(0,0,0,0.06)', transition: 'all 0.3s ease' }}>
+                      <button onClick={() => setOpenFaq(isOpen ? null : i)} style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ flexShrink: 0, color: isOpen ? '#2563eb' : '#64748b', display: 'flex' }}>{faq.icon}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: isOpen ? '#2563eb' : '#1e293b', flex: 1 }}>{faq.q}</span>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isOpen ? '#2563eb' : '#f1f5f9', color: isOpen ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0, transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'all 0.3s' }}>+</span>
+                      </button>
+                      <div style={{ maxHeight: isOpen ? '200px' : '0', overflow: 'hidden', transition: 'max-height 0.3s ease', padding: isOpen ? '0 16px 12px 46px' : '0 16px 0 46px' }}>
+                        <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>{faq.a}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* FAQ Médico */}
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                <Stethoscope size={18} style={{ color: '#7c3aed' }} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '1px' }}>Para el Médico</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {faqsMedico.map((faq, i) => {
+                  const key = 'med_' + i;
+                  const idx = i + 100;
+                  const isOpen = openFaq === idx;
+                  return (
+                    <div key={key} style={{ background: isOpen ? 'white' : 'rgba(255,255,255,0.7)', borderRadius: '10px', overflow: 'hidden', border: isOpen ? '2px solid #7c3aed' : '1px solid rgba(0,0,0,0.06)', transition: 'all 0.3s ease' }}>
+                      <button onClick={() => setOpenFaq(isOpen ? null : idx)} style={{ width: '100%', padding: '12px 16px', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                        <span style={{ flexShrink: 0, color: isOpen ? '#7c3aed' : '#64748b', display: 'flex' }}>{faq.icon}</span>
+                        <span style={{ fontSize: '14px', fontWeight: 600, color: isOpen ? '#7c3aed' : '#1e293b', flex: 1 }}>{faq.q}</span>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: isOpen ? '#7c3aed' : '#f1f5f9', color: isOpen ? 'white' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', flexShrink: 0, transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'all 0.3s' }}>+</span>
+                      </button>
+                      <div style={{ maxHeight: isOpen ? '200px' : '0', overflow: 'hidden', transition: 'max-height 0.3s ease', padding: isOpen ? '0 16px 12px 46px' : '0 16px 0 46px' }}>
+                        <div style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.6 }}>{faq.a}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </section>
