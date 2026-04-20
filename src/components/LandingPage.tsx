@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import {
+  Tablet, Monitor, DollarSign, Bell, BarChart3, Mail, Mic, Lock,
+  Building2, Stethoscope, ClipboardList, Laptop, Wifi, Users, Gift,
+  Smartphone, CheckCircle
+} from 'lucide-react';
 
 interface LandingPageProps {
   onGoToApp: () => void;
@@ -62,6 +67,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
     }, interval);
     return () => clearInterval(timer);
   }, [countsVisible, countsTarget]);
+
   const workflow = [
     { step: '1', title: 'El médico carga', desc: 'Desde su tablet, registra cada biopsia con tipo de tejido, cassettes y servicios especiales.' },
     { step: '2', title: 'El lab recibe', desc: 'El remito llega al instante al panel del laboratorio. Se marca como recibido y se procesa.' },
@@ -78,8 +84,212 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
     { name: 'TC', full: 'Taco en Consulta', color: '#b45309', bg: '#fef3c7' }
   ];
 
+  const features = [
+    { icon: <Tablet size={32} />, title: 'Tablet del Médico', desc: 'Carga de biopsias desde el consultorio. Sin papel, sin errores.', color: '#60a5fa' },
+    { icon: <Monitor size={32} />, title: 'Panel del Lab', desc: 'Recibí remitos al instante. Gestioná muestras y estados.', color: '#34d399' },
+    { icon: <DollarSign size={32} />, title: 'Facturación', desc: 'Detalle mensual automático por médico y centro médico.', color: '#fbbf24' },
+    { icon: <Bell size={32} />, title: 'Notificaciones', desc: 'El médico sabe cuándo su material llega y cuándo está listo.', color: '#fb923c' },
+    { icon: <BarChart3 size={32} />, title: 'Pizarrón Digital', desc: 'Pantalla en tiempo real para TV. Urgentes, pendientes y listos.', color: '#a78bfa' },
+    { icon: <Mail size={32} />, title: 'Emails', desc: 'Facturación y recordatorios con diseño profesional por email.', color: '#f87171' },
+    { icon: <Mic size={32} />, title: 'Dictado por Voz', desc: 'Dictá la macroscopía y se transcribe automáticamente.', color: '#22d3ee' },
+    { icon: <Lock size={32} />, title: 'Multi-laboratorio', desc: 'Cada lab con sus datos, médicos y facturación independientes.', color: '#94a3b8' },
+  ];
+
+  const faqs = [
+    { q: '¿Necesito instalar algo?', a: 'No. Funciona 100% desde el navegador. Solo necesitás tablet, PC o celular con internet.', icon: <Laptop size={20} /> },
+    { q: '¿Funciona sin internet?', a: 'Sí. Los datos se guardan localmente y se sincronizan cuando vuelve la conexión.', icon: <Wifi size={20} /> },
+    { q: '¿Mis datos están seguros?', a: 'Sí. Servidores seguros con datos aislados por laboratorio.', icon: <Lock size={20} /> },
+    { q: '¿Cuántos médicos puede tener?', a: 'Sin límite. Cada médico con múltiples centros y ayudantes.', icon: <Users size={20} /> },
+    { q: '¿Puedo probarlo gratis?', a: 'Sí. Primer mes de prueba gratis sin compromiso.', icon: <Gift size={20} /> },
+    { q: '¿Cómo recibe la facturación?', a: 'Por email con detalle profesional de cada biopsia y total.', icon: <Mail size={20} /> },
+    { q: '¿Funciona en tablet Android?', a: 'Sí. Optimizado para tablets Android con Fully Kiosk Browser.', icon: <Smartphone size={20} /> },
+    { q: '¿Si cambio precios a mitad de mes?', a: 'Los remitos existentes conservan sus precios originales.', icon: <DollarSign size={20} /> },
+  ];
+
+  const counterItems = [
+    { value: counts.biopsias, label: 'Remitos procesados', icon: <ClipboardList size={32} />, gradient: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' },
+    { value: counts.labs, label: 'Laboratorios activos', icon: <Building2 size={32} />, gradient: 'linear-gradient(135deg, #10b981, #3b82f6)' },
+    { value: counts.medicos, label: 'Médicos registrados', icon: <Stethoscope size={32} />, gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
+  ];
+
   return (
     <div style={{ fontFamily: "'Inter', -apple-system, sans-serif", color: '#1e293b', overflowX: 'hidden' }}>
+
+      {/* Responsive styles */}
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+
+        .landing-nav-links {
+          flex: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 24px;
+        }
+        .landing-nav-link {
+          color: rgba(255,255,255,0.7);
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 500;
+        }
+        .landing-nav-link:hover {
+          color: white;
+        }
+        .landing-macro-btn {
+          background: rgba(255,255,255,0.1);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.2);
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .landing-hero-title {
+          font-size: 48px;
+          font-weight: 800;
+          color: white;
+          line-height: 1.1;
+          margin: 0 0 20px;
+        }
+        .landing-hero-sub {
+          font-size: 18px;
+          color: rgba(255,255,255,0.7);
+          line-height: 1.6;
+          margin: 0 0 36px;
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .landing-features-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 16px;
+        }
+        .landing-workflow-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+        }
+        .landing-para-quien-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+        }
+        .landing-dictado-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 48px;
+          align-items: center;
+        }
+        .landing-planes-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 24px;
+          max-width: 700px;
+          margin: 0 auto;
+        }
+        .landing-counters-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+          text-align: center;
+        }
+        .landing-counter-value {
+          font-size: 48px;
+          font-weight: 800;
+          line-height: 1;
+        }
+        .landing-contact-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          margin-bottom: 12px;
+        }
+        .landing-tipos-flex {
+          display: flex;
+          gap: 12px;
+          justify-content: center;
+          flex-wrap: wrap;
+        }
+        .landing-footer-inner {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .landing-section-title {
+          font-size: 36px;
+          font-weight: 800;
+          margin: 0 0 12px;
+        }
+        .landing-dictado-title {
+          font-size: 32px;
+          font-weight: 800;
+          color: white;
+          margin: 0 0 16px;
+          line-height: 1.2;
+        }
+
+        @media (max-width: 768px) {
+          .landing-nav-links {
+            display: none !important;
+          }
+          .landing-macro-btn {
+            display: none !important;
+          }
+          .landing-hero-title {
+            font-size: 28px !important;
+          }
+          .landing-hero-sub {
+            font-size: 15px !important;
+          }
+          .landing-features-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .landing-workflow-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+          .landing-para-quien-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .landing-dictado-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .landing-planes-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .landing-counters-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .landing-counter-value {
+            font-size: 36px !important;
+          }
+          .landing-contact-row {
+            grid-template-columns: 1fr !important;
+          }
+          .landing-section-title {
+            font-size: 26px !important;
+          }
+          .landing-dictado-title {
+            font-size: 24px !important;
+          }
+          .landing-tipos-flex {
+            gap: 8px;
+          }
+          .landing-footer-inner {
+            flex-direction: column;
+            text-align: center;
+          }
+        }
+      `}</style>
 
       {/* Navbar */}
       <nav style={{
@@ -91,16 +301,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '50px', filter: 'brightness(0) invert(1)' }} />
           </div>
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '24px' }}>
-            <a href="#funcionalidades" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Funcionalidades</a>
-            <a href="#como-funciona" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Cómo funciona</a>
-            <a href="#planes" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Planes</a>
-            <a href="#contacto" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '14px', fontWeight: 500 }}>Contacto</a>
+          <div className="landing-nav-links">
+            <a href="#funcionalidades" className="landing-nav-link">Funcionalidades</a>
+            <a href="#como-funciona" className="landing-nav-link">Cómo funciona</a>
+            <a href="#planes" className="landing-nav-link">Planes</a>
+            <a href="#contacto" className="landing-nav-link">Contacto</a>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <button onClick={() => { const url = window.location.origin + window.location.pathname + '?macro='; const code = prompt('Ingresá el código de tu laboratorio:'); if (code) window.location.href = url + code.toUpperCase(); }}
-              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              🎙️ Macroscopía
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: 'auto' }}>
+            <button
+              className="landing-macro-btn"
+              onClick={() => { const url = window.location.origin + window.location.pathname + '?macro='; const code = prompt('Ingresá el código de tu laboratorio:'); if (code) window.location.href = url + code.toUpperCase(); }}
+            >
+              <Mic size={14} /> Macroscopía
             </button>
             <button onClick={onGoToApp} style={{
               background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
@@ -123,13 +335,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           <div style={{ display: 'inline-block', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: '20px', padding: '6px 16px', fontSize: '13px', color: '#93c5fd', fontWeight: 600, marginBottom: '24px' }}>
             Software para Laboratorios de Anatomía Patológica
           </div>
-          <h1 style={{ fontSize: '48px', fontWeight: 800, color: 'white', lineHeight: 1.1, margin: '0 0 20px' }}>
+          <h1 className="landing-hero-title">
             Gestión de biopsias<br />
             <span style={{ background: 'linear-gradient(135deg, #60a5fa, #a78bfa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               simple, rápida y profesional
             </span>
           </h1>
-          <p style={{ fontSize: '18px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, margin: '0 0 36px', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
+          <p className="landing-hero-sub">
             Conectamos al médico con el laboratorio en tiempo real. Desde la carga de la biopsia hasta la facturación mensual, todo en un solo sistema.
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -155,7 +367,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <section style={{ background: '#f8fafc', padding: '40px 24px', borderBottom: '1px solid #e2e8f0' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto', textAlign: 'center' }}>
           <p style={{ fontSize: '13px', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '16px' }}>Tipos de estudio soportados</p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="landing-tipos-flex">
             {tiposEstudio.map((t, i) => (
               <div key={i} style={{ background: t.bg, color: t.color, padding: '8px 20px', borderRadius: '8px', fontWeight: 700, fontSize: '14px' }}>
                 {t.name} <span style={{ fontWeight: 400, fontSize: '12px', opacity: 0.8 }}>— {t.full}</span>
@@ -170,20 +382,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.04, backgroundImage: 'radial-gradient(circle at 50% 50%, white 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         <div style={{ maxWidth: '1000px', margin: '0 auto', position: 'relative' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 800, color: 'white', margin: '0 0 12px' }}>Todo lo que necesitás</h2>
+            <h2 className="landing-section-title" style={{ color: 'white' }}>Todo lo que necesitás</h2>
             <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)' }}>Un sistema completo para cada etapa del proceso</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
-            {[
-              { icon: '📱', title: 'Tablet del Médico', desc: 'Carga de biopsias desde el consultorio. Sin papel, sin errores.', color: '#60a5fa' },
-              { icon: '🖥️', title: 'Panel del Lab', desc: 'Recibí remitos al instante. Gestioná muestras y estados.', color: '#34d399' },
-              { icon: '💰', title: 'Facturación', desc: 'Detalle mensual automático por médico y centro médico.', color: '#fbbf24' },
-              { icon: '🔔', title: 'Notificaciones', desc: 'El médico sabe cuándo su material llega y cuándo está listo.', color: '#fb923c' },
-              { icon: '📊', title: 'Pizarrón Digital', desc: 'Pantalla en tiempo real para TV. Urgentes, pendientes y listos.', color: '#a78bfa' },
-              { icon: '📧', title: 'Emails', desc: 'Facturación y recordatorios con diseño profesional por email.', color: '#f87171' },
-              { icon: '🎙️', title: 'Dictado por Voz', desc: 'Dictá la macroscopía y se transcribe automáticamente.', color: '#22d3ee' },
-              { icon: '🔒', title: 'Multi-laboratorio', desc: 'Cada lab con sus datos, médicos y facturación independientes.', color: '#94a3b8' },
-            ].map((f, i) => (
+          <div className="landing-features-grid">
+            {features.map((f, i) => (
               <div key={i} style={{
                 background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '28px 20px',
                 textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)',
@@ -193,7 +396,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                 onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; }}
                 onMouseOut={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
               >
-                <div style={{ fontSize: '44px', marginBottom: '12px', lineHeight: 1 }}>{f.icon}</div>
+                <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: f.color }}>{f.icon}</div>
                 <div style={{ fontSize: '15px', fontWeight: 700, color: f.color, marginBottom: '6px' }}>{f.title}</div>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.4 }}>{f.desc}</div>
               </div>
@@ -206,10 +409,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <section id="como-funciona" style={{ padding: '80px 24px', background: '#0f172a' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 800, color: 'white', margin: '0 0 12px' }}>Cómo funciona</h2>
+            <h2 className="landing-section-title" style={{ color: 'white' }}>Cómo funciona</h2>
             <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)' }}>4 pasos simples, desde la biopsia hasta la facturación</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+          <div className="landing-workflow-grid">
             {workflow.map((w, i) => (
               <div key={i} style={{ textAlign: 'center', position: 'relative', cursor: 'default', transition: 'transform 0.3s ease' }}
                 onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-8px) scale(1.05)'; }}
@@ -234,31 +437,31 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <section style={{ padding: '80px 24px', background: 'white' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Diseñado para</h2>
+            <h2 className="landing-section-title" style={{ color: '#0f172a' }}>Diseñado para</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div className="landing-para-quien-grid">
             <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🏥</div>
+              <div style={{ marginBottom: '12px', color: '#3b82f6' }}><Building2 size={40} /></div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>Laboratorios de Anatomía Patológica</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '14px', color: '#475569', lineHeight: 2 }}>
-                <li>✓ Recibir remitos digitales al instante</li>
-                <li>✓ Gestionar muestras y estados</li>
-                <li>✓ Facturación y cobros automatizados</li>
-                <li>✓ Pizarrón digital para el lab</li>
-                <li>✓ Control de múltiples médicos</li>
-                <li>✓ Emails profesionales a cada médico</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Recibir remitos digitales al instante</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Gestionar muestras y estados</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Facturación y cobros automatizados</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Pizarrón digital para el lab</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Control de múltiples médicos</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Emails profesionales a cada médico</li>
               </ul>
             </div>
             <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #e2e8f0', background: '#f8fafc' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>👨‍⚕️</div>
+              <div style={{ marginBottom: '12px', color: '#8b5cf6' }}><Stethoscope size={40} /></div>
               <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#0f172a', margin: '0 0 12px' }}>Médicos que envían biopsias</h3>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '14px', color: '#475569', lineHeight: 2 }}>
-                <li>✓ Cargar biopsias desde la tablet</li>
-                <li>✓ Múltiples centros médicos</li>
-                <li>✓ Notificaciones cuando el estudio está listo</li>
-                <li>✓ Historial y búsqueda avanzada</li>
-                <li>✓ Estadísticas de su práctica</li>
-                <li>✓ Solicitud de tacos y servicios adicionales</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Cargar biopsias desde la tablet</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Múltiples centros médicos</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Notificaciones cuando el estudio está listo</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Historial y búsqueda avanzada</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Estadísticas de su práctica</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Solicitud de tacos y servicios adicionales</li>
               </ul>
             </div>
           </div>
@@ -282,12 +485,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       {/* Destacado: Dictado por voz */}
       <section style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #1e3a5f 0%, #7c3aed 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.05, backgroundImage: 'radial-gradient(circle at 75% 75%, white 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'center', position: 'relative' }}>
+        <div className="landing-dictado-grid" style={{ maxWidth: '900px', margin: '0 auto', position: 'relative' }}>
           <div>
             <div style={{ display: 'inline-block', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '20px', padding: '6px 16px', fontSize: '12px', color: 'white', fontWeight: 700, marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '1px' }}>
               Exclusivo para médicos
             </div>
-            <h2 style={{ fontSize: '32px', fontWeight: 800, color: 'white', margin: '0 0 16px', lineHeight: 1.2 }}>
+            <h2 className="landing-dictado-title">
               Dictado por voz para<br />macroscopía
             </h2>
             <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, margin: '0 0 24px' }}>
@@ -299,7 +502,9 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {['Dictá y se transcribe automáticamente', 'Queda guardado en la nube para siempre', 'Accedé desde cualquier dispositivo', 'Sin costo extra — incluido en el plan'].map((item, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: 'white' }}>
-                  <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', flexShrink: 0 }}>✓</span>
+                  <span style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <CheckCircle size={14} />
+                  </span>
                   {item}
                 </div>
               ))}
@@ -307,7 +512,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '24px', padding: '40px', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <div style={{ fontSize: '80px', marginBottom: '16px' }}>🎙️</div>
+              <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center', color: 'white' }}><Mic size={64} /></div>
               <div style={{ background: 'rgba(255,255,255,0.15)', borderRadius: '12px', padding: '16px', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444', animation: 'pulse 1.5s infinite' }} />
@@ -327,20 +532,20 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <section id="planes" style={{ padding: '80px 24px', background: 'white' }}>
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Simple y accesible</h2>
+            <h2 className="landing-section-title" style={{ color: '#0f172a' }}>Simple y accesible</h2>
             <p style={{ fontSize: '16px', color: '#64748b' }}>Sin contratos. Sin instalaciones complicadas. Funciona desde cualquier dispositivo.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', maxWidth: '700px', margin: '0 auto' }}>
+          <div className="landing-planes-grid">
             <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #e2e8f0', textAlign: 'center' }}>
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Para el laboratorio</div>
               <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>Panel completo de gestión</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '14px', color: '#475569', lineHeight: 2, textAlign: 'left' }}>
-                <li>✓ Dashboard en tiempo real</li>
-                <li>✓ Gestión de remitos y biopsias</li>
-                <li>✓ Facturación y cobros</li>
-                <li>✓ Pizarrón digital</li>
-                <li>✓ Emails profesionales</li>
-                <li>✓ Soporte incluido</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Dashboard en tiempo real</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Gestión de remitos y biopsias</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Facturación y cobros</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Pizarrón digital</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Emails profesionales</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Soporte incluido</li>
               </ul>
             </div>
             <div style={{ padding: '32px', borderRadius: '16px', border: '2px solid #3b82f6', background: '#eff6ff', textAlign: 'center', position: 'relative' }}>
@@ -348,12 +553,12 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
               <div style={{ fontSize: '13px', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Para el médico</div>
               <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>Todo desde su tablet</div>
               <ul style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '14px', color: '#475569', lineHeight: 2, textAlign: 'left' }}>
-                <li>✓ Carga de biopsias ilimitada</li>
-                <li>✓ Múltiples centros médicos</li>
-                <li>✓ Notificaciones en tiempo real</li>
-                <li>✓ Historial y búsqueda</li>
-                <li>✓ Estadísticas y facturación</li>
-                <li>✓ Ayudantes configurables</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Carga de biopsias ilimitada</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Múltiples centros médicos</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Notificaciones en tiempo real</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Historial y búsqueda</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Estadísticas y facturación</li>
+                <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircle size={14} style={{ color: '#22c55e', flexShrink: 0 }} /> Ayudantes configurables</li>
               </ul>
             </div>
           </div>
@@ -366,12 +571,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       {/* Contador animado */}
       <section ref={countsRef} style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #1e40af 100%)', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.06, backgroundImage: 'radial-gradient(circle at 30% 70%, white 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px', textAlign: 'center', position: 'relative' }}>
-          {[
-            { value: counts.biopsias, label: 'Remitos procesados', icon: '📋', gradient: 'linear-gradient(135deg, #3b82f6, #8b5cf6)' },
-            { value: counts.labs, label: 'Laboratorios activos', icon: '🏥', gradient: 'linear-gradient(135deg, #10b981, #3b82f6)' },
-            { value: counts.medicos, label: 'Médicos registrados', icon: '👨‍⚕️', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
-          ].map((c, i) => (
+        <div className="landing-counters-grid" style={{ maxWidth: '800px', margin: '0 auto', position: 'relative' }}>
+          {counterItems.map((c, i) => (
             <div key={i} style={{
               padding: '32px 20px', borderRadius: '20px',
               background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
@@ -380,9 +581,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
               opacity: countsVisible ? 1 : 0,
               transition: `all 0.6s ease ${i * 0.15}s`
             }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }}>{c.icon}</div>
-              <div style={{
-                fontSize: '48px', fontWeight: 800, lineHeight: 1,
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: 'rgba(255,255,255,0.7)' }}>{c.icon}</div>
+              <div className="landing-counter-value" style={{
                 background: c.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
               }}>
                 {c.value > 0 ? c.value.toLocaleString() : '—'}
@@ -397,20 +597,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
       <section style={{ padding: '80px 24px', background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #f0fdfa 100%)' }}>
         <div style={{ maxWidth: '700px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#0f172a', margin: '0 0 12px' }}>Preguntas frecuentes</h2>
+            <h2 className="landing-section-title" style={{ color: '#0f172a' }}>Preguntas frecuentes</h2>
             <p style={{ fontSize: '15px', color: '#64748b' }}>Todo lo que necesitás saber antes de empezar</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px' }}>
-            {[
-              { q: '¿Necesito instalar algo?', a: 'No. Funciona 100% desde el navegador. Solo necesitás tablet, PC o celular con internet.', icon: '💻' },
-              { q: '¿Funciona sin internet?', a: 'Sí. Los datos se guardan localmente y se sincronizan cuando vuelve la conexión.', icon: '📶' },
-              { q: '¿Mis datos están seguros?', a: 'Sí. Servidores seguros con datos aislados por laboratorio.', icon: '🔒' },
-              { q: '¿Cuántos médicos puede tener?', a: 'Sin límite. Cada médico con múltiples centros y ayudantes.', icon: '👥' },
-              { q: '¿Puedo probarlo gratis?', a: 'Sí. Primer mes de prueba gratis sin compromiso.', icon: '🎁' },
-              { q: '¿Cómo recibe la facturación?', a: 'Por email con detalle profesional de cada biopsia y total.', icon: '📧' },
-              { q: '¿Funciona en tablet Android?', a: 'Sí. Optimizado para tablets Android con Fully Kiosk Browser.', icon: '📱' },
-              { q: '¿Si cambio precios a mitad de mes?', a: 'Los remitos existentes conservan sus precios originales.', icon: '💰' },
-            ].map((faq, i) => (
+            {faqs.map((faq, i) => (
               <div key={i} style={{
                 background: openFaq === i ? 'white' : 'rgba(255,255,255,0.7)',
                 borderRadius: '12px', overflow: 'hidden',
@@ -426,7 +617,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                     cursor: 'pointer', textAlign: 'left'
                   }}
                 >
-                  <span style={{ fontSize: '22px', flexShrink: 0 }}>{faq.icon}</span>
+                  <span style={{ flexShrink: 0, color: openFaq === i ? '#2563eb' : '#64748b', display: 'flex', alignItems: 'center' }}>{faq.icon}</span>
                   <span style={{ fontSize: '15px', fontWeight: 600, color: openFaq === i ? '#2563eb' : '#1e293b', flex: 1, transition: 'color 0.2s' }}>{faq.q}</span>
                   <span style={{
                     width: '28px', height: '28px', borderRadius: '50%',
@@ -463,13 +654,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           </div>
           {contactSent ? (
             <div style={{ background: '#dcfce7', border: '2px solid #86efac', borderRadius: '16px', padding: '32px', textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '12px' }}>✅</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: '#22c55e' }}><CheckCircle size={48} /></div>
               <div style={{ fontSize: '18px', fontWeight: 700, color: '#166534', marginBottom: '8px' }}>Mensaje enviado</div>
               <div style={{ fontSize: '14px', color: '#15803d' }}>Nos pondremos en contacto a la brevedad.</div>
             </div>
           ) : (
             <div style={{ background: 'white', borderRadius: '16px', padding: '32px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div className="landing-contact-row">
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Nombre *</label>
                   <input type="text" value={contactForm.nombre} onChange={e => setContactForm(p => ({ ...p, nombre: e.target.value }))}
@@ -483,7 +674,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                     placeholder="tu@email.com" />
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+              <div className="landing-contact-row">
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', display: 'block', marginBottom: '4px' }}>Laboratorio</label>
                   <input type="text" value={contactForm.laboratorio} onChange={e => setContactForm(p => ({ ...p, laboratorio: e.target.value }))}
@@ -551,13 +742,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
 
       {/* Footer */}
       <footer style={{ background: '#0f172a', padding: '32px 24px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+        <div className="landing-footer-inner" style={{ maxWidth: '900px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '36px', filter: 'brightness(0) invert(1)' }} />
             <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>— Software para laboratorios de anatomía patológica</span>
           </div>
           <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>
-            © {new Date().getFullYear()} BiopsyTracker. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} BiopsyTracker. Todos los derechos reservados.
           </div>
         </div>
       </footer>
