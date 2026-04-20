@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Copy, Check, FileText, Calendar, Clock, ArrowLeft, LogIn, Mic, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Copy, Check, FileText, Calendar, Clock, ArrowLeft, LogIn, Mic, Trash2, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { db } from '../lib/database';
 
@@ -21,6 +21,8 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
   const [dateTo, setDateTo] = useState('');
   const [copiado, setCopiado] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editText, setEditText] = useState('');
+  const [saving, setSaving] = useState(false);
   const [labNombre, setLabNombre] = useState('');
 
   // Cargar nombre del lab
@@ -81,6 +83,18 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
       setCopiado(id);
       setTimeout(() => setCopiado(null), 2000);
     });
+  };
+
+  // Guardar edición
+  const guardarEdicion = async (id: string) => {
+    if (!editText.trim()) return;
+    setSaving(true);
+    try {
+      await supabase.from('macroscopia').update({ transcripcion: editText.trim(), updated_at: new Date().toISOString() }).eq('id', id);
+      setTranscripciones(prev => prev.map(t => t.id === id ? { ...t, transcripcion: editText.trim() } : t));
+      setSaving(false);
+      setTimeout(() => setSaving(false), 1500);
+    } catch { setSaving(false); alert('Error al guardar'); }
   };
 
   // Eliminar
@@ -234,7 +248,7 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
                   overflow: 'hidden', transition: 'all 0.2s'
                 }}>
                   {/* Header clickeable */}
-                  <div onClick={() => setExpandedId(isExpanded ? null : t.id)}
+                  <div onClick={() => { if (!isExpanded) setEditText(t.transcripcion); setExpandedId(isExpanded ? null : t.id); }}
                     style={{ padding: '16px 20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>🎙️</div>
@@ -275,27 +289,38 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
                     </div>
                   )}
 
-                  {/* Expandido */}
+                  {/* Expandido — editable */}
                   {isExpanded && (
                     <div style={{ padding: '0 20px 20px' }}>
-                      <div style={{
-                        background: '#f8fafc', borderRadius: '10px', padding: '16px',
-                        border: '1px solid #e2e8f0', fontSize: '14px', color: '#1e293b',
-                        lineHeight: 1.8, whiteSpace: 'pre-wrap', userSelect: 'text',
-                        maxHeight: '400px', overflow: 'auto'
-                      }}>
-                        {t.transcripcion}
-                      </div>
+                      <textarea
+                        value={editText}
+                        onChange={e => setEditText(e.target.value)}
+                        style={{
+                          width: '100%', minHeight: '200px', maxHeight: '400px',
+                          background: '#f8fafc', borderRadius: '10px', padding: '16px',
+                          border: '1px solid #e2e8f0', fontSize: '14px', color: '#1e293b',
+                          lineHeight: 1.8, resize: 'vertical', fontFamily: 'inherit',
+                          outline: 'none', boxSizing: 'border-box'
+                        }}
+                      />
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
                         <div style={{ fontSize: '11px', color: '#94a3b8' }}>
                           {t.hospital && <span>{t.hospital} · </span>}
                           {t.remito_number && <span>Remito #{t.remito_number} · </span>}
                           Creado: {new Date(t.created_at).toLocaleString('es-AR')}
                         </div>
-                        <button onClick={() => eliminar(t.id)}
-                          style={{ background: 'none', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', fontSize: '12px' }}>
-                          <Trash2 size={12} /> Eliminar
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {editText !== t.transcripcion && (
+                            <button onClick={() => guardarEdicion(t.id)}
+                              style={{ background: '#059669', border: 'none', borderRadius: '6px', padding: '6px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: 'white', fontSize: '12px', fontWeight: 600 }}>
+                              {saving ? 'Guardando...' : <><Save size={12} /> Guardar cambios</>}
+                            </button>
+                          )}
+                          <button onClick={() => eliminar(t.id)}
+                            style={{ background: 'none', border: '1px solid #fecaca', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', fontSize: '12px' }}>
+                            <Trash2 size={12} /> Eliminar
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
