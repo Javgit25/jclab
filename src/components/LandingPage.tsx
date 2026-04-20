@@ -252,17 +252,44 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           .landing-macro-btn {
             display: none !important;
           }
+          .landing-nav-logo img {
+            height: 28px !important;
+          }
+          .landing-nav-buttons {
+            margin-left: auto !important;
+          }
+          .landing-nav-buttons button {
+            font-size: 12px !important;
+            padding: 6px 14px !important;
+          }
           .landing-hero-title {
-            font-size: 28px !important;
+            font-size: 24px !important;
           }
           .landing-hero-sub {
-            font-size: 15px !important;
+            font-size: 14px !important;
+            margin-bottom: 24px !important;
+          }
+          .landing-hero-buttons {
+            flex-direction: column !important;
+            align-items: center !important;
+          }
+          .landing-hero-buttons button,
+          .landing-hero-buttons a {
+            width: 100% !important;
+            max-width: 280px !important;
+            font-size: 14px !important;
+            padding: 12px 24px !important;
           }
           .landing-features-grid {
             grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+          .landing-features-grid > div {
+            padding: 16px 12px !important;
           }
           .landing-workflow-grid {
             grid-template-columns: repeat(2, 1fr) !important;
+            gap: 16px !important;
           }
           .landing-para-quien-grid {
             grid-template-columns: 1fr !important;
@@ -274,22 +301,30 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             grid-template-columns: 1fr !important;
           }
           .landing-counters-grid {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 10px !important;
           }
           .landing-counter-value {
-            font-size: 36px !important;
+            font-size: 28px !important;
           }
           .landing-contact-row {
             grid-template-columns: 1fr !important;
           }
           .landing-section-title {
-            font-size: 26px !important;
+            font-size: 22px !important;
           }
           .landing-dictado-title {
-            font-size: 24px !important;
+            font-size: 20px !important;
           }
           .landing-tipos-flex {
-            gap: 8px;
+            gap: 6px !important;
+          }
+          .landing-tipos-flex > div {
+            padding: 6px 12px !important;
+            font-size: 12px !important;
+          }
+          .landing-tipos-flex > div > span {
+            display: none !important;
           }
           .landing-footer-inner {
             flex-direction: column;
@@ -305,7 +340,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
         padding: '12px 0', borderBottom: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{ padding: '0 24px', display: 'flex', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '32px' }}>
+          <div className="landing-nav-logo" style={{ display: 'flex', alignItems: 'center', flexShrink: 0, marginRight: '32px' }}>
             <img src={`${import.meta.env.BASE_URL}assets/biopsytracker_logo_recortado.svg`} alt="BiopsyTracker" style={{ height: '38px', filter: 'brightness(0) invert(1)' }} />
           </div>
           <div className="landing-nav-links">
@@ -314,7 +349,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             <a href="#planes" className="landing-nav-link">Planes</a>
             <a href="#contacto" className="landing-nav-link">Contacto</a>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: 'auto' }}>
+          <div className="landing-nav-buttons" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: 'auto' }}>
             <button
               className="landing-macro-btn"
               onClick={() => { const url = window.location.origin + window.location.pathname + '?macro='; const code = prompt('Ingresá el código de tu laboratorio:'); if (code) window.location.href = url + code.toUpperCase(); }}
@@ -351,7 +386,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
           <p className="landing-hero-sub">
             Conectamos al médico patólogo con el laboratorio en tiempo real. Desde la carga de la biopsia hasta la facturación mensual, todo en un solo sistema.
           </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="landing-hero-buttons" style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button onClick={onGoToApp} style={{
               background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white',
               border: 'none', padding: '14px 32px', borderRadius: '10px', fontSize: '16px',
