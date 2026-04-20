@@ -301,11 +301,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
             grid-template-columns: 1fr !important;
           }
           .landing-counters-grid {
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 10px !important;
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .landing-counters-grid > div {
+            padding: 20px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 16px !important;
+            text-align: left !important;
           }
           .landing-counter-value {
-            font-size: 28px !important;
+            font-size: 32px !important;
           }
           .landing-contact-row {
             grid-template-columns: 1fr !important;
