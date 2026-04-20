@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Mic, Square, Save, Trash2, Clock, FileText, Search, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Mic, Square, Save, Trash2, Clock, FileText, Search, Pause, Play, Copy, Check } from 'lucide-react';
 import { DoctorInfo } from '../types';
 import { supabase } from '../lib/supabase';
 
@@ -23,6 +23,24 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
   const [showHistorial, setShowHistorial] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [supported, setSupported] = useState(true);
+  const [copiado, setCopiado] = useState<string | null>(null);
+
+  const copiarTexto = (texto: string, id?: string) => {
+    navigator.clipboard.writeText(texto).then(() => {
+      setCopiado(id || 'main');
+      setTimeout(() => setCopiado(null), 2000);
+    }).catch(() => {
+      // Fallback para navegadores sin clipboard API
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setCopiado(id || 'main');
+      setTimeout(() => setCopiado(null), 2000);
+    });
+  };
 
   // Refs
   const recognitionRef = useRef<any>(null);
@@ -265,6 +283,10 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontSize: '10px', color: '#64748b' }}>{new Date(item.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })} {formatTime(item.duracion_segundos || 0)}</span>
+                  <button onClick={(e) => { e.stopPropagation(); copiarTexto(item.transcripcion, item.id); }}
+                    style={{ background: copiado === item.id ? '#059669' : '#1e3a5f', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '2px', transition: 'background 0.3s' }}>
+                    {copiado === item.id ? <Check size={12} color="white" /> : <Copy size={12} color="#60a5fa" />}
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); eliminarDictado(item.id); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
                     <Trash2 size={14} color="#ef4444" />
                   </button>
@@ -454,19 +476,24 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
           {/* Botones */}
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
             <button onClick={() => { setTranscripcion(''); setPaso('grabando'); iniciarGrabacion(); }}
-              style={{ padding: '14px', borderRadius: '10px', background: '#334155', border: 'none', color: 'white', fontSize: '14px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Mic size={16} /> Redictar
+              style={{ padding: '14px', borderRadius: '10px', background: '#334155', border: 'none', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Mic size={14} /> Redictar
+            </button>
+            <button onClick={() => copiarTexto(transcripcion)}
+              disabled={!transcripcion.trim()}
+              style={{ padding: '14px', borderRadius: '10px', background: copiado === 'main' ? '#059669' : '#1e40af', border: 'none', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'background 0.3s' }}>
+              {copiado === 'main' ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
             </button>
             <button onClick={guardarYSiguiente}
               disabled={!transcripcion.trim()}
               style={{
                 flex: 1, padding: '14px', borderRadius: '10px', border: 'none',
                 background: transcripcion.trim() ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#334155',
-                color: 'white', fontSize: '16px', fontWeight: 700, cursor: transcripcion.trim() ? 'pointer' : 'default',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                color: 'white', fontSize: '15px', fontWeight: 700, cursor: transcripcion.trim() ? 'pointer' : 'default',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
                 boxShadow: transcripcion.trim() ? '0 4px 20px rgba(34,197,94,0.3)' : 'none'
               }}>
-              <Save size={18} /> Guardar y siguiente paciente
+              <Save size={16} /> Guardar
             </button>
           </div>
         </div>
