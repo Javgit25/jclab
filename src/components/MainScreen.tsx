@@ -89,13 +89,20 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   // Pacientes con dictado de macroscopía
   const [pacientesConDictado, setPacientesConDictado] = useState<Set<string>>(new Set());
+  const [dictadosMap, setDictadosMap] = useState<Record<string, any>>({});
+  const [dictadoExpandido, setDictadoExpandido] = useState<string | null>(null);
   React.useEffect(() => {
     const loadDictados = async () => {
       try {
         const { supabase } = await import('../lib/supabase');
-        const { data } = await supabase.from('macroscopia').select('numero_paciente')
+        const { data } = await supabase.from('macroscopia').select('*')
           .eq('doctor_email', doctorInfo.email?.toLowerCase().trim());
-        if (data) setPacientesConDictado(new Set(data.map((d: any) => d.numero_paciente)));
+        if (data) {
+          setPacientesConDictado(new Set(data.map((d: any) => d.numero_paciente)));
+          const map: Record<string, any> = {};
+          data.forEach((d: any) => { map[d.numero_paciente] = d; });
+          setDictadosMap(map);
+        }
       } catch {}
     };
     loadDictados();
@@ -3841,7 +3848,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         <React.Fragment key={i}>
                         <tr style={{ background: rowBg, borderLeft: isUrgent ? '3px solid #dc2626' : 'none', borderBottom: hasExtra ? 'none' : '1px solid #e2e8f0' }}>
                           <td style={{ padding: '5px 4px', fontWeight: 600, color: '#94a3b8', fontSize: '8pt' }}>{i + 1}</td>
-                          <td style={{ padding: '5px 4px' }}><span style={{ fontWeight: 700 }}>{b.number || '-'}</span>{b.numeroExterno && <span style={{ color: '#b45309', fontSize: '7pt', marginLeft: '2px' }}>(Ext: {b.numeroExterno})</span>}{pacientesConDictado.has(b.number) && <span style={{ fontSize: '10px', marginLeft: '4px' }}>🎙️</span>}</td>
+                          <td style={{ padding: '5px 4px' }}><span style={{ fontWeight: 700 }}>{b.number || '-'}</span>{b.numeroExterno && <span style={{ color: '#b45309', fontSize: '7pt', marginLeft: '2px' }}>(Ext: {b.numeroExterno})</span>}{pacientesConDictado.has(b.number) && <span style={{ fontSize: '10px', marginLeft: '4px', cursor: 'pointer' }} onClick={() => setDictadoExpandido(dictadoExpandido === b.number ? null : b.number)}>🎙️</span>}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>{b.tissueType || '-'}</td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}><span style={{ background: tipoBg, color: 'white', padding: '1px 6px', borderRadius: '3px', fontSize: '8pt', fontWeight: 700 }}>{tipo}</span></td>
                           <td style={{ padding: '5px 4px', textAlign: 'center', fontWeight: 700 }}>{isPAP ? `${b.papQuantity || 1} vid.` : isCito ? `${b.citologiaQuantity || 1} vid.` : `${b.cassettes || 0} cass.`}</td>
@@ -3855,6 +3862,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                             </div>
                           </td>
                         </tr>}
+                        {dictadoExpandido === b.number && dictadosMap[b.number] && (
+                          <tr>
+                            <td colSpan={7} style={{ padding: '0 8px 8px' }}>
+                              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                  <span style={{ fontSize: '9pt', fontWeight: 700, color: '#92400e' }}>🎙️ Dictado de Macroscopía</span>
+                                  <span style={{ fontSize: '8pt', color: '#b45309' }}>
+                                    {new Date(dictadosMap[b.number].created_at).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}
+                                    {' · '}{dictadosMap[b.number].dictado_por || ''}
+                                  </span>
+                                </div>
+                                <p style={{ fontSize: '10pt', color: '#1e293b', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
+                                  {dictadosMap[b.number].transcripcion}
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                         </React.Fragment>
                       );
                     })}
