@@ -56,12 +56,15 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const labParam = params.get('lab');
     const macroParam = params.get('macro');
+    const appParam = params.get('app');
     if (macroParam) {
       setLabBoardCode(macroParam);
       setCurrentScreen('macroPanel');
     } else if (labParam) {
       setLabBoardCode(labParam);
       setCurrentScreen('labboard');
+    } else if (appParam) {
+      setCurrentScreen('login');
     }
   }, []);
 
