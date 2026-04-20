@@ -1966,13 +1966,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           <span style={{ fontSize: '14px', opacity: 0.7, fontWeight: '500' }}>#{todayBiopsiesCount + 1}</span>
         </button>
 
-        {/* Grid 4 botones secundarios */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', flex: 1 }}>
+        {/* Grid 3 botones secundarios */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', flex: 1 }}>
           {[
             { onClick: () => setShowSearchModal(true), icon: <Search style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Búsqueda', sub: 'Filtrar' },
             { onClick: onViewHistory, icon: <History style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Historial', sub: `${stats.totalRemitos} remitos` },
-            { onClick: () => { loadRemitosForBilling(); setShowStatistics(true); }, icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' },
-            { onClick: onGoToDictado, icon: <Mic style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Dictado', sub: 'Macroscopía' }
+            { onClick: () => { loadRemitosForBilling(); setShowStatistics(true); }, icon: <TrendingUp style={{ height: '28px', width: '28px', color: '#1e40af' }} />, label: 'Facturación', sub: 'Estadísticas' }
           ].map((btn, i) => (
             <button
               key={i}
@@ -3899,6 +3898,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       })()}
 
       {/* Teclado Virtual para Búsqueda y Solicitudes */}
+      {/* Botón flotante de Dictado — se oculta cuando hay modales */}
+      {!showSearchModal && !showSolicitudes && !showStatistics && !showAyudantesModal && !showNotifications && !showQRModal && !showKeyboard && (
+        <button onClick={onGoToDictado} style={{
+          position: 'fixed', bottom: '20px', right: '20px', zIndex: 1000,
+          width: '60px', height: '60px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+          border: 'none', cursor: 'pointer',
+          boxShadow: '0 4px 20px rgba(245,158,11,0.4)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          transition: 'transform 0.2s'
+        }}
+          onTouchStart={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.9)'; }}
+          onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+        >
+          <Mic size={28} color="white" />
+        </button>
+      )}
+
       {showKeyboard && (
         <div style={{
           position: 'fixed',
