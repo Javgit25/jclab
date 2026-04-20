@@ -732,7 +732,6 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                         if (labs?.[0]?.emailjs_config) localStorage.setItem('emailjsConfig', JSON.stringify(labs[0].emailjs_config));
                       }
                       const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
-                      console.log('EmailJS configured:', isEmailConfigured(), localStorage.getItem('emailjsConfig'));
                       if (isEmailConfigured()) {
                         await sendEmail({
                           toEmail: 'info@biopsytracker.io',
@@ -749,11 +748,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                             '<p style="color:#94a3b8;font-size:12px;">Enviado desde biopsytracker.io</p></div>',
                           fromName: 'BiopsyTracker Web',
                         });
-                        console.log('Email enviado OK');
-                      } else {
-                        console.log('EmailJS NO configurado');
                       }
-                    } catch (emailErr) { console.error('Error enviando email:', emailErr); }
+                    } catch {}
                   } catch {}
                   setContactSent(true);
                 }}
