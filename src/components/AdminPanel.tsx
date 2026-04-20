@@ -117,9 +117,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     precioCorteBlancoIHQ: 85,
     precioGiemsaPASMasson: 75,
     tiposTejido: [
-      'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia', 
-      'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',
-      'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'PAP', 'Citología'
+      'Absceso', 'Adenoides', 'Amigdala', 'Anexohisterectomia', 'Anexos', 'Angioma', 'Ano', 'Apendice', 'Arteria', 'Articular', 'Asa Leep', 'Autopsia', 'Axila',
+      'Bazo', 'Boca', 'Bronquio',
+      'Capsula', 'Cartilago', 'Cerebro', 'Cilindros', 'Cistico', 'Citología', 'Coagulo', 'Colon', 'Condiloma', 'Conducto deferente', 'Conjuntiva', 'Cono', 'Cordon umbilical', 'Costilla', 'Cuello', 'Cuerda vocal',
+      'Dedo', 'Disco', 'Diverticulo', 'Duodeno',
+      'Embarazo ectopico', 'Encia', 'Endocervix', 'Endometrio', 'Endoscopia', 'Epididimo', 'Epiplon', 'Escroto', 'Esofago', 'Estomago',
+      'Falange', 'Faringe', 'Fibroma', 'Fibrosis de pared', 'Fistula', 'Fosa nasal',
+      'Ganglio', 'Gangrena', 'Gastrica', 'Glande', 'Glandula', 'Glandula salival', 'Granuloma',
+      'Hemorroides', 'Hernia', 'Hidatide', 'Higado', 'Hipofisis', 'Hueso',
+      'Ileon', 'Inmunohistoquímica', 'Intestino',
+      'Labio', 'Laringe', 'LCR', 'Legrado', 'Lengua', 'Lesión', 'Lipoma',
+      'Malar', 'Mama', 'Maxilar', 'Mediastino', 'Medula ósea', 'Membranas', 'Mesenterio', 'Mioma', 'Mola', 'Mucocele', 'Muscular',
+      'Nariz', 'Nodulo',
+      'Oido', 'Ojo', 'Oreja', 'Orina', 'Oseo', 'Ovario',
+      'PAP', 'Paladar', 'Pancreas', 'Paratiroides', 'Parpado', 'Parotida', 'Partes blandas', 'Pelvis', 'Pene', 'Pericardio', 'Perine', 'Peritoneo', 'Piel', 'Placenta', 'Pleura', 'Polipo', 'Prepucio', 'Prostata', 'Pulmon', 'Punción',
+      'Quiste',
+      'Recto', 'Restos ovulares', 'Retroperitoneo', 'Riñón', 'RTU',
+      'Sacro', 'Saco', 'Sigma', 'Sinovial', 'Suprarrenal',
+      'Taco consulta', 'Tacos', 'TCS', 'Tejido adiposo', 'Tendon', 'Teratoma', 'Testiculo', 'Timo', 'Tiroides', 'Trombo', 'Trompa', 'Tumor', 'Tunica albuginea',
+      'Ulcera', 'Uña', 'Uretra', 'Ureter', 'Urinario', 'Utero',
+      'Vagina', 'Valvula cardiaca', 'Varices', 'Vascular', 'Vejiga', 'Vena', 'Vertebra', 'Vesicula biliar', 'Vulva'
     ]
   });
 
