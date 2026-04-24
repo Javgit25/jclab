@@ -265,6 +265,32 @@ export const db = {
     }
   },
 
+  // UPDATE directo: marcar remito como anulado sin pasar por el upsert completo
+  // (evita que tipos stale en otros campos hagan fallar el upsert)
+  async marcarRemitoAnulado(remitoId: string, notaAnulacion: string) {
+    // Actualizar localStorage primero
+    try {
+      const remitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
+      const idx = remitos.findIndex((r: any) => r.id === remitoId);
+      if (idx >= 0) {
+        remitos[idx] = { ...remitos[idx], notaServicioAdicional: notaAnulacion, modificadoPorSolicitud: true, modificadoAt: new Date().toISOString() };
+        localStorage.setItem('adminRemitos', JSON.stringify(remitos));
+      }
+    } catch {}
+    // UPDATE directo en Supabase con solo los campos que cambian
+    const { error } = await supabase.from('remitos').update({
+      nota_servicio_adicional: notaAnulacion,
+      modificado_por_solicitud: true,
+      modificado_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('id', remitoId);
+    if (error) {
+      console.error('❌ Error marcando remito anulado en Supabase:', error);
+      throw error;
+    }
+    console.log('✅ Remito marcado como anulado en Supabase:', remitoId);
+  },
+
   // ---- DOCTOR HISTORY ----
   async getDoctorHistory(doctorEmail: string): Promise<Record<string, any>> {
     try {

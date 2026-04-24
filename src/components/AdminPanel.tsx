@@ -4463,27 +4463,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
 
                     // ANULACIÓN DE REMITO: marcar el remito como anulado y descontar de facturación
-                    // Usa notaServicioAdicional (TEXT) para persistir — el schema de Supabase
-                    // rechaza 'anulado' en estado (CHECK constraint) y los campos modificadoPor* son BOOLEAN.
+                    // Usa UPDATE directo a Supabase en lugar de upsert completo para evitar
+                    // type mismatches en otros campos que hacen fallar silenciosamente el save.
                     if (sol.tipo === 'anulacion_remito' && nuevoEstado === 'entregado') {
                       try {
                         const solRN = String(sol.remitoNumber || '').replace('#', '').trim();
                         const target = remitos.find(r => String((r as any).remitoNumber || '').replace('#','').trim() === solRN);
+                        console.log('🔵 Anulación: buscando remito', { solRN, found: !!target, totalRemitos: remitos.length });
                         if (target) {
                           const motivo = (sol.descripcion || '').replace(/^ANULACIÓN solicitada por el médico\.\s*/i, '').trim();
                           const quien = sol.solicitadoPor || sol.doctorEmail || 'Médico';
-                          const anulado: any = {
-                            ...target,
-                            // Marcador compatible con schema Supabase existente
-                            notaServicioAdicional: `ANULADO|${quien}|${new Date().toISOString()}|${motivo || 'Sin motivo'}`,
-                            modificadoPorSolicitud: true,
-                            modificadoAt: new Date().toISOString()
-                          };
-                          await db.saveRemito(anulado);
-                          // Actualizar estado local de remitos
-                          setRemitos(prev => prev.map(r => r.id === target.id ? anulado : r));
+                          const nota = `ANULADO|${quien}|${new Date().toISOString()}|${motivo || 'Sin motivo'}`;
+                          await db.marcarRemitoAnulado(target.id, nota);
+                          // Actualizar estado local de remitos inmediatamente
+                          setRemitos(prev => prev.map(r => r.id === target.id
+                            ? { ...r, notaServicioAdicional: nota, modificadoPorSolicitud: true, modificadoAt: new Date().toISOString() }
+                            : r));
+                        } else {
+                          console.warn('⚠️ No se encontró el remito para anular. sol.remitoNumber:', sol.remitoNumber);
+                          alert(`⚠️ No se pudo anular: no se encontró el remito #${sol.remitoNumber}`);
                         }
-                      } catch (e) { console.error('Error marcando remito como anulado:', e); }
+                      } catch (e) { console.error('Error marcando remito como anulado:', e); alert('❌ Error al anular el remito: ' + (e as any)?.message); }
                     }
 
                     // Notificar al médico en todos los cambios de estado
