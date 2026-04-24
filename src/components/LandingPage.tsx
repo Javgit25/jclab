@@ -766,15 +766,10 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGoToApp }) => {
                       mensaje: contactForm.mensaje.trim(),
                       created_at: new Date().toISOString()
                     });
-                    // Enviar notificación por email
+                    // Enviar notificación por email (Resend via /api/send-email)
                     try {
-                      // Cargar config de EmailJS desde el primer lab
-                      if (!localStorage.getItem('emailjsConfig')) {
-                        const { data: labs } = await supabase.from('laboratories').select('emailjs_config').eq('estado', 'activo').limit(1);
-                        if (labs?.[0]?.emailjs_config) localStorage.setItem('emailjsConfig', JSON.stringify(labs[0].emailjs_config));
-                      }
-                      const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
-                      if (isEmailConfigured()) {
+                      const { sendEmail } = await import('../utils/emailService');
+                      {
                         await sendEmail({
                           toEmail: 'info@biopsytracker.io',
                           toName: 'BiopsyTracker',

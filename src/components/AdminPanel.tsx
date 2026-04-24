@@ -1352,7 +1352,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     document.body.removeChild(link);
   };
 
-  // Generar HTML compacto para email de facturación (< 50KB para EmailJS)
+  // Generar HTML compacto para el cuerpo del email de facturación
   const generarHTMLEmailFacturacion = (medico: string, centroFilter?: string) => {
     const fn = labConfig.nombre || 'Laboratorio';
     const fa = new Date().toLocaleDateString('es-AR');
@@ -3294,8 +3294,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       const doctorEmail = rm[0]?.email || '';
                                       if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
                                       try {
-                                        const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
-                                        if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración.'); return; }
+                                        const { sendEmail } = await import('../utils/emailService');
                                         const fromName = labConfig.nombre || 'Laboratorio';
                                         const emailHtml = generarHTMLEmailFacturacion(medico, centroName || undefined);
                                         const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
@@ -3533,12 +3532,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <button
                           onClick={async () => {
                             try {
-                              const { sendEmail, sendBulkEmail, isEmailConfigured } = await import('../utils/emailService');
-                              if (!isEmailConfigured()) {
-                                alert('EmailJS no está configurado. Andá a Configuración → Configuración de Email.');
-                                return;
-                              }
-
+                              const { sendEmail, sendBulkEmail } = await import('../utils/emailService');
                               const fromName = labConfig.nombre || 'Laboratorio';
                               const subject = emailModal.medico === 'Todos los médicos' ? 'Actualización de Aranceles - ' + fromName : 'Facturación - ' + fromName;
                               const messageHtml = '<div style="font-family:Arial,sans-serif;white-space:pre-line;font-size:14px;line-height:1.6;">' + emailMessage.replace(/\n/g, '<br>') + '</div>';
@@ -4080,116 +4074,91 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
-              {/* Configuración de Email (EmailJS) */}
+              {/* Configuración del Email de Facturación */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
                   <Mail className="mr-2 text-blue-600" size={20} />
-                  Configuración de Email
+                  Email de Facturación
                 </h3>
-                <p className="text-xs text-gray-400 mb-4">Configurá EmailJS para enviar emails desde el email del laboratorio. Los emails de facturación y notificaciones saldrán desde esta cuenta.</p>
-                {(() => {
-                  let emailCfg = { serviceId: '', templateId: '', publicKey: '' };
-                  try { emailCfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); } catch {}
-                  const isConfigured = !!(emailCfg.serviceId && emailCfg.templateId && emailCfg.publicKey);
-                  return (
+                <p className="text-xs text-gray-400 mb-4">
+                  Los emails salen desde <strong>info@biopsytracker.io</strong>. Las respuestas de los médicos llegan al email del laboratorio configurado arriba.
+                </p>
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <button onClick={async () => {
+                      try {
+                        const { sendTestEmail } = await import('../utils/emailService');
+                        const testEmail = labConfig.email || prompt('Email para prueba:');
+                        if (!testEmail) return;
+                        await sendTestEmail(testEmail);
+                        alert('Email de prueba enviado correctamente a ' + testEmail);
+                      } catch (e: any) {
+                        alert('Error al enviar: ' + (e.message || e.text || 'Error desconocido'));
+                      }
+                    }} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                      <Mail size={14} /> Enviar email de prueba
+                    </button>
+                  </div>
+
+                  {/* Cuerpo y pie de email configurables */}
+                  <div className="pt-4 border-t border-gray-200 space-y-4">
                     <div>
-                      <div className="grid grid-cols-3 gap-3 mb-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Service ID</label>
-                          <input type="text" defaultValue={emailCfg.serviceId} id="emailjs_serviceId"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="service_xxxxxxx" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Template ID</label>
-                          <input type="text" defaultValue={emailCfg.templateId} id="emailjs_templateId"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="template_xxxxxxx" />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Public Key</label>
-                          <input type="text" defaultValue={emailCfg.publicKey} id="emailjs_publicKey"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="pk_xxxxxxxxxxxx" />
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => {
-                          const sId = (document.getElementById('emailjs_serviceId') as HTMLInputElement)?.value || '';
-                          const tId = (document.getElementById('emailjs_templateId') as HTMLInputElement)?.value || '';
-                          const pKey = (document.getElementById('emailjs_publicKey') as HTMLInputElement)?.value || '';
-                          const bodyText = (document.getElementById('emailjs_body') as HTMLTextAreaElement)?.value || '';
-                          const footerText = (document.getElementById('emailjs_footer') as HTMLTextAreaElement)?.value || '';
-                          const emailCfgData = { serviceId: sId, templateId: tId, publicKey: pKey, bodyText, footerText };
-                          localStorage.setItem('emailjsConfig', JSON.stringify(emailCfgData));
-                          // Guardar en Supabase para que persista entre dispositivos
-                          if (currentLabCode) {
-                            try {
-                              const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
-                              const labIdx = labs.findIndex((l: any) => l.labCode === currentLabCode);
-                              if (labIdx >= 0) { labs[labIdx].emailjsConfig = emailCfgData; localStorage.setItem('superAdmin_laboratories', JSON.stringify(labs)); }
-                              db.saveLab({ ...labs[labIdx], emailjsConfig: emailCfgData }).catch(() => {});
-                            } catch {}
-                          }
-                          alert('Configuración de EmailJS guardada correctamente.');
-                          setRemitos([...remitos]);
-                        }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                          <Save size={14} /> Guardar
-                        </button>
-                        <button onClick={async () => {
-                          try {
-                            const { sendTestEmail } = await import('../utils/emailService');
-                            const testEmail = labConfig.email || prompt('Email para prueba:');
-                            if (!testEmail) return;
-                            await sendTestEmail(testEmail);
-                            alert('Email de prueba enviado correctamente a ' + testEmail);
-                          } catch (e: any) {
-                            alert('Error al enviar: ' + (e.message || e.text || 'Verificá la configuración'));
-                          }
-                        }} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
-                          <Mail size={14} /> Enviar prueba
-                        </button>
-                        <span className={`text-xs font-semibold ${isConfigured ? 'text-green-600' : 'text-gray-400'}`}>
-                          {isConfigured ? '✓ Configurado' : 'No configurado'}
-                        </span>
-                      </div>
-                      {/* Cuerpo y pie de email configurables */}
-                      <div className="mt-4 pt-4 border-t border-gray-200 space-y-4">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje del email <span className="text-gray-400 font-normal">(opcional)</span></label>
-                          <p className="text-xs text-gray-400 mb-2">Si se deja vacío, se usa el mensaje predeterminado que se muestra abajo.</p>
-                          <textarea
-                            id="emailjs_body"
-                            defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').bodyText || ''; } catch { return ''; } })()}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="Escribí un mensaje personalizado o dejalo vacío para usar el predeterminado."
-                          />
-                          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                            <div className="text-xs font-semibold text-blue-700 mb-1">Mensaje predeterminado (se usa si el campo está vacío):</div>
-                            <div className="text-xs text-blue-900 italic leading-relaxed">
-                              Estimado/a Dr./Dra. <strong>[nombre del médico]</strong>,<br/>
-                              Por medio de la presente, le adjuntamos el detalle completo de las biopsias y pacientes remitidos a nuestro laboratorio durante el mes de <strong>[mes actual]</strong>.<br/>
-                              Quedamos a su disposición para cualquier consulta o aclaración que considere necesaria.<br/>
-                              Sin otro particular, saludamos a usted muy atentamente.
-                            </div>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">Pie del email (datos de pago)</label>
-                          <p className="text-xs text-gray-400 mb-2">Datos bancarios, CBU, alias, instrucciones de pago, etc.</p>
-                          <textarea
-                            id="emailjs_footer"
-                            defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch { return ''; } })()}
-                            rows={4}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            placeholder="Ej: Datos para transferencia:&#10;Banco Nación - CBU: 000000000000&#10;Alias: laboratorio.pagos&#10;Titular: Laboratorio S.R.L."
-                          />
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Mensaje del email <span className="text-gray-400 font-normal">(opcional)</span></label>
+                      <p className="text-xs text-gray-400 mb-2">Si se deja vacío, se usa el mensaje predeterminado que se muestra abajo.</p>
+                      <textarea
+                        id="emailjs_body"
+                        defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').bodyText || ''; } catch { return ''; } })()}
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                        placeholder="Escribí un mensaje personalizado o dejalo vacío para usar el predeterminado."
+                      />
+                      <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div className="text-xs font-semibold text-blue-700 mb-1">Mensaje predeterminado (se usa si el campo está vacío):</div>
+                        <div className="text-xs text-blue-900 italic leading-relaxed">
+                          Estimado/a Dr./Dra. <strong>[nombre del médico]</strong>,<br/>
+                          Por medio de la presente, le adjuntamos el detalle completo de las biopsias y pacientes remitidos a nuestro laboratorio durante el mes de <strong>[mes actual]</strong>.<br/>
+                          Quedamos a su disposición para cualquier consulta o aclaración que considere necesaria.<br/>
+                          Sin otro particular, saludamos a usted muy atentamente.
                         </div>
                       </div>
                     </div>
-                  );
-                })()}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Pie del email (datos de pago)</label>
+                      <p className="text-xs text-gray-400 mb-2">Datos bancarios, CBU, alias, instrucciones de pago, etc.</p>
+                      <textarea
+                        id="emailjs_footer"
+                        defaultValue={(() => { try { return JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch { return ''; } })()}
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                        placeholder="Ej: Datos para transferencia:&#10;Banco Nación - CBU: 000000000000&#10;Alias: laboratorio.pagos&#10;Titular: Laboratorio S.R.L."
+                      />
+                    </div>
+                    <div>
+                      <button onClick={() => {
+                        const bodyText = (document.getElementById('emailjs_body') as HTMLTextAreaElement)?.value || '';
+                        const footerText = (document.getElementById('emailjs_footer') as HTMLTextAreaElement)?.value || '';
+                        let existing: any = {};
+                        try { existing = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); } catch {}
+                        const emailCfgData = { ...existing, bodyText, footerText };
+                        localStorage.setItem('emailjsConfig', JSON.stringify(emailCfgData));
+                        if (currentLabCode) {
+                          try {
+                            const labs = JSON.parse(localStorage.getItem('superAdmin_laboratories') || '[]');
+                            const labIdx = labs.findIndex((l: any) => l.labCode === currentLabCode);
+                            if (labIdx >= 0) {
+                              labs[labIdx].emailjsConfig = emailCfgData;
+                              localStorage.setItem('superAdmin_laboratories', JSON.stringify(labs));
+                              db.saveLab({ ...labs[labIdx], emailjsConfig: emailCfgData }).catch(() => {});
+                            }
+                          } catch {}
+                        }
+                        alert('Configuración guardada.');
+                      }} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2">
+                        <Save size={14} /> Guardar mensaje y pie
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* === SECCIÓN: SEGURIDAD Y USUARIOS === */}
@@ -5150,8 +5119,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       const confirmar = confirm(`¿Enviar recordatorio de deuda a ${deudores.length} médico(s)?`);
                       if (!confirmar) return;
                       try {
-                        const { sendEmail, isEmailConfigured } = await import('../utils/emailService');
-                        if (!isEmailConfigured()) { alert('EmailJS no está configurado. Andá a Configuración → Email.'); return; }
+                        const { sendEmail } = await import('../utils/emailService');
                         const info = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
                         let footerPago = '';
                         try { footerPago = JSON.parse(localStorage.getItem('emailjsConfig') || '{}').footerText || ''; } catch {}

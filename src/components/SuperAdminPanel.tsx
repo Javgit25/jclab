@@ -380,24 +380,8 @@ export const SuperAdminPanel: React.FC<SuperAdminPanelProps> = ({ onGoBack }) =>
                             </div>
                           </div>
 
-                          {/* EmailJS + Acciones */}
+                          {/* Acciones */}
                           <div>
-                            <div style={{ background: 'white', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '12px', marginBottom: '10px' }}>
-                              <div style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Configuración EmailJS</div>
-                              {['serviceId', 'templateId', 'publicKey'].map(k => (
-                                <div key={k} style={{ marginBottom: '4px' }}>
-                                  <label style={{ fontSize: '9px', color: '#94a3b8', display: 'block' }}>{k}</label>
-                                  <input type="text" defaultValue={(lab.emailjsConfig as any)?.[k] || ''}
-                                    onBlur={(e) => {
-                                      const cfg = { ...(lab.emailjsConfig || { serviceId: '', templateId: '', publicKey: '' }), [k]: e.target.value };
-                                      updateLab(lab.id, { emailjsConfig: cfg });
-                                    }}
-                                    style={{ width: '100%', padding: '4px 8px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', boxSizing: 'border-box', fontFamily: 'monospace' }} />
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Acciones */}
                             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                               <button onClick={() => { setShowRenewModal(lab); setRenewMonths(1); setRenewMetodo('transferencia'); }}
                                 style={{ background: '#059669', color: 'white', border: 'none', padding: '7px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>Renovar</button>

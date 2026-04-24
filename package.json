@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@emailjs/browser": "^4.4.1",
     "@supabase/supabase-js": "^2.102.1",
     "@types/qrcode": "^1.5.5",
     "chart.js": "^4.5.0",
