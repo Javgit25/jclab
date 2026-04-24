@@ -3177,14 +3177,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
                                     try {
                                       const { sendEmail } = await import('../utils/emailService');
+                                      const { htmlToPdfBase64 } = await import('../utils/htmlToPdf');
                                       const fromName = labConfig.nombre || 'Laboratorio';
                                       const emailHtml = generarHTMLEmailFacturacion(medico);
                                       const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
-                                      // Adjuntar el HTML completo (el mismo que se descarga con el botón)
-                                      const detalleHtml = generarHTMLFacturacion(medico);
-                                      const base64 = btoa(unescape(encodeURIComponent(detalleHtml)));
                                       const mesArchivo = mesEmail.replace(/\s+/g, '_');
-                                      const filename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}.html`;
+                                      const filename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}.pdf`;
+                                      // Generar PDF del detalle completo (mismo contenido que el botón de descarga)
+                                      const detalleHtml = generarHTMLFacturacion(medico);
+                                      const base64 = await htmlToPdfBase64(detalleHtml, filename);
                                       await sendEmail({
                                         toEmail: doctorEmail, toName: medico,
                                         subject: 'Facturación ' + mesEmail + ' - ' + fromName,
@@ -3192,9 +3193,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         attachments: [{ filename, content: base64 }]
                                       });
                                       registrarEmailEnviado(medico, doctorEmail);
-                                      alert('Email unificado enviado a ' + doctorEmail + ' con el detalle adjunto.');
+                                      alert('Email enviado a ' + doctorEmail + ' con el detalle en PDF adjunto.');
                                     } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
-                                  }} className={`${emailYaEnviado(medico) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico) ? 'Ya enviado — click para reenviar' : 'Enviar email con todos los centros + detalle adjunto'}>
+                                  }} className={`${emailYaEnviado(medico) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico) ? 'Ya enviado — click para reenviar' : 'Enviar email con todos los centros + PDF adjunto'}>
                                     {emailYaEnviado(medico) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
                                   </button>
                                 </td>
@@ -3231,14 +3232,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                         if (!doctorEmail) { alert('Este médico no tiene email registrado.'); return; }
                                         try {
                                           const { sendEmail } = await import('../utils/emailService');
+                                          const { htmlToPdfBase64 } = await import('../utils/htmlToPdf');
                                           const fromName = labConfig.nombre || 'Laboratorio';
                                           const emailHtml = generarHTMLEmailFacturacion(medico, centro);
                                           const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
-                                          // Adjuntar el HTML completo del centro
-                                          const detalleHtml = generarHTMLFacturacion(medico, centro);
-                                          const base64 = btoa(unescape(encodeURIComponent(detalleHtml)));
                                           const mesArchivo = mesEmail.replace(/\s+/g, '_');
-                                          const filename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}_${centro.replace(/\s+/g, '_')}.html`;
+                                          const filename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}_${centro.replace(/\s+/g, '_')}.pdf`;
+                                          // Generar PDF del detalle completo de ese centro
+                                          const detalleHtml = generarHTMLFacturacion(medico, centro);
+                                          const base64 = await htmlToPdfBase64(detalleHtml, filename);
                                           await sendEmail({
                                             toEmail: doctorEmail, toName: medico,
                                             subject: 'Facturación ' + mesEmail + ' ' + centro + ' - ' + fromName,
@@ -3246,7 +3248,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                             attachments: [{ filename, content: base64 }]
                                           });
                                           registrarEmailEnviado(medico, doctorEmail, centro);
-                                          alert('Email de ' + centro + ' enviado a ' + doctorEmail + ' con el detalle adjunto.');
+                                          alert('Email de ' + centro + ' enviado a ' + doctorEmail + ' con el PDF adjunto.');
                                         } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
                                       }} className={`${emailYaEnviado(medico, centro) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico, centro) ? 'Ya enviado — click para reenviar' : 'Enviar email de ' + centro}>
                                         {emailYaEnviado(medico, centro) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
