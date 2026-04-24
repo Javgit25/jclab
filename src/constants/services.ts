@@ -70,11 +70,57 @@ export const allTissueTypes = [
   'Citología',
   'Inmunohistoquímica',
   'Taco en Consulta',
-  'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia', 
+  'Gastrica', 'Vesicula biliar', 'Endometrio', 'Endoscopia',
   'Endocervix', 'Vulva', 'Recto', 'Piel', 'Mucosa', 'Colon', 'Ganglio',
   'Mama', 'Tiroides', 'Próstata', 'Útero', 'Ovario', 'Hígado', 'Riñón',
   'Pulmón', 'Cerebro', 'Hueso', 'Músculo', 'Laringe', 'Faringe', 'Esófago',
   'Duodeno', 'Yeyuno', 'Íleon', 'Ciego', 'Apéndice', 'Sigma', 'Ano',
   'Páncreas', 'Bazo', 'Timo', 'Médula ósea', 'Linfonodo', 'Pericardio',
   'Pleura', 'Peritoneo', 'Vagina', 'Clítoris', 'Labio mayor', 'Labio menor'
+];
+
+// Normaliza un nombre de tejido a su forma canónica.
+// Evita que variantes como "Pap" o "Taco consulta" se guarden y disparen el flujo equivocado.
+export const normalizeTissueName = (tissue: string): string => {
+  if (!tissue) return tissue;
+  const cleaned = tissue.trim();
+  const lower = cleaned.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const canonicalMap: Record<string, string> = {
+    'pap': 'PAP',
+    'ihq': 'Inmunohistoquímica',
+    'inmunohistoquimica': 'Inmunohistoquímica',
+    'citologia': 'Citología',
+    'taco en consulta': 'Taco en Consulta',
+    'taco consulta': 'Taco en Consulta',
+    'vb': 'Vesicula biliar',
+    'vesicula biliar': 'Vesicula biliar'
+  };
+  if (canonicalMap[lower]) return canonicalMap[lower];
+  // Por defecto: primera letra mayúscula, resto minúscula
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+};
+
+// ✅ Lista default completa (misma que usa AdminPanel como base) — se usa de fallback
+// para el autocompletado aunque Supabase/localStorage no tengan config guardada.
+export const defaultAdminTissues = [
+  'Absceso', 'Adenoides', 'Amigdala', 'Anexohisterectomia', 'Anexos', 'Angioma', 'Ano', 'Apendice', 'Arteria', 'Articular', 'Asa Leep', 'Autopsia', 'Axila',
+  'Bazo', 'Boca', 'Bronquio',
+  'Capsula', 'Cartilago', 'Cerebro', 'Cilindros', 'Cistico', 'Citología', 'Coagulo', 'Colon', 'Condiloma', 'Conducto deferente', 'Conjuntiva', 'Cono', 'Cordon umbilical', 'Costilla', 'Cuello', 'Cuerda vocal',
+  'Dedo', 'Disco', 'Diverticulo', 'Duodeno',
+  'Embarazo ectopico', 'Encia', 'Endocervix', 'Endometrio', 'Endoscopia', 'Epididimo', 'Epiplon', 'Escroto', 'Esofago', 'Estomago',
+  'Falange', 'Faringe', 'Fibroma', 'Fibrosis de pared', 'Fistula', 'Fosa nasal',
+  'Ganglio', 'Gangrena', 'Gastrica', 'Glande', 'Glandula', 'Glandula salival', 'Granuloma',
+  'Hemorroides', 'Hernia', 'Hidatide', 'Higado', 'Hipofisis', 'Hueso',
+  'Ileon', 'Inmunohistoquímica', 'Intestino',
+  'Labio', 'Laringe', 'LCR', 'Legrado', 'Lengua', 'Lesión', 'Lipoma',
+  'Malar', 'Mama', 'Maxilar', 'Mediastino', 'Medula ósea', 'Membranas', 'Mesenterio', 'Mioma', 'Mola', 'Mucocele', 'Muscular',
+  'Nariz', 'Nodulo',
+  'Oido', 'Ojo', 'Oreja', 'Orina', 'Oseo', 'Ovario',
+  'PAP', 'Paladar', 'Pancreas', 'Paratiroides', 'Parpado', 'Parotida', 'Partes blandas', 'Pelvis', 'Pene', 'Pericardio', 'Perine', 'Peritoneo', 'Piel', 'Placenta', 'Pleura', 'Polipo', 'Prepucio', 'Prostata', 'Pulmon', 'Punción',
+  'Quiste',
+  'Recto', 'Restos ovulares', 'Retroperitoneo', 'Riñón', 'RTU',
+  'Sacro', 'Saco', 'Sigma', 'Sinovial', 'Suprarrenal',
+  'Taco consulta', 'Tacos', 'TCS', 'Tejido adiposo', 'Tendon', 'Teratoma', 'Testiculo', 'Timo', 'Tiroides', 'Trombo', 'Trompa', 'Tumor', 'Tunica albuginea',
+  'Ulcera', 'Uña', 'Uretra', 'Ureter', 'Urinario', 'Utero',
+  'Vagina', 'Valvula cardiaca', 'Varices', 'Vascular', 'Vejiga', 'Vena', 'Vertebra', 'Vesicula biliar', 'Vulva'
 ];

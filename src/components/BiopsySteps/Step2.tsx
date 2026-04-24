@@ -71,7 +71,7 @@ export const Step2: React.FC<Step2Props> = ({
   const [showEndoscopiaMenu, setShowEndoscopiaMenu] = useState(false);
 
   const organizedTissues = {
-    'Más Frecuentes': frequentTissues.length > 0 ? frequentTissues.slice(0, 6) : ['Gastrica', 'Endometrio', 'Endoscopia', 'Piel', 'PAP', 'Citología']
+    'Más Frecuentes': frequentTissues.length > 0 ? frequentTissues.slice(0, 9) : ['Gastrica', 'Endometrio', 'Endoscopia', 'Piel', 'PAP', 'Citología', 'Vesicula biliar', 'Colon', 'Mama']
   };
 
   const endoscopiaCategories = {

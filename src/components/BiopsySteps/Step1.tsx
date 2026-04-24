@@ -11,6 +11,7 @@ interface Step1Props {
   onFinishRemito?: () => void;
   onOpenVirtualKeyboard?: (type: 'numeric' | 'full', field: string, currentValue: string) => void;
   keyboardValue?: string;
+  currentHospital?: string;
 }
 
 export const Step1: React.FC<Step1Props> = ({
@@ -22,7 +23,8 @@ export const Step1: React.FC<Step1Props> = ({
   onFinishDailyReport,
   onFinishRemito,
   onOpenVirtualKeyboard,
-  keyboardValue
+  keyboardValue,
+  currentHospital
 }) => {
   const [smartSuggestion, setSmartSuggestion] = useState<string>('');
   const [showKeyboard, setShowKeyboard] = useState(false);
@@ -45,13 +47,22 @@ export const Step1: React.FC<Step1Props> = ({
       const lastBiopsy = todayBiopsies[todayBiopsies.length - 1];
       setSmartSuggestion(generateSuggestion(lastBiopsy.number));
     } else {
-      // Buscar en el historial el último número usado
+      // Buscar en el historial el último número usado — filtrado por centro médico actual
       try {
         const email = localStorage.getItem('lastDoctorEmail') || '';
         const normalizedEmail = email.toLowerCase().trim().replace(/\s+/g, '');
         const histKey = `doctor_${normalizedEmail}_history`;
         const history = JSON.parse(localStorage.getItem(histKey) || '{}');
-        const entries = Object.values(history) as any[];
+        let entries = Object.values(history) as any[];
+
+        // Filtrar por centro médico actual para numeración independiente por centro
+        if (currentHospital) {
+          entries = entries.filter((e: any) => {
+            const h = e.doctorInfo?.hospital || '';
+            return !h || h === currentHospital;
+          });
+        }
+
         if (entries.length > 0) {
           // Ordenar por fecha descendente y tomar el último
           entries.sort((a: any, b: any) => new Date(b.timestamp || b.date || 0).getTime() - new Date(a.timestamp || a.date || 0).getTime());
@@ -72,7 +83,7 @@ export const Step1: React.FC<Step1Props> = ({
       const year = today.getFullYear().toString().slice(-2);
       setSmartSuggestion(`BX${year}-${String(todayBiopsiesCount + 1).padStart(3, '0')}`);
     }
-  }, [todayBiopsies, todayBiopsiesCount]);
+  }, [todayBiopsies, todayBiopsiesCount, currentHospital]);
 
   const handleKeyboardOpen = () => {
     if (onOpenVirtualKeyboard) {

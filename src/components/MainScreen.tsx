@@ -534,21 +534,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const StatisticsModal = () => {
     // Calcular datos de facturación usando remitos de Supabase (misma fuente que el admin)
     const calculateFinancialData = () => {
-      // Leer precios de configuración
+      // Helper: arma objeto de precios desde un adminConfig (snapshot o actual)
+      const buildPrecios = (cfg: any) => ({
+        cassette: cfg?.precioCassette || 300,
+        cassetteUrgente: cfg?.precioCassetteUrgente || 400,
+        profundizacion: cfg?.precioProfundizacion || 120,
+        pap: cfg?.precioPAP || 90,
+        papUrgente: cfg?.precioPAPUrgente || 110,
+        citologia: cfg?.precioCitologia || 90,
+        citologiaUrgente: cfg?.precioCitologiaUrgente || 120,
+        corteBlanco: cfg?.precioCorteBlanco || 60,
+        corteBlancoIHQ: cfg?.precioCorteBlancoIHQ || 85,
+        giemsaPASMasson: cfg?.precioGiemsaPASMasson || 75
+      });
+
+      // Precios actuales (fallback para remitos sin snapshot)
       let adminConfig: any = null;
       try { adminConfig = JSON.parse(localStorage.getItem('adminConfig') || 'null'); } catch {}
-      const precios = {
-        cassette: adminConfig?.precioCassette || 300,
-        cassetteUrgente: adminConfig?.precioCassetteUrgente || 400,
-        profundizacion: adminConfig?.precioProfundizacion || 120,
-        pap: adminConfig?.precioPAP || 90,
-        papUrgente: adminConfig?.precioPAPUrgente || 110,
-        citologia: adminConfig?.precioCitologia || 90,
-        citologiaUrgente: adminConfig?.precioCitologiaUrgente || 120,
-        corteBlanco: adminConfig?.precioCorteBlanco || 60,
-        corteBlancoIHQ: adminConfig?.precioCorteBlancoIHQ || 85,
-        giemsaPASMasson: adminConfig?.precioGiemsaPASMasson || 75
-      };
+      const preciosActuales = buildPrecios(adminConfig);
 
       // Usar remitos de Supabase (misma fuente que el admin), filtrados por centro
       let remitosData: any[] = [];
@@ -571,18 +574,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       remitosData.forEach((r: any) => {
         const fecha = new Date(r.timestamp || r.fecha);
         const biopsias = (r.biopsias || []);
+        // Usar precios del snapshot del remito si existe, sino precios actuales
+        const preciosRemito = r.preciosSnapshot ? buildPrecios(r.preciosSnapshot) : preciosActuales;
+        // Adjuntar precios a cada biopsia para que calcularBiopsia pueda usarlos
+        const biopsiasConPrecios = biopsias.map((b: any) => ({ ...b, _precios: preciosRemito }));
         if (fecha.getMonth() === selectedMonth && fecha.getFullYear() === selectedYear) {
-          savedBiopsies.push(...biopsias);
+          savedBiopsies.push(...biopsiasConPrecios);
           totalRemitosDelMes++;
         }
         if (fecha.getMonth() === previousMonth && fecha.getFullYear() === previousYear) {
-          previousMonthBiopsies.push(...biopsias);
+          previousMonthBiopsies.push(...biopsiasConPrecios);
         }
       });
 
-      // Función de cálculo IDÉNTICA al AdminPanel
+      // Función de cálculo IDÉNTICA al AdminPanel — usa precios congelados del remito
       const calcularBiopsia = (biopsy: any) => {
         if (biopsy.noVino) return 0;
+        const precios = biopsy._precios || preciosActuales;
         let total = 0;
         const svc = biopsy.servicios || {};
         const cassettes = parseInt(biopsy.cassettes) || 0;
@@ -1451,7 +1459,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
             date: entry.date,
             timestamp: entry.timestamp || biopsy.timestamp,
             remitoId: entry.id,
-            remitoNumber: entry.remitoNumber
+            remitoNumber: entry.remitoNumber,
+            // Snapshot de precios del remito (para facturación histórica)
+            preciosSnapshot: entry.preciosSnapshot || null
           });
         });
       });
@@ -2186,6 +2196,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     )}
                   </div>
 
+                  {/* Confirmación de tejido — refuerza que el médico pide lo correcto */}
+                  {solicitudSelectedPatient && (
+                    <div style={{
+                      padding: '10px 12px', borderRadius: '8px',
+                      background: '#eff6ff', border: '2px solid #3b82f6',
+                      display: 'flex', alignItems: 'center', gap: '10px'
+                    }}>
+                      <span style={{ fontSize: '18px' }}>🔬</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '10px', fontWeight: '700', color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Tipo de tejido</div>
+                        <div style={{ fontSize: '15px', fontWeight: '700', color: '#1e40af' }}>
+                          {solicitudSelectedPatient.tissueType || 'Sin tejido registrado'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* N° Remito - auto-filled */}
                   <div>
                     <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', marginBottom: '4px', display: 'block' }}>N° Remito</label>
@@ -2348,7 +2375,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       </div>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', borderRadius: '6px', padding: '4px 8px', border: '1px solid #e2e8f0' }}>
-                          <span style={{ fontSize: '10px', fontWeight: '600', color: '#64748b' }}>IHQ</span>
+                          <span style={{ fontSize: '10px', fontWeight: '600', color: '#64748b' }}>IHQ / cassette</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosIHQ: Math.max(0, prev.vidriosIHQ - 1) }))}
                               style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>−</button>
@@ -2358,7 +2385,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           </div>
                         </div>
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'white', borderRadius: '6px', padding: '4px 8px', border: '1px solid #e2e8f0' }}>
-                          <span style={{ fontSize: '10px', fontWeight: '600', color: '#64748b' }}>Blanco</span>
+                          <span style={{ fontSize: '10px', fontWeight: '600', color: '#64748b' }}>Blanco / cassette</span>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <button onClick={() => setSolicitudServicios(prev => ({ ...prev, vidriosBlanco: Math.max(0, prev.vidriosBlanco - 1) }))}
                               style={{ width: '24px', height: '24px', borderRadius: '6px', border: 'none', background: '#e2e8f0', cursor: 'pointer', fontSize: '14px', fontWeight: '700' }}>−</button>
@@ -2368,18 +2395,29 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           </div>
                         </div>
                       </div>
-                      {/* Resumen */}
-                        {(solicitudServicios.giemsa || solicitudServicios.pas || solicitudServicios.masson || solicitudServicios.vidriosIHQ > 0 || solicitudServicios.vidriosBlanco > 0) && (
-                          <div style={{ background: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#059669', fontWeight: '600' }}>
-                            ✓ {[
-                              solicitudServicios.giemsa && 'Giemsa',
-                              solicitudServicios.pas && 'PAS',
-                              solicitudServicios.masson && 'Masson',
-                              solicitudServicios.vidriosIHQ > 0 && `Vidrios IHQ ×${solicitudServicios.vidriosIHQ}`,
-                              solicitudServicios.vidriosBlanco > 0 && `Vidrios Blanco ×${solicitudServicios.vidriosBlanco}`
-                            ].filter(Boolean).join(' · ')}
-                          </div>
-                        )}
+                      {/* Resumen — multiplica vidrios por cantidad de cassettes seleccionados */}
+                        {(() => {
+                          const numCass = Math.max(1, solicitudSelectedCassettes.length);
+                          const totalIHQ = solicitudServicios.vidriosIHQ * numCass;
+                          const totalBlanco = solicitudServicios.vidriosBlanco * numCass;
+                          const hasAny = solicitudServicios.giemsa || solicitudServicios.pas || solicitudServicios.masson || solicitudServicios.vidriosIHQ > 0 || solicitudServicios.vidriosBlanco > 0;
+                          if (!hasAny) return null;
+                          return (
+                            <div style={{ background: '#f0fdf4', border: '1px solid #22c55e', borderRadius: '6px', padding: '6px 10px', fontSize: '11px', color: '#059669', fontWeight: '600' }}>
+                              ✓ {[
+                                solicitudServicios.giemsa && 'Giemsa',
+                                solicitudServicios.pas && 'PAS',
+                                solicitudServicios.masson && 'Masson',
+                                solicitudServicios.vidriosIHQ > 0 && (numCass > 1
+                                  ? `Vidrios IHQ ×${totalIHQ} (${solicitudServicios.vidriosIHQ}/cass × ${numCass} cass)`
+                                  : `Vidrios IHQ ×${totalIHQ}`),
+                                solicitudServicios.vidriosBlanco > 0 && (numCass > 1
+                                  ? `Vidrios Blanco ×${totalBlanco} (${solicitudServicios.vidriosBlanco}/cass × ${numCass} cass)`
+                                  : `Vidrios Blanco ×${totalBlanco}`)
+                              ].filter(Boolean).join(' · ')}
+                            </div>
+                          );
+                        })()}
                     </div>
                   )}
 
@@ -2417,12 +2455,23 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         descFinal = `Cassettes: ${solicitudSelectedCassettes.join(', ')}${descFinal ? '\n' + descFinal : ''}`;
                       }
                       if (solicitudTipo === 'servicio_adicional') {
+                        const numCass = Math.max(1, solicitudSelectedCassettes.length);
                         const svcParts: string[] = [];
                         if (solicitudServicios.giemsa) svcParts.push('Giemsa');
                         if (solicitudServicios.pas) svcParts.push('PAS');
                         if (solicitudServicios.masson) svcParts.push('Masson');
-                        if (solicitudServicios.vidriosIHQ > 0) svcParts.push(`Vidrios IHQ ×${solicitudServicios.vidriosIHQ}`);
-                        if (solicitudServicios.vidriosBlanco > 0) svcParts.push(`Vidrios Blanco ×${solicitudServicios.vidriosBlanco}`);
+                        if (solicitudServicios.vidriosIHQ > 0) {
+                          const totalIHQ = solicitudServicios.vidriosIHQ * numCass;
+                          svcParts.push(numCass > 1
+                            ? `Vidrios IHQ ×${totalIHQ} (${solicitudServicios.vidriosIHQ}/cass)`
+                            : `Vidrios IHQ ×${totalIHQ}`);
+                        }
+                        if (solicitudServicios.vidriosBlanco > 0) {
+                          const totalBlanco = solicitudServicios.vidriosBlanco * numCass;
+                          svcParts.push(numCass > 1
+                            ? `Vidrios Blanco ×${totalBlanco} (${solicitudServicios.vidriosBlanco}/cass)`
+                            : `Vidrios Blanco ×${totalBlanco}`);
+                        }
                         if (svcParts.length > 0) {
                           const subsInfo = solicitudSelectedCassettes.length > 0 ? ` [${solicitudSelectedCassettes.join(', ')}]` : '';
                           descFinal = `Servicios: ${svcParts.join(', ')}${subsInfo}${descFinal ? '\n' + descFinal : ''}`;
@@ -2713,7 +2762,26 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                       {!n.leida && <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#1e40af', flexShrink: 0 }} />}
-                      <span style={{ fontWeight: '600', color: n.tipo === 'listo' || n.tipo === 'parcial' ? '#059669' : n.tipo === 'material_recibido' ? '#d97706' : '#1e40af', fontSize: '12px' }}>{n.tipo === 'listo' ? '✅ Listo para retirar' : n.tipo === 'parcial' ? '🟢 Material listo (parcial)' : n.tipo === 'material_recibido' ? '📦 Material recibido en el laboratorio' : '📝 Remito modificado por el Laboratorio'}</span>
+                      {(() => {
+                        const msg = n.mensaje || n.message || '';
+                        const isSolicitud = msg.startsWith('Su solicitud') || msg.includes('fue aceptada y está en proceso');
+                        let label = '📝 Remito modificado por el Laboratorio';
+                        let color = '#1e40af';
+                        if (n.tipo === 'listo') { label = '✅ Listo para retirar'; color = '#059669'; }
+                        else if (n.tipo === 'parcial') { label = '🟢 Material listo (parcial)'; color = '#059669'; }
+                        else if (n.tipo === 'material_recibido') {
+                          color = '#d97706';
+                          if (isSolicitud) {
+                            // Detectar tipo específico de la solicitud
+                            if (msg.includes('Taco')) label = '📦 Solicitud de taco en proceso';
+                            else if (msg.includes('Profundización')) label = '🔬 Profundización en proceso';
+                            else label = '🧪 Servicio adicional en proceso';
+                          } else {
+                            label = '📦 Material recibido en el laboratorio';
+                          }
+                        }
+                        return <span style={{ fontWeight: '600', color, fontSize: '12px' }}>{label}</span>;
+                      })()}
                     </div>
                     <div style={{ color: '#475569', lineHeight: '1.5', whiteSpace: 'pre-line', fontSize: '11px' }}>{n.mensaje || n.message || 'Se realizaron cambios en un remito'}</div>
                     <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>
@@ -3483,9 +3551,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                     const cn = result.cassettesNumbers || [];
                     const isUrgent = svc.cassetteUrgente || svc.papUrgente || svc.citologiaUrgente;
 
-                    // Calcular costo con precios de configuración
+                    // Calcular costo: usar snapshot de precios del remito si existe, sino los actuales
                     let costo = 0;
-                    const ac = (() => { try { return JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch { return {}; } })();
+                    const ac = result.preciosSnapshot || (() => { try { return JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch { return {}; } })();
                     const p = {
                       cassette: ac.precioCassette || 300, cassetteUrgente: ac.precioCassetteUrgente || 400,
                       profundizacion: ac.precioProfundizacion || 120, pap: ac.precioPAP || 90,

@@ -59,12 +59,22 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
   };
 
   if (keyboard.type === 'numeric') {
-    const numericKeys = [
-      ['1', '2', '3'],
-      ['4', '5', '6'], 
-      ['7', '8', '9'],
-      ['0', '.', '-']
-    ];
+    // Campos de cantidad pura — no corresponden símbolos '.' ni '-'
+    const countOnlyFields = ['papQuantity', 'citologiaQuantity', 'cassettes', 'pieces', 'ihqVidriosQty'];
+    const isCountOnly = countOnlyFields.includes(keyboard.targetField);
+    const numericKeys = isCountOnly
+      ? [
+          ['1', '2', '3'],
+          ['4', '5', '6'],
+          ['7', '8', '9'],
+          ['', '0', '']
+        ]
+      : [
+          ['1', '2', '3'],
+          ['4', '5', '6'],
+          ['7', '8', '9'],
+          ['0', '.', '-']
+        ];
 
     return (
       <div className="bg-white border-t border-gray-200 p-2">
@@ -80,7 +90,9 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
           </div>
 
           <div className="grid grid-cols-3 gap-1.5 mb-2">
-            {numericKeys.flat().map((key) => (
+            {numericKeys.flat().map((key, i) => key === '' ? (
+              <div key={`empty-${i}`} />
+            ) : (
               <button
                 key={key}
                 onClick={() => onKeyPress(key)}

@@ -1549,20 +1549,6 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                   </div>
                 )}
 
-                {/* Firmas */}
-                <div style={{ display: 'flex', gap: '60px', marginTop: '40px', paddingTop: '20px' }}>
-                  <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ borderBottom: '2px solid #1e3a5f', height: '50px', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f' }}>Firma del Médico</div>
-                    <div style={{ fontSize: '9pt', color: '#64748b' }}>Dr/a. {doc.name || ''}</div>
-                  </div>
-                  <div style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ borderBottom: '2px solid #1e3a5f', height: '50px', marginBottom: '8px' }} />
-                    <div style={{ fontSize: '10pt', fontWeight: 700, color: '#1e3a5f' }}>Recibido por Laboratorio</div>
-                    <div style={{ fontSize: '9pt', color: '#64748b' }}>Fecha: ____________</div>
-                  </div>
-                </div>
-
                 {/* Pie de página */}
                 <div style={{ marginTop: '30px', paddingTop: '12px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '8pt', color: '#94a3b8' }}>
                   Documento generado por BiopsyTracker · {fechaRemito} · Remito #{((re as any).remitoNumber || (re.id || '').slice(-6).toUpperCase())}

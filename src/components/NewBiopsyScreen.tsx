@@ -6,10 +6,10 @@ import { Step1 } from './BiopsySteps/Step1';
 import { Step2 } from './BiopsySteps/Step2';
 import { Step3 } from './BiopsySteps/Step3';
 import { Step4 } from './BiopsySteps/Step4';
-import { Step5 } from './BiopsySteps/Step5';
 import { Step6 } from './BiopsySteps/Step6';
 import { Step7 } from './BiopsySteps/Step7';
-import { tissueTypes } from '../constants/services';
+import { tissueTypes, defaultAdminTissues, normalizeTissueName } from '../constants/services';
+import { db } from '../lib/database';
 
 interface NewBiopsyScreenProps {
   doctorInfo: DoctorInfo;
@@ -53,7 +53,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     cassettes: '',
     pieces: '',
     cassettesNumbers: [],
-    declassify: '',
+    declassify: 'No',
     servicios: {
       cassetteUrgente: false,
       pap: false,
@@ -95,6 +95,36 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
 
   const [autoCompleteOptions, setAutoCompleteOptions] = useState<string[]>([]);
 
+  const [adminTissues, setAdminTissues] = useState<string[]>(() => {
+    try {
+      const ac = JSON.parse(localStorage.getItem('adminConfig') || '{}');
+      return Array.isArray(ac.tiposTejido) ? ac.tiposTejido : [];
+    } catch { return []; }
+  });
+
+  // Refrescar lista de tejidos del admin desde Supabase al entrar a cargar biopsia.
+  // IMPORTANTE: solo mergear tiposTejido — NO sobrescribir precios u otras claves del adminConfig
+  // porque Supabase puede tener una versión vieja si el admin aún no guardó los cambios nuevos.
+  React.useEffect(() => {
+    const refreshAdminTissues = async () => {
+      try {
+        const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+        const doc = docs.find((d: any) => d.email?.toLowerCase() === doctorInfo?.email?.toLowerCase());
+        const labCode = doc?.labCode;
+        if (!labCode) return;
+        const cfg = await db.getAdminConfig(labCode);
+        if (cfg && Array.isArray(cfg.tiposTejido) && cfg.tiposTejido.length > 0) {
+          let current: any = {};
+          try { current = JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch {}
+          const merged = { ...current, tiposTejido: cfg.tiposTejido };
+          localStorage.setItem('adminConfig', JSON.stringify(merged));
+          setAdminTissues(cfg.tiposTejido);
+        }
+      } catch {}
+    };
+    refreshAdminTissues();
+  }, [doctorInfo?.email]);
+
   // ✅ FUNCIÓN ACTUALIZADA CON LÓGICA MEJORADA PARA PAP/CITOLOGÍA
   const handleBiopsyChange = useCallback((field: keyof BiopsyForm, value: string | string[]) => {
     setBiopsyForm(prev => {
@@ -102,13 +132,9 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       
       // ✅ LÓGICA MEJORADA: Resetear cantidades cuando cambia el tipo de tejido
       if (field === 'tissueType') {
-        // Normalizar nombres especiales (el autocompletado puede cambiar mayúsculas)
-        if (typeof value === 'string' && (value.toLowerCase() === 'inmunohistoquímica' || value.toLowerCase() === 'inmunohistoquimica' || value.toUpperCase() === 'IHQ')) {
-          value = 'Inmunohistoquímica';
-          updated.tissueType = value;
-        }
-        if (typeof value === 'string' && value.toLowerCase() === 'taco en consulta') {
-          value = 'Taco en Consulta';
+        // Normalizar a forma canónica (PAP, Citología, Inmunohistoquímica, Taco en Consulta, etc.)
+        if (typeof value === 'string') {
+          value = normalizeTissueName(value);
           updated.tissueType = value;
         }
         if (value !== 'PAP') {
@@ -324,22 +350,24 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
   };
 
   const updateAutoComplete = useCallback((value: string) => {
-    if (!value || value.length < 2) {
+    if (!value || value.length < 1) {
       setAutoCompleteOptions([]);
       return;
     }
 
-    // Incluir tejidos del admin config
-    let adminTissues: string[] = [];
+    // Fallback por si el estado aún no cargó: leer también del localStorage
+    let adminTissuesFromStorage: string[] = [];
     try {
       const ac = JSON.parse(localStorage.getItem('adminConfig') || '{}');
-      adminTissues = ac.tiposTejido || [];
+      adminTissuesFromStorage = Array.isArray(ac.tiposTejido) ? ac.tiposTejido : [];
     } catch {}
 
     const allTissues = [
       ...tissueTypes,
       ...frequentTissues,
-      ...adminTissues
+      ...adminTissues,
+      ...adminTissuesFromStorage,
+      ...defaultAdminTissues
     ];
 
     // Deduplicar ignorando tildes y mayúsculas, siempre capitalizar
@@ -355,8 +383,11 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     const uniqueTissues = Array.from(seen.values());
 
     const valueNorm = normalizeForSearch(value);
-    // Alias: "ihq" debe matchear "Inmunohistoquímica"
-    const aliases: Record<string, string[]> = { 'inmunohistoquimica': ['ihq'] };
+    // Alias: abreviaturas que deben matchear tejidos completos
+    const aliases: Record<string, string[]> = {
+      'inmunohistoquimica': ['ihq'],
+      'vesicula biliar': ['vb']
+    };
     const filtered = uniqueTissues
       .filter(tissue => {
         const tissueNorm = normalizeForSearch(tissue);
@@ -365,17 +396,17 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
         const tissueAliases = aliases[tissueNorm] || [];
         return tissueAliases.some(a => a.includes(valueNorm) || valueNorm.includes(a));
       })
-      .slice(0, 8)
       .sort((a, b) => {
         const aStarts = normalizeForSearch(a).startsWith(valueNorm);
         const bStarts = normalizeForSearch(b).startsWith(valueNorm);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
         return a.localeCompare(b);
-      });
+      })
+      .slice(0, 8);
 
     setAutoCompleteOptions(filtered);
-  }, [frequentTissues]);
+  }, [frequentTissues, adminTissues]);
 
   const openVirtualKeyboard = useCallback((type: 'numeric' | 'full', field: string, currentValue = '') => {
     setVirtualKeyboard({
@@ -539,7 +570,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
       cassettes: '',
       pieces: '',
       cassettesNumbers: [],
-      declassify: '',
+      declassify: 'No',
       servicios: {
         cassetteUrgente: false,
         pap: false,
@@ -632,24 +663,15 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     }
 
     if (currentStep === 4) {
-      const isPapOrCitologiaFlow = isPapOrCitologia();
-      if (isPapOrCitologiaFlow) {
-        // Saltar Step5 (Desclasificar) y ir directo a Step6 (servicios)
-        setCurrentStep(6);
-        return;
-      }
-      // Taco en Consulta: saltar Step5 → ir a Step6
-      if (isTacoConsulta()) {
-        console.log('🎯 Flujo Taco en Consulta: Step4 → Step6');
-        setCurrentStep(6);
-        return;
-      }
-      // IHQ: Step4 → Step7 directo (sin Step5 ni Step6)
+      // IHQ: Step4 → Step7 directo (sin Step6)
       if (isIHQ()) {
         console.log('🎯 Flujo IHQ: Step4 → Step7');
         setCurrentStep(7);
         return;
       }
+      // Resto: Step4 → Step6 (Step5 Desclasificación fue eliminado)
+      setCurrentStep(6);
+      return;
     }
 
     if (currentStep < 7) {
@@ -698,17 +720,9 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
     }
 
     if (currentStep === 6) {
-      const isPapOrCitologiaFlow = isPapOrCitologia();
-      if (isPapOrCitologiaFlow) {
-        // Volver a Step4 (saltar Step5)
-        setCurrentStep(4);
-        return;
-      }
-      // Taco en Consulta: Step6 → Step4 (saltar Step5)
-      if (isTacoConsulta()) {
-        setCurrentStep(4);
-        return;
-      }
+      // Step5 (Desclasificación) eliminado: Step6 siempre vuelve a Step4
+      setCurrentStep(4);
+      return;
     }
     
     if (currentStep > 1) {
@@ -730,6 +744,7 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
             onOpenVirtualKeyboard={openVirtualKeyboard}
             keyboardValue={virtualKeyboard.targetValue}
+            currentHospital={doctorInfo?.hospital || ''}
           />
         )}
         
@@ -806,18 +821,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
           />
         )}
 
-        {/* ✅ STEP 5 - NO SE MUESTRA PARA PAP/CITOLOGÍA NI TACO EN CONSULTA */}
-        {currentStep === 5 && !isPapOrCitologia() && !isTacoConsulta() && !isIHQ() && (
-          <Step5
-            declassify={biopsyForm.declassify}
-            onDeclassifyChange={(value) => handleBiopsyChange('declassify', value)}
-            onNext={nextStep}
-            onPrev={prevStep}
-            onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
-            todayBiopsiesCount={todayBiopsies.length}
-          />
-        )}
-        
+        {/* Step 5 (Desclasificación) fue eliminado — ahora es un checkbox dentro de Step 6 */}
+
         {/* ✅ STEP 6 - NO SE MUESTRA PARA PAP/CITOLOGÍA - SÍ PARA TACO EN CONSULTA */}
         {currentStep === 6 && !isPapOrCitologia() && (
           <Step6
@@ -845,6 +850,8 @@ export const NewBiopsyScreen: React.FC<NewBiopsyScreenProps> = ({
             onPrev={prevStep}
             onFinishRemito={todayBiopsies.length > 0 ? () => { if (window.confirm(`¿Finalizar remito con ${todayBiopsies.length} paciente(s)?`)) onFinishDailyReport(); } : undefined}
             todayBiopsiesCount={todayBiopsies.length}
+            declassify={biopsyForm.declassify}
+            onDeclassifyChange={(value) => handleBiopsyChange('declassify', value)}
           />
         )}
 

@@ -4405,8 +4405,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 {(() => {
                   const solsPendientes = solicitudesAdmin.filter((s: any) => s.estado === 'pendiente' || s.estado === 'en_proceso');
                   const solsHistorial = solicitudesAdmin.filter((s: any) => s.estado === 'entregado' || s.estado === 'rechazado');
-                  const tipoBadge = (tipo: string) => tipo === 'taco' ? 'bg-amber-100 text-amber-800' : tipo === 'profundizacion' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
-                  const tipoLabel = (tipo: string) => tipo === 'taco' ? '📦 Taco' : tipo === 'profundizacion' ? '🔬 Profundización' : '➕ Serv. Adicional';
+                  const tipoBadge = (tipo: string) => tipo === 'taco' ? 'bg-amber-100 text-amber-800' : tipo === 'profundizacion' ? 'bg-blue-100 text-blue-800' : tipo === 'anulacion_remito' ? 'bg-red-100 text-red-800' : 'bg-purple-100 text-purple-800';
+                  const tipoLabel = (tipo: string) => tipo === 'taco' ? '📦 Taco' : tipo === 'profundizacion' ? '🔬 Profundización' : tipo === 'anulacion_remito' ? '🗑️ Anulación de Remito' : '➕ Serv. Adicional';
                   const estadoBadge = (estado: string) => estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' : estado === 'en_proceso' ? 'bg-blue-100 text-blue-800' : estado === 'entregado' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
                   const estadoLabel = (estado: string) => estado === 'pendiente' ? '⏳ Pendiente' : estado === 'en_proceso' ? '🔄 En proceso' : estado === 'entregado' ? '✓ Entregado' : '✕ Rechazado';
 

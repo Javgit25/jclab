@@ -18,6 +18,8 @@ interface Step6Props {
   tissueType?: string;
   onFinishRemito?: () => void;
   todayBiopsiesCount?: number;
+  declassify?: string;
+  onDeclassifyChange?: (value: string) => void;
 }
 
 export const Step6: React.FC<Step6Props> = ({
@@ -34,7 +36,9 @@ export const Step6: React.FC<Step6Props> = ({
   onPrev,
   tissueType,
   onFinishRemito,
-  todayBiopsiesCount
+  todayBiopsiesCount,
+  declassify,
+  onDeclassifyChange
 }) => {
   const isTacoConsulta = tissueType === 'Taco en Consulta';
   // Estado para cassettes seleccionados por servicio
@@ -412,7 +416,33 @@ export const Step6: React.FC<Step6Props> = ({
           border: '1px solid #e5e7eb',
           margin: '0 8px'
         }}>
-          
+
+          {/* Checkbox de Desclasificación — solo para biopsias normales (no PAP/Cito/IHQ/Taco) */}
+          {onDeclassifyChange && tissueType && tissueType !== 'PAP' && tissueType !== 'Citología' && tissueType !== 'Inmunohistoquímica' && tissueType !== 'Taco en Consulta' && (
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 14px', marginBottom: '12px',
+              backgroundColor: declassify === 'Sí' ? '#dbeafe' : '#f8fafc',
+              border: `2px solid ${declassify === 'Sí' ? '#3b82f6' : '#e5e7eb'}`,
+              borderRadius: '10px', cursor: 'pointer', transition: 'all 0.2s'
+            }}>
+              <input
+                type="checkbox"
+                checked={declassify === 'Sí'}
+                onChange={(e) => onDeclassifyChange(e.target.checked ? 'Sí' : 'No')}
+                style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#3b82f6' }}
+              />
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '14px', fontWeight: '700', color: declassify === 'Sí' ? '#1e40af' : '#374151' }}>
+                  🛡️ Requiere desclasificación
+                </div>
+                <div style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
+                  Marque si la muestra necesita proceso especial (tarda más tiempo)
+                </div>
+              </div>
+            </label>
+          )}
+
           {/* Contador de servicios */}
           {serviciosSeleccionados > 0 && (
             <div style={{

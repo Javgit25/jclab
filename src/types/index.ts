@@ -37,7 +37,7 @@ export interface RegisteredDoctor {
 
 export interface Solicitud {
   id: string;
-  tipo: 'taco' | 'profundizacion' | 'servicio_adicional';
+  tipo: 'taco' | 'profundizacion' | 'servicio_adicional' | 'anulacion_remito';
   remitoNumber: string;
   numeroPaciente: string;
   tejido: string;

@@ -28,6 +28,7 @@ const tipoBadge: Record<string, { label: string; bg: string; color: string }> = 
   taco: { label: '\u{1F4E6} Taco', bg: '#78350f', color: '#fbbf24' },
   profundizacion: { label: '\u{1F52C} Profundizacion', bg: '#1e3a5f', color: '#60a5fa' },
   servicio_adicional: { label: '\u2795 Serv. Adicional', bg: '#3b0764', color: '#c084fc' },
+  anulacion_remito: { label: '\u{1F5D1} Anulacion', bg: '#7f1d1d', color: '#fca5a5' },
 };
 
 function playBeep() {

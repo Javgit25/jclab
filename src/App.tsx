@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { DoctorInfo, BiopsyForm, SyncAction, HistoryEntry } from './types';
 import { db } from './lib/database';
+import { normalizeTissueName } from './constants/services';
 import LoginScreen from './components/LoginScreen';
 import MainScreen from './components/MainScreen';
 import NewBiopsyScreen from './components/NewBiopsyScreen';
@@ -141,11 +142,22 @@ function App() {
         }
       }
 
-      // Cargar tejidos frecuentes
+      // Cargar tejidos frecuentes — normalizar y deduplicar al cargar para limpiar entradas viejas
       const savedFrequentTissues = localStorage.getItem('frequentTissues');
       if (savedFrequentTissues) {
-        const parsedTissues = JSON.parse(savedFrequentTissues);
-        setFrequentTissues(parsedTissues);
+        const parsedTissues: string[] = JSON.parse(savedFrequentTissues);
+        const normalizeText = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+        const seen = new Set<string>();
+        const cleaned: string[] = [];
+        for (const t of parsedTissues) {
+          const canon = normalizeTissueName(t);
+          const key = normalizeText(canon);
+          if (key && !seen.has(key)) { seen.add(key); cleaned.push(canon); }
+        }
+        setFrequentTissues(cleaned);
+        if (JSON.stringify(cleaned) !== JSON.stringify(parsedTissues)) {
+          localStorage.setItem('frequentTissues', JSON.stringify(cleaned));
+        }
       }
 
       // Cargar cola de sincronización
@@ -467,8 +479,8 @@ function App() {
     syncTissueToAdmin(tissue);
 
     setFrequentTissues(prev => {
-      const cleaned = tissue.trim();
-      const tissueToAdd = cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+      // Normalizar a forma canónica para evitar variantes mal-escritas (Pap vs PAP, Taco consulta vs Taco en Consulta)
+      const tissueToAdd = normalizeTissueName(tissue);
       const normalized = normalizeText(tissueToAdd);
       // Buscar si ya existe ignorando tildes y mayúsculas
       const existingIndex = prev.findIndex(t => normalizeText(t) === normalized);
@@ -511,9 +523,13 @@ function App() {
       doctorInfo: { ...doctorInfo },
       totalCount: todayBiopsies.length,
       timestamp: new Date().toISOString(),
-      cargadoPor: doctorInfo.cargadoPor || `Dr/a. ${doctorInfo.firstName || ''} ${doctorInfo.lastName || ''}`.trim()
+      cargadoPor: doctorInfo.cargadoPor || `Dr/a. ${doctorInfo.firstName || ''} ${doctorInfo.lastName || ''}`.trim(),
+      // Congelar precios al momento de crear el remito (histórico)
+      preciosSnapshot: (() => {
+        try { return JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch { return null; }
+      })()
     };
-    
+
     // Usar el ID único como key en lugar de solo la fecha
     currentHistory[uniqueId] = newEntry;
     
@@ -731,7 +747,11 @@ function App() {
       doctorInfo: { ...doctorInfo },
       totalCount: updatedBiopsies.length,
       timestamp: new Date().toISOString(),
-      cargadoPor: doctorInfo.cargadoPor || `Dr/a. ${doctorInfo.firstName || ''} ${doctorInfo.lastName || ''}`.trim()
+      cargadoPor: doctorInfo.cargadoPor || `Dr/a. ${doctorInfo.firstName || ''} ${doctorInfo.lastName || ''}`.trim(),
+      // Congelar precios al momento de crear el remito (histórico)
+      preciosSnapshot: (() => {
+        try { return JSON.parse(localStorage.getItem('adminConfig') || '{}'); } catch { return null; }
+      })()
     };
 
     // Usar ID único como key
@@ -952,25 +972,52 @@ function App() {
         }}
         onDeleteEntry={(entryId: string) => {
           if (!doctorInfo || !doctorInfo.email) return;
-          
-          const confirmed = window.confirm('¿Está seguro que desea eliminar este remito del historial?');
-          if (confirmed) {
-            const doctorKey = generateDoctorKey(doctorInfo.email);
-            const historyKey = `${doctorKey}_history`;
-            const currentHistory = { ...historyData };
-            
-            // Buscar y eliminar por ID
-            Object.keys(currentHistory).forEach(key => {
-              if (currentHistory[key].id === entryId || key === entryId) {
-                delete currentHistory[key];
-              }
-            });
-            
-            localStorage.setItem(historyKey, JSON.stringify(currentHistory));
-            setHistoryData(currentHistory);
-            
-            alert('✅ Remito eliminado del historial.');
+
+          const confirmed = window.confirm('¿Está seguro que desea eliminar este remito?\n\nEsto enviará una solicitud de anulación al laboratorio para que ajuste la facturación. El remito quedará oculto en su historial.');
+          if (!confirmed) return;
+
+          const doctorKey = generateDoctorKey(doctorInfo.email);
+          const historyKey = `${doctorKey}_history`;
+          const currentHistory = { ...historyData };
+
+          // Buscar el entry para tener datos antes de borrar
+          let deletedEntry: any = null;
+          Object.keys(currentHistory).forEach(key => {
+            if (currentHistory[key].id === entryId || key === entryId) {
+              deletedEntry = currentHistory[key];
+              delete currentHistory[key];
+            }
+          });
+
+          localStorage.setItem(historyKey, JSON.stringify(currentHistory));
+          setHistoryData(currentHistory);
+
+          // Generar solicitud de anulación para que el admin vea y ajuste facturación
+          if (deletedEntry) {
+            try {
+              const registeredDoctors = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+              const matched = registeredDoctors.find((d: any) => d.email?.toLowerCase() === doctorInfo.email.toLowerCase());
+              const motivo = window.prompt('Opcional: ingrese motivo de la anulación (para que el laboratorio sepa el contexto)', '') || '';
+              const numPacientes = (deletedEntry.biopsies || []).length;
+              const remitoNum = deletedEntry.remitoNumber || (deletedEntry.id || '').slice(-6).toUpperCase();
+              const solAnulacion: any = {
+                id: `SOL_ANUL_${Date.now()}`,
+                tipo: 'anulacion_remito',
+                remitoNumber: remitoNum,
+                numeroPaciente: '-',
+                tejido: '-',
+                descripcion: `ANULACIÓN solicitada por el médico. Remito #${remitoNum} (${numPacientes} paciente${numPacientes !== 1 ? 's' : ''}). ${motivo ? 'Motivo: ' + motivo : 'Sin motivo especificado.'}`,
+                solicitadoPor: doctorInfo.cargadoPor || doctorInfo.name || doctorInfo.email,
+                solicitadoAt: new Date().toISOString(),
+                estado: 'pendiente',
+                doctorEmail: doctorInfo.email,
+                labCode: matched?.labCode || ''
+              };
+              db.saveSolicitud(solAnulacion).catch(console.error);
+            } catch (e) { console.error('Error creando solicitud de anulación:', e); }
           }
+
+          alert('✅ Remito eliminado de tu historial.\n📨 Se envió una solicitud de anulación al laboratorio para que ajuste la facturación.');
         }}
       />
     );
