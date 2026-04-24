@@ -707,6 +707,29 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
     return tB - tA;
   });
 
+  // Mapa de remitos anulados por número — leído desde Supabase remitos cache
+  const anuladosMap: Record<string, { quien: string; fecha: string; motivo: string }> = React.useMemo(() => {
+    try {
+      const data = JSON.parse(localStorage.getItem('_remitosFacturacion') || '[]');
+      const map: Record<string, any> = {};
+      for (const r of data) {
+        const nota: string = r.nota_servicio_adicional || r.notaServicioAdicional || '';
+        if (typeof nota === 'string' && nota.startsWith('ANULADO|')) {
+          const parts = nota.split('|');
+          const rn = String(r.remito_number || r.remitoNumber || '').trim();
+          if (rn) {
+            map[rn] = {
+              quien: parts[1] || 'Médico',
+              fecha: parts[2] ? new Date(parts[2]).toLocaleDateString('es-AR') : '',
+              motivo: parts.slice(3).join('|') || 'Sin motivo'
+            };
+          }
+        }
+      }
+      return map;
+    } catch { return {}; }
+  }, [historyEntries]);
+
   // Paginación
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -839,28 +862,37 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
               const totalPAP = entry.biopsies.reduce((s, b) => s + (b.papQuantity || 0), 0);
               const totalCito = entry.biopsies.reduce((s, b) => s + (b.citologiaQuantity || 0), 0);
 
+              const entryRemitoNum = String((entry as any).remitoNumber || entry.id.slice(-6).toUpperCase()).trim();
+              const anulInfo = anuladosMap[entryRemitoNum];
+
               return (
                 <div key={entry.id} style={{
                   background: 'white',
                   borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
+                  border: anulInfo ? '2px solid #dc2626' : '1px solid #e2e8f0',
                   overflow: 'hidden',
-                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                  opacity: anulInfo ? 0.75 : 1
                 }}>
                   {/* Header del remito */}
                   <div style={{
-                    background: 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
+                    background: anulInfo
+                      ? 'linear-gradient(135deg, #991b1b 0%, #dc2626 100%)'
+                      : 'linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%)',
                     padding: '10px 14px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'white' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '700', color: 'white', textDecoration: anulInfo ? 'line-through' : 'none' }}>
                         Remito #{((entry as any).remitoNumber || entry.id.slice(-6).toUpperCase())}
                       </span>
-                      {isModified && (
+                      {anulInfo && (
+                        <span style={{ fontSize: '10px', fontWeight: '700', color: 'white', background: 'rgba(255,255,255,0.25)', padding: '3px 8px', borderRadius: '4px' }}>🗑️ ANULADO</span>
+                      )}
+                      {!anulInfo && isModified && (
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#fbbf24', background: 'rgba(251,191,36,0.2)', padding: '2px 6px', borderRadius: '4px' }}>MODIFICADO</span>
                       )}
-                      {urgentCount > 0 && (
+                      {!anulInfo && urgentCount > 0 && (
                         <span style={{ fontSize: '9px', fontWeight: '700', color: '#fca5a5', background: 'rgba(252,165,165,0.2)', padding: '2px 6px', borderRadius: '4px' }}>URGENTE</span>
                       )}
                       {(entry as any).cargadoPor && (
@@ -881,6 +913,18 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       </span>
                     </div>
                   </div>
+
+                  {/* Banner de anulación */}
+                  {anulInfo && (
+                    <div style={{ padding: '8px 14px', background: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b' }}>
+                        🗑️ Anulado por {anulInfo.quien} el {anulInfo.fecha}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#b91c1c', fontStyle: 'italic', marginTop: '2px' }}>
+                        Motivo: {anulInfo.motivo}. Descontado de la facturación ($0).
+                      </div>
+                    </div>
+                  )}
 
                   {/* Indicador de dictado */}
                   {entry.biopsies.some(b => pacientesConDictado.has(b.number)) && (
@@ -1030,12 +1074,14 @@ export const HistoryScreen: React.FC<HistoryScreenProps> = ({
                       }}>
                         <FileText size={12} /> Ver
                       </button>
-                      <button onClick={() => handleDelete(entry.id)} style={{
-                        background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0',
-                        padding: '6px 8px', borderRadius: '6px', cursor: 'pointer'
-                      }}>
-                        <Trash2 size={12} />
-                      </button>
+                      {!anulInfo && (
+                        <button onClick={() => handleDelete(entry.id)} style={{
+                          background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0',
+                          padding: '6px 8px', borderRadius: '6px', cursor: 'pointer'
+                        }}>
+                          <Trash2 size={12} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

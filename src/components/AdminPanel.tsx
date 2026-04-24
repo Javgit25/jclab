@@ -1653,15 +1653,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             const bEsUrgente = (b: any) => (b.servicios?.cassetteUrgente || 0) > 0 || (b.servicios?.papUrgente || 0) > 0 || (b.servicios?.citologiaUrgente || 0) > 0;
             // Un remito tiene urgentes PENDIENTES si tiene alguna biopsia urgente no marcada como lista
             const tieneUrgentesPendientes = (r: any) => {
+              if (esAnulado(r)) return false;
               const bl = r.biopsiaListas || [];
               return r.biopsias.some((b: any, i: number) => bEsUrgente(b) && !bl[i]);
             };
-            // Un remito tiene al menos una biopsia pendiente
+            // Un remito tiene al menos una biopsia pendiente (los anulados NO cuentan como pendientes)
             const tienePendientes = (r: any) => {
+              if (esAnulado(r)) return false;
               const bl = r.biopsiaListas || [];
               return r.biopsias.some((_: any, i: number) => !bl[i]);
             };
-            const enProceso = remitos.filter(r => !esRemitoListo(r));
+            const enProceso = remitos.filter(r => !esRemitoListo(r) && !esAnulado(r));
             const listos = remitos.filter(r => esRemitoListo(r) || !tienePendientes(r));
             const urgentes = remitos.filter(r => tieneUrgentesPendientes(r));
 
@@ -1669,7 +1671,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               if (dashFilter === 'actual') return tienePendientes(r);
               if (dashFilter === 'proceso') return tienePendientes(r) && !tieneUrgentesPendientes(r);
               if (dashFilter === 'urgentes') return tieneUrgentesPendientes(r);
-              if (dashFilter === 'listos') return !tienePendientes(r);
+              // "Listos" incluye los anulados (están "cerrados" aunque no llegaron al lab)
+              if (dashFilter === 'listos') return !tienePendientes(r) || esAnulado(r);
               return tienePendientes(r);
             });
 
@@ -1974,6 +1977,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           <td className="py-2 px-3 text-center">
                             <div className="flex flex-col gap-1 items-center" onClick={(e) => e.stopPropagation()}>
                               <div className="flex gap-1">
+                              {esAnulado(remito) ? (
+                                <span className="text-xs text-red-600 font-bold px-2 py-1 bg-red-50 rounded">🗑️ Cerrado por anulación</span>
+                              ) : <>
                               {/* Botón Material Recibido */}
                               {!(remito as any).materialRecibido ? (
                                 <button onClick={() => { if (confirm(`¿Confirmar que el MATERIAL FÍSICO del remito de Dr/a. ${remito.medico} fue recibido en el laboratorio?`)) toggleMaterialRecibido(remito.id); }}
@@ -1989,6 +1995,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">ENTREGAR TODO</button>
                               )}
                               {isListo && <span className="text-xs text-green-600 font-bold">✓ Completo</span>}
+                              </>}
                               {whatsappNum && (
                                 <a href={`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(`Dr/a. ${remito.medico}, le informamos que ${isListo ? 'todo su material' : listasCount + ' de ' + totalBiopsias + ' estudios'} del remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} ${isListo ? 'está listo para ser retirado' : 'ya están listos'}.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`)}`}
                                   target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
@@ -2519,18 +2526,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       </thead>
                       <tbody>
                     {[...remitosFiltrados].sort((a, b) => { const tA = new Date((a as any).timestamp || a.fecha).getTime(); const tB = new Date((b as any).timestamp || b.fecha).getTime(); return tB - tA; }).map(remito => (
-                      <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${(remito as any).modificadoPorAdmin && !(remito as any).modificadoPorSolicitud ? 'bg-amber-50/40' : ''} ${(remito as any).modificadoPorSolicitud ? 'bg-green-50/40' : ''}`}>
+                      <tr key={remito.id} className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${esAnulado(remito) ? 'bg-red-50/60 opacity-70' : (remito as any).modificadoPorAdmin && !(remito as any).modificadoPorSolicitud ? 'bg-amber-50/40' : (remito as any).modificadoPorSolicitud ? 'bg-green-50/40' : ''}`}>
                         <td className="py-3 px-4">
-                          <div className="text-xs font-mono text-gray-400">#{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</div>
-                          {(remito as any).esServicioAdicional && (
+                          <div className={`text-xs font-mono text-gray-400 ${esAnulado(remito) ? 'line-through' : ''}`}>#{((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())}</div>
+                          {esAnulado(remito) && (
+                            <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300">🗑️ ANULADO</span>
+                          )}
+                          {!esAnulado(remito) && (remito as any).esServicioAdicional && (
                             <span className={`inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold border ${((remito as any).esProfundizacion || ((remito as any).notaServicioAdicional || '').includes('Profundización')) ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200'}`}>{((remito as any).esProfundizacion || ((remito as any).notaServicioAdicional || '').includes('Profundización')) ? 'Profundización' : 'Serv. Adicional'}</span>
                           )}
-                          {(remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && !(remito as any).modificadoPorSolicitud && (
+                          {!esAnulado(remito) && (remito as any).modificadoPorAdmin && !(remito as any).esServicioAdicional && !(remito as any).modificadoPorSolicitud && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">Editado</span>
                           )}
-                          {(remito as any).modificadoPorSolicitud && !(remito as any).esServicioAdicional && (
+                          {!esAnulado(remito) && (remito as any).modificadoPorSolicitud && !(remito as any).esServicioAdicional && (
                             <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-xs font-bold bg-green-100 text-green-700 border border-green-200">Solicitud médico</span>
                           )}
+                          {esAnulado(remito) && (() => {
+                            const info = parseAnulacion(remito);
+                            return info ? <div className="text-[10px] text-red-600 italic mt-0.5">Eliminado por {info.quien} el {info.fecha}</div> : null;
+                          })()}
                         </td>
                         <td className="py-3 px-4">
                           <div className="text-sm font-semibold text-gray-900">Dr/a. {remito.medico}</div>
@@ -2552,7 +2566,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4 text-center">
                           <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">{remito.biopsias.length}</span>
                         </td>
-                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">
+                          {esAnulado(remito) ? (
+                            <div>
+                              <div className="line-through text-gray-400 text-xs">${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot).toLocaleString()}</div>
+                              <div className="text-red-600 font-extrabold">$0</div>
+                            </div>
+                          ) : `$${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito).toLocaleString()}`}
+                        </td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex flex-col gap-1 items-center">
                             {(remito as any).estadoEnvio === 'listo' ? (
@@ -2716,7 +2737,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     </button>
                                   )}
                                 </td>
-                                <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">${calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot).toLocaleString()}</td>
+                                <td className="py-2 px-3 text-right text-xs font-bold text-gray-700">
+                                  {esAnulado(remito) ? (
+                                    <div>
+                                      <div className="line-through text-gray-400 text-[10px]">${calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot).toLocaleString()}</div>
+                                      <div className="text-red-600">$0</div>
+                                    </div>
+                                  ) : `$${calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot).toLocaleString()}`}
+                                </td>
                               </tr>
                               );
                             })}

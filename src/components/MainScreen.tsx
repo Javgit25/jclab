@@ -574,7 +574,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
       remitosData.forEach((r: any) => {
         // Remitos anulados no suman a la facturación
-        const anuladoByNota = typeof r.notaServicioAdicional === 'string' && r.notaServicioAdicional.startsWith('ANULADO|');
+        // Supabase devuelve snake_case (nota_servicio_adicional) mientras que el mapeado usa camelCase
+        const notaAny = r.nota_servicio_adicional || r.notaServicioAdicional || '';
+        const anuladoByNota = typeof notaAny === 'string' && notaAny.startsWith('ANULADO|');
         if (r.estado === 'anulado' || anuladoByNota) return;
         const fecha = new Date(r.timestamp || r.fecha);
         const biopsias = (r.biopsias || []);
@@ -1442,7 +1444,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const performAdvancedSearch = () => {
     try {
       let allBiopsies: any[] = [];
-      
+
       // Obtener datos del historial, filtrados por centro médico actual
       const currentHospital = doctorInfo.hospital || '';
       const historyKey = doctorInfo.email
@@ -1450,8 +1452,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
         : `${doctorInfo.name}_history`;
       const historyData = JSON.parse(localStorage.getItem(historyKey) || '{}');
 
+      // Set de remitos anulados desde Supabase cache
+      const anuladosRemitoNums = new Set<string>();
+      try {
+        const data = JSON.parse(localStorage.getItem('_remitosFacturacion') || '[]');
+        for (const r of data) {
+          const nota: string = r.nota_servicio_adicional || r.notaServicioAdicional || '';
+          if (typeof nota === 'string' && nota.startsWith('ANULADO|')) {
+            const rn = String(r.remito_number || r.remitoNumber || '').trim();
+            if (rn) anuladosRemitoNums.add(rn);
+          }
+        }
+      } catch {}
+
       Object.values(historyData).forEach((entry: any) => {
         if (!entry.biopsies) return;
+        // Excluir remitos anulados de la búsqueda avanzada
+        const entryRN = String(entry.remitoNumber || (entry.id || '').slice(-6).toUpperCase()).trim();
+        if (anuladosRemitoNums.has(entryRN)) return;
         // Filtrar por centro médico
         if (currentHospital) {
           const entryHospital = entry.doctorInfo?.hospital || '';
