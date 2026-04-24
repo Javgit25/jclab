@@ -205,12 +205,13 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [modifAlert, setModifAlert] = useState<any>(null);
   const [shownAlertIds] = useState<Set<string>>(() => new Set());
   React.useEffect(() => {
-    const listoNotif = notificationsData.find(n => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida && !shownAlertIds.has(n.id));
+    const alertTipos = ['listo', 'parcial', 'material_recibido', 'anulacion_aprobada', 'anulacion_rechazada', 'anulacion_en_revision'];
+    const listoNotif = notificationsData.find(n => alertTipos.includes(n.tipo) && !n.leida && !shownAlertIds.has(n.id));
     if (listoNotif && !listoAlert) {
       shownAlertIds.add(listoNotif.id);
       setListoAlert(listoNotif);
       // Marcar TODAS las no leídas como leídas inmediatamente en Supabase
-      notificationsData.filter(n => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida).forEach(n => {
+      notificationsData.filter(n => alertTipos.includes(n.tipo) && !n.leida).forEach(n => {
         shownAlertIds.add(n.id);
         db.markNotificationRead(n.id).catch(() => {});
       });
@@ -2601,18 +2602,36 @@ export const MainScreen: React.FC<MainScreenProps> = ({
           display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
         }}>
           <div style={{
-            background: listoAlert.tipo === 'material_recibido'
-              ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
-              : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+            background: listoAlert.tipo === 'anulacion_aprobada'
+              ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
+              : listoAlert.tipo === 'anulacion_rechazada'
+                ? 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                : listoAlert.tipo === 'anulacion_en_revision'
+                  ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+                  : listoAlert.tipo === 'material_recibido'
+                    ? 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)'
+                    : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
             borderRadius: '20px', padding: '32px', maxWidth: '380px', width: '100%',
             textAlign: 'center', color: 'white',
-            boxShadow: listoAlert.tipo === 'material_recibido'
-              ? '0 25px 60px rgba(217, 119, 6, 0.4)'
-              : '0 25px 60px rgba(5, 150, 105, 0.4)',
+            boxShadow: '0 25px 60px rgba(0, 0, 0, 0.3)',
             animation: 'pulse 2s infinite'
           }}>
             {(() => {
               const msg = listoAlert.mensaje || '';
+              // Detectar anulaciones PRIMERO (tipos específicos)
+              if (listoAlert.tipo === 'anulacion_aprobada' || listoAlert.tipo === 'anulacion_rechazada' || listoAlert.tipo === 'anulacion_en_revision') {
+                const icon = listoAlert.tipo === 'anulacion_aprobada' ? '✅' : listoAlert.tipo === 'anulacion_rechazada' ? '❌' : '⏳';
+                const titulo = listoAlert.tipo === 'anulacion_aprobada' ? 'Anulación aprobada' : listoAlert.tipo === 'anulacion_rechazada' ? 'Anulación rechazada' : 'Anulación en revisión';
+                const subtitulo = listoAlert.tipo === 'anulacion_aprobada' ? 'El remito fue descontado de la facturación' : listoAlert.tipo === 'anulacion_rechazada' ? 'El remito se mantiene en la facturación' : 'El laboratorio está revisando su pedido';
+                return (
+                  <>
+                    <div style={{ fontSize: '48px', marginBottom: '12px' }}>{icon}</div>
+                    <div style={{ fontSize: '24px', fontWeight: '800', marginBottom: '4px' }}>{titulo}</div>
+                    <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>{subtitulo}</div>
+                    <div style={{ fontSize: '14px', opacity: 0.85, lineHeight: '1.5', marginBottom: '20px', whiteSpace: 'pre-line', background: 'rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px' }}>{msg}</div>
+                  </>
+                );
+              }
               const isTaco = msg.includes('Taco/Cassette');
               const isProf = msg.includes('Profundización');
               const isServ = msg.includes('Servicio Adicional') || msg.includes('Serv. Adicional');
@@ -2652,10 +2671,10 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                 // Marcar TODAS las de listo/parcial como leídas
                 try {
                   const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                  const updated = all.map((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida ? { ...n, leida: true } : n);
+                  const updated = all.map((n: any) => (['listo','parcial','material_recibido','anulacion_aprobada','anulacion_rechazada','anulacion_en_revision'].includes(n.tipo)) && !n.leida ? { ...n, leida: true } : n);
                   localStorage.setItem('doctorNotifications', JSON.stringify(updated));
                   // Sync todas a Supabase
-                  all.filter((n: any) => (n.tipo === 'listo' || n.tipo === 'parcial' || n.tipo === 'material_recibido') && !n.leida).forEach((n: any) => {
+                  all.filter((n: any) => (['listo','parcial','material_recibido','anulacion_aprobada','anulacion_rechazada','anulacion_en_revision'].includes(n.tipo)) && !n.leida).forEach((n: any) => {
                     db.markNotificationRead(n.id).catch(() => {});
                   });
                   setNotificationsData(updated.filter((n: any) => n.medicoEmail === doctorInfo.email));
@@ -3924,6 +3943,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : `${sv.citologiaVidriosQty || 1} vid.`;
                         services.push(`+ Citología (${fmt})`);
                       }
+                      if (b.declassify === 'Sí') services.push('🛡️ Desclasificación');
                       const hasTaco = b.entregarConTaco;
                       const hasExtra = services.length > 0 || hasTaco;
                       const tipoBg = tipo === 'PQ' ? '#c2410c' : isPAP ? '#7c3aed' : isCito ? '#475569' : '#166534';

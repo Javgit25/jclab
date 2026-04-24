@@ -2205,6 +2205,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             const fmt = sv.citologiaFormato === 'jeringa' ? 'Jeringa' : sv.citologiaFormato === 'frasco' ? 'Frasco' : (sv.citologiaVidriosQty || 1) + ' vid.';
                             svc.push('Citología (' + fmt + ')');
                           }
+                          if ((b as any).desclasificar === 'Sí' || (b as any).declassify === 'Sí') svc.push('<b style="color:#dc2626;">🛡️ Desclasificación</b>');
                           const isPAP = b.tejido === 'PAP';
                           const isCito = b.tejido === 'Citología';
                           const isTacoC = b.tipo === 'TC' || b.tejido === 'Taco en Consulta';
@@ -4438,6 +4439,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     const updated = { ...sol, estado: nuevoEstado, ...(nuevoEstado === 'entregado' ? { entregadoAt: new Date().toISOString(), entregadoPor: loginForm.username || 'Laboratorio' } : {}) };
                     await db.saveSolicitud(updated);
                     setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
+
+                    // ANULACIÓN DE REMITO: marcar el remito como anulado y descontar de facturación
+                    if (sol.tipo === 'anulacion_remito' && nuevoEstado === 'entregado') {
+                      try {
+                        const solRN = String(sol.remitoNumber || '').replace('#', '').trim();
+                        const target = remitos.find(r => String((r as any).remitoNumber || '').replace('#','').trim() === solRN);
+                        if (target) {
+                          const motivo = (sol.descripcion || '').replace(/^ANULACIÓN solicitada por el médico\.\s*/i, '').trim();
+                          const quien = sol.solicitadoPor || sol.doctorEmail || 'Médico';
+                          const anulado: any = {
+                            ...target,
+                            estado: 'anulado',
+                            modificadoPorAdmin: `Anulado por ${quien} el ${new Date().toLocaleDateString('es-AR')}. ${motivo || 'Sin motivo especificado.'}`,
+                            modificadoPorSolicitud: 'anulacion',
+                            modificadoAt: new Date().toISOString()
+                          };
+                          await db.saveRemito(anulado);
+                          // Actualizar estado local de remitos
+                          setRemitos(prev => prev.map(r => r.id === target.id ? anulado : r));
+                        }
+                      } catch (e) { console.error('Error marcando remito como anulado:', e); }
+                    }
+
                     // Notificar al médico en todos los cambios de estado
                     {
                       // Extraer detalle del servicio de la descripción
@@ -4453,11 +4477,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         tipoMsg = svcNames.length > 0 ? svcNames.join(', ') : 'Servicio Adicional';
                       }
                       const cassInfo = sol.cassetteLabels?.length > 0 ? `\nCassettes: ${sol.cassetteLabels.join(', ')}` : '';
-                      const mensajes: Record<string, string> = {
-                        en_proceso: `Su solicitud de ${tipoMsg} fue aceptada y está en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
-                        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
-                        rechazado: `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
-                      };
+                      // Mensajes específicos para anulación de remito
+                      const mensajes: Record<string, string> = sol.tipo === 'anulacion_remito'
+                        ? {
+                            en_proceso: `Su pedido de anulación del Remito #${sol.remitoNumber || ''} fue recibido y está en revisión por el laboratorio.`,
+                            entregado: `✅ Anulación del Remito #${sol.remitoNumber || ''} APROBADA.\nEl remito fue descontado de la facturación.`,
+                            rechazado: `❌ Anulación del Remito #${sol.remitoNumber || ''} RECHAZADA.\nEl remito se mantiene en la facturación.`
+                          }
+                        : {
+                            en_proceso: `Su solicitud de ${tipoMsg} fue aceptada y está en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
+                            entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
+                            rechazado: `Solicitud de ${tipoMsg} rechazada.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}\nRemito #${sol.remitoNumber || ''}`
+                          };
+                      // Tipo de notificación específico para anulaciones
+                      let notifTipo: string = nuevoEstado === 'entregado' ? 'listo' : nuevoEstado === 'en_proceso' ? 'material_recibido' : 'parcial';
+                      if (sol.tipo === 'anulacion_remito') {
+                        if (nuevoEstado === 'entregado') notifTipo = 'anulacion_aprobada';
+                        else if (nuevoEstado === 'rechazado') notifTipo = 'anulacion_rechazada';
+                        else if (nuevoEstado === 'en_proceso') notifTipo = 'anulacion_en_revision';
+                      }
                       const notif = {
                         id: `NOTIF_SOL_${Date.now()}`,
                         remitoId: sol.id,
@@ -4465,7 +4503,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         mensaje: mensajes[nuevoEstado] || `${tipoMsg} actualizado: ${nuevoEstado}`,
                         fecha: new Date().toISOString(),
                         leida: false,
-                        tipo: nuevoEstado === 'entregado' ? 'listo' : nuevoEstado === 'en_proceso' ? 'material_recibido' : 'parcial'
+                        tipo: notifTipo
                       };
                       db.saveNotification(notif).catch(console.error);
 
