@@ -19,7 +19,10 @@ export const initEmailJS = () => {};
 // Siempre true: la config vive en Vercel, el front no necesita nada local.
 export const isEmailConfigured = () => true;
 
-// Enviar email
+// Enviar email.
+// Opcional: `htmlForPdf` se convierte a PDF en el server (via PDFShift) y se adjunta
+// con el nombre `pdfFilename`. Esto da fidelidad perfecta porque PDFShift usa un
+// Chrome real para renderizar el HTML.
 export const sendEmail = async (params: {
   toEmail: string;
   toName: string;
@@ -27,6 +30,8 @@ export const sendEmail = async (params: {
   messageHtml: string;
   fromName: string;
   attachments?: EmailAttachment[];
+  htmlForPdf?: string;
+  pdfFilename?: string;
 }) => {
   // reply_to del email del laboratorio en labConfig (para que las respuestas lleguen al lab)
   let replyTo = '';
@@ -43,6 +48,8 @@ export const sendEmail = async (params: {
       fromName: params.fromName,
       replyTo: replyTo || undefined,
       attachments: params.attachments || undefined,
+      htmlForPdf: params.htmlForPdf || undefined,
+      pdfFilename: params.pdfFilename || undefined,
     }),
   });
 

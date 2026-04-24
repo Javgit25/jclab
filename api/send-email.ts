@@ -1,7 +1,11 @@
 import { Resend } from 'resend';
 
-// Vercel Serverless Function: envía emails vía Resend
-// Requiere env var RESEND_API_KEY en Vercel (Settings → Environment Variables)
+// Vercel Serverless Function: envía emails vía Resend.
+// Opcional: convierte `htmlForPdf` a PDF via PDFShift y lo adjunta.
+//
+// Env vars requeridas en Vercel (Settings → Environment Variables):
+//   - RESEND_API_KEY      (obligatoria)
+//   - PDFSHIFT_API_KEY    (opcional, solo si mandás htmlForPdf)
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -21,7 +25,39 @@ type Body = {
   fromName?: string;
   replyTo?: string;
   attachments?: Attachment[];
+  // Si viene, se convierte a PDF en el server y se adjunta con este nombre.
+  htmlForPdf?: string;
+  pdfFilename?: string;
 };
+
+// Convierte HTML a PDF llamando al API de PDFShift. Devuelve base64.
+async function htmlToPdfViaPdfShift(html: string): Promise<string> {
+  const apiKey = process.env.PDFSHIFT_API_KEY;
+  if (!apiKey) throw new Error('PDFSHIFT_API_KEY no configurada en Vercel');
+
+  const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Basic ' + Buffer.from('api:' + apiKey).toString('base64'),
+    },
+    body: JSON.stringify({
+      source: html,
+      format: 'A4',
+      margin: '10mm',
+      landscape: false,
+      use_print: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    throw new Error(`PDFShift error ${response.status}: ${errText.slice(0, 300)}`);
+  }
+
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer).toString('base64');
+}
 
 export default async function handler(req: any, res: any) {
   // CORS — permitir llamadas desde biopsytracker.io y subdominios Vercel
@@ -57,11 +93,29 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body: Body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const { toEmail, toName, subject, messageHtml, fromName, replyTo, attachments } = body || {};
+    const { toEmail, toName, subject, messageHtml, fromName, replyTo, htmlForPdf, pdfFilename } = body || {};
+    let { attachments } = body || {};
 
     if (!toEmail || !subject || !messageHtml) {
       res.status(400).json({ error: 'Faltan campos obligatorios (toEmail, subject, messageHtml)' });
       return;
+    }
+
+    // Si viene htmlForPdf, generar PDF via PDFShift y agregarlo como adjunto
+    if (htmlForPdf && htmlForPdf.trim().length > 0) {
+      try {
+        const pdfBase64 = await htmlToPdfViaPdfShift(htmlForPdf);
+        const filename = pdfFilename || 'Documento.pdf';
+        attachments = [...(attachments || []), { filename, content: pdfBase64 }];
+      } catch (pdfErr: any) {
+        console.error('Error generando PDF:', pdfErr);
+        // No abortar el email — mandar sin adjunto pero avisar en response
+        res.status(200).json({
+          success: false,
+          warning: 'Email no enviado por fallo en PDF: ' + (pdfErr?.message || 'error'),
+        });
+        return;
+      }
     }
 
     // Construir remitente: "Nombre <info@biopsytracker.io>"
