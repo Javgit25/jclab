@@ -1224,12 +1224,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
 
                 const isNoVino = (biopsia as any).noVino;
-                const isProf = (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
-                const isSA = (remito as any).esServicioAdicional && !isProf;
-                const rowStyle = isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
+                const isAnuladoRemito = esAnulado(remito);
+                const isProf = !isAnuladoRemito && (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
+                const isSA = !isAnuladoRemito && (remito as any).esServicioAdicional && !isProf;
+                const rowStyle = isAnuladoRemito
+                  ? 'background:#fef2f2;text-decoration:line-through;color:#b91c1c;'
+                  : isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
                 const cargadoPorLabel = (remito as any).cargadoPor || '';
                 const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
                 const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
+                const anulInfo = isAnuladoRemito ? parseAnulacion(remito) : null;
+                const subtotalOriginal = calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot);
+                const subtotalHtml = isAnuladoRemito
+                  ? '<span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOriginal.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong>'
+                  : '$' + subtotalOriginal.toLocaleString();
+                const serviciosHtml = isAnuladoRemito
+                  ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">🗑️ ANULADO' + (anulInfo ? ' — eliminado por ' + anulInfo.quien + ' el ' + anulInfo.fecha : '') + '</span>'
+                  : (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>');
                 return '<tr style="' + rowStyle + '">' +
                   '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
                   '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
@@ -1238,8 +1249,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                   '<td>' + biopsia.tejido + '</td>' +
                   '<td>' + tipoDisplay + '</td>' +
                   '<td>' + cantLabel + '</td>' +
-                  '<td class="servicios-cell">' + (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>') + '</td>' +
-                  '<td class="subtotal">$' + calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot).toLocaleString() + '</td>' +
+                  '<td class="servicios-cell">' + serviciosHtml + '</td>' +
+                  '<td class="subtotal">' + subtotalHtml + '</td>' +
                   '</tr>';
               }).join('')
             ).join('')}
@@ -1364,6 +1375,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
       const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
         const tipo = (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
+        if (esAnulado(r)) {
+          const ai = parseAnulacion(r);
+          const subtotalOrig = calcularTotalBiopsia(b, r.preciosSnapshot);
+          return '<tr style="background:#fef2f2;color:#991b1b;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + 'font-weight:700;text-decoration:none;">🗑️ ANULADO' + (ai ? ' — por ' + ai.quien + ' el ' + ai.fecha : '') + '</td><td style="' + td + 'text-align:right;text-decoration:none;"><span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOrig.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong></td></tr>';
+        }
         if (b.noVino) return '<tr style="color:#aaa;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + '">No recibido</td><td style="' + td + 'text-align:right;">$0</td></tr>';
         const sv: string[] = [];
         if ((b.servicios?.cassetteUrgente || 0) > 0) sv.push('URGENTE');
@@ -2576,7 +2592,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         </td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex flex-col gap-1 items-center">
-                            {(remito as any).estadoEnvio === 'listo' ? (
+                            {esAnulado(remito) ? (
+                              <span className="text-xs text-red-600 font-semibold bg-red-50 border border-red-200 px-2 py-1 rounded">🗑️ No editable</span>
+                            ) : (remito as any).estadoEnvio === 'listo' ? (
                               <span className="text-xs text-green-600 font-semibold flex items-center gap-1"><CheckCircle size={12} /> Entregado</span>
                             ) : (
                               <button onClick={() => { const snap = JSON.parse(JSON.stringify(remito.biopsias)); setOriginalBiopsiaSnapshot(snap); localStorage.setItem('_editSnapshot', JSON.stringify(snap)); setEditingBiopsias(JSON.parse(JSON.stringify(remito.biopsias))); setEditingRemito(remito.id); }}
