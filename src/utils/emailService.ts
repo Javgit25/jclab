@@ -1,30 +1,24 @@
-import emailjs from '@emailjs/browser';
+// emailService.ts — cliente que llama a la Vercel Function `/api/send-email` (Resend)
+// La API key de Resend está en Vercel como env var RESEND_API_KEY (no en el front).
 
-// Configuración de EmailJS - se lee desde localStorage (configurable por el admin)
-const getEmailConfig = () => {
-  try {
-    const config = JSON.parse(localStorage.getItem('emailjsConfig') || '{}');
-    return {
-      serviceId: config.serviceId || '',
-      templateId: config.templateId || '',
-      publicKey: config.publicKey || '',
-      configured: !!(config.serviceId && config.templateId && config.publicKey)
-    };
-  } catch {
-    return { serviceId: '', templateId: '', publicKey: '', configured: false };
-  }
+// URL del endpoint: configurable por build-time env var VITE_EMAIL_API_URL.
+// Default: proyecto Vercel `jclab`. Si tu proyecto se llama distinto, ajustá VITE_EMAIL_API_URL
+// en .env.production o en la config de build.
+const API_URL =
+  (import.meta.env.VITE_EMAIL_API_URL as string | undefined) ||
+  'https://jclab.vercel.app/api/send-email';
+
+export type EmailAttachment = {
+  filename: string;
+  // base64 puro (sin prefijo data:...;base64,)
+  content: string;
 };
 
-// Inicializar EmailJS
-export const initEmailJS = () => {
-  const config = getEmailConfig();
-  if (config.publicKey) {
-    emailjs.init(config.publicKey);
-  }
-};
+// Init dummy (se mantiene para compatibilidad con call sites existentes)
+export const initEmailJS = () => {};
 
-// Verificar si está configurado
-export const isEmailConfigured = () => getEmailConfig().configured;
+// Siempre true: la config vive en Vercel, el front no necesita nada local.
+export const isEmailConfigured = () => true;
 
 // Enviar email
 export const sendEmail = async (params: {
@@ -33,42 +27,43 @@ export const sendEmail = async (params: {
   subject: string;
   messageHtml: string;
   fromName: string;
+  attachments?: EmailAttachment[];
 }) => {
-  const config = getEmailConfig();
-
-  if (!config.configured) {
-    throw new Error('EmailJS no está configurado. Configurá Service ID, Template ID y Public Key en Configuración.');
-  }
-
-  // Obtener reply_to del email del laboratorio en labConfig
+  // reply_to del email del laboratorio en labConfig (para que las respuestas lleguen al lab)
   let replyTo = '';
   try { replyTo = JSON.parse(localStorage.getItem('labConfig') || '{}').email || ''; } catch {}
 
-  const templateParams: any = {
-    to_email: params.toEmail,
-    to_name: params.toName,
-    subject: params.subject,
-    message_html: params.messageHtml,
-    from_name: params.fromName,
-    reply_to: replyTo || undefined,
-  };
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      toEmail: params.toEmail,
+      toName: params.toName,
+      subject: params.subject,
+      messageHtml: params.messageHtml,
+      fromName: params.fromName,
+      replyTo: replyTo || undefined,
+      attachments: params.attachments || undefined,
+    }),
+  });
 
-  const response = await emailjs.send(
-    config.serviceId,
-    config.templateId,
-    templateParams,
-    config.publicKey
-  );
+  if (!response.ok) {
+    let errMsg = `Error ${response.status}`;
+    try {
+      const data = await response.json();
+      if (data?.error) errMsg = data.error;
+    } catch {}
+    throw new Error(errMsg);
+  }
 
-  return response;
+  return response.json();
 };
 
-// Enviar email a múltiples destinatarios (uno por uno)
-export const sendBulkEmail = async (recipients: { email: string; name: string }[], params: {
-  subject: string;
-  messageHtml: string;
-  fromName: string;
-}) => {
+// Enviar email a múltiples destinatarios (uno por uno, con pausa entre envíos)
+export const sendBulkEmail = async (
+  recipients: { email: string; name: string }[],
+  params: { subject: string; messageHtml: string; fromName: string; attachments?: EmailAttachment[] }
+) => {
   const results: { email: string; success: boolean; error?: string }[] = [];
 
   for (const recipient of recipients) {
@@ -79,23 +74,22 @@ export const sendBulkEmail = async (recipients: { email: string; name: string }[
         subject: params.subject,
         messageHtml: params.messageHtml,
         fromName: params.fromName,
+        attachments: params.attachments,
       });
       results.push({ email: recipient.email, success: true });
     } catch (error: any) {
-      results.push({ email: recipient.email, success: false, error: error.message || 'Error desconocido' });
+      results.push({ email: recipient.email, success: false, error: error?.message || 'Error desconocido' });
     }
-    // Pequeña pausa entre emails para no sobrecargar
+    // Pausa corta para no saturar
     await new Promise(resolve => setTimeout(resolve, 500));
   }
 
   return results;
 };
 
-// Guardar configuración
-export const saveEmailConfig = (serviceId: string, templateId: string, publicKey: string) => {
-  localStorage.setItem('emailjsConfig', JSON.stringify({ serviceId, templateId, publicKey }));
-  if (publicKey) emailjs.init(publicKey);
-};
+// Compatibilidad con la API vieja: se ignora (Resend no usa estas keys).
+// Se mantiene para no romper call sites. Podemos eliminarla cuando migremos la UI.
+export const saveEmailConfig = (_serviceId: string, _templateId: string, _publicKey: string) => {};
 
 // Enviar email de prueba
 export const sendTestEmail = async (toEmail: string) => {
@@ -104,7 +98,10 @@ export const sendTestEmail = async (toEmail: string) => {
     toEmail,
     toName: 'Test',
     subject: 'Prueba de email - ' + (labConfig.nombre || 'BiopsyTracker'),
-    messageHtml: '<h2>Email de prueba</h2><p>Si recibiste este email, la configuración de EmailJS está funcionando correctamente.</p><p>' + (labConfig.nombre || 'Laboratorio') + '</p>',
+    messageHtml:
+      '<h2>Email de prueba</h2>' +
+      '<p>Si recibiste este email, la integración con Resend está funcionando correctamente.</p>' +
+      '<p>' + (labConfig.nombre || 'Laboratorio') + '</p>',
     fromName: labConfig.nombre || 'BiopsyTracker',
   });
 };
