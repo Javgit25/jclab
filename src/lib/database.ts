@@ -268,6 +268,8 @@ export const db = {
   // UPDATE directo: marcar remito como anulado sin pasar por el upsert completo
   // (evita que tipos stale en otros campos hagan fallar el upsert)
   async marcarRemitoAnulado(remitoId: string, notaAnulacion: string) {
+    console.log('🔧 marcarRemitoAnulado called with id:', remitoId);
+
     // Actualizar localStorage primero
     try {
       const remitos = JSON.parse(localStorage.getItem('adminRemitos') || '[]');
@@ -275,20 +277,41 @@ export const db = {
       if (idx >= 0) {
         remitos[idx] = { ...remitos[idx], notaServicioAdicional: notaAnulacion, modificadoPorSolicitud: true, modificadoAt: new Date().toISOString() };
         localStorage.setItem('adminRemitos', JSON.stringify(remitos));
+        console.log('✅ localStorage actualizado');
+      } else {
+        console.warn('⚠️ Remito no encontrado en localStorage:', remitoId);
       }
-    } catch {}
+    } catch (e) { console.error('Error localStorage:', e); }
+
+    // Primero verificar que el remito exista en Supabase con ese id exacto
+    const { data: existing, error: selectError } = await supabase.from('remitos').select('id,remito_number,estado,nota_servicio_adicional').eq('id', remitoId);
+    console.log('🔍 Supabase select by id:', { data: existing, error: selectError });
+    if (selectError) {
+      console.error('❌ Error verificando remito en Supabase:', selectError);
+      throw selectError;
+    }
+    if (!existing || existing.length === 0) {
+      console.warn('⚠️ Remito no existe en Supabase con id:', remitoId);
+      throw new Error(`Remito no encontrado en Supabase: ${remitoId}`);
+    }
+
     // UPDATE directo en Supabase con solo los campos que cambian
-    const { error } = await supabase.from('remitos').update({
+    // Agregamos .select() para ver qué rows fueron actualizadas
+    const { data, error } = await supabase.from('remitos').update({
       nota_servicio_adicional: notaAnulacion,
       modificado_por_solicitud: true,
       modificado_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq('id', remitoId);
+    }).eq('id', remitoId).select();
     if (error) {
       console.error('❌ Error marcando remito anulado en Supabase:', error);
       throw error;
     }
-    console.log('✅ Remito marcado como anulado en Supabase:', remitoId);
+    if (!data || data.length === 0) {
+      console.error('❌ UPDATE no afectó ninguna fila. id:', remitoId);
+      throw new Error(`No se pudo actualizar el remito ${remitoId}`);
+    }
+    console.log('✅ Remito marcado como anulado en Supabase:', data);
   },
 
   // ---- DOCTOR HISTORY ----
