@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ArrowLeft, Mic, Square, Save, Trash2, Clock, FileText, Search, Pause, Play, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Mic, Square, Save, Trash2, Clock, FileText, Search, Pause, Play, Copy, Check, Loader } from 'lucide-react';
 import { DoctorInfo } from '../types';
 import { supabase } from '../lib/supabase';
+
+// Endpoint de la Vercel Function que llama a Whisper (OpenAI)
+const TRANSCRIBE_API_URL =
+  (import.meta.env.VITE_TRANSCRIBE_API_URL as string | undefined) ||
+  'https://jclab.vercel.app/api/transcribe';
 
 interface DictadoMacroscopiaProps {
   doctorInfo: DoctorInfo;
@@ -14,7 +19,6 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
   const [paso, setPaso] = useState<'numero' | 'grabando' | 'pausado' | 'revision'>('numero');
   const [isRecording, setIsRecording] = useState(false);
   const [transcripcion, setTranscripcion] = useState('');
-  const [interimText, setInterimText] = useState('');
   const [numeroPaciente, setNumeroPaciente] = useState('');
   const [tejido, setTejido] = useState('');
   const [duracion, setDuracion] = useState(0);
@@ -24,13 +28,14 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
   const [searchQuery, setSearchQuery] = useState('');
   const [supported, setSupported] = useState(true);
   const [copiado, setCopiado] = useState<string | null>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcribeError, setTranscribeError] = useState<string | null>(null);
 
   const copiarTexto = (texto: string, id?: string) => {
     navigator.clipboard.writeText(texto).then(() => {
       setCopiado(id || 'main');
       setTimeout(() => setCopiado(null), 2000);
     }).catch(() => {
-      // Fallback para navegadores sin clipboard API
       const ta = document.createElement('textarea');
       ta.value = texto;
       document.body.appendChild(ta);
@@ -43,52 +48,16 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
   };
 
   // Refs
-  const recognitionRef = useRef<any>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<any>(null);
-  const shouldRecordRef = useRef(false);
 
-  // Verificar soporte
+  // Verificar soporte (getUserMedia + MediaRecorder)
   useEffect(() => {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SR) { setSupported(false); return; }
-
-    const recognition = new SR();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'es-AR';
-
-    recognition.onresult = (event: any) => {
-      let interim = '';
-      let final = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final += t + ' ';
-        } else {
-          interim = t;
-        }
-      }
-      if (final) {
-        setTranscripcion(prev => prev + final);
-        setInterimText('');
-      } else {
-        setInterimText(interim);
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      if (event.error === 'no-speech' && shouldRecordRef.current) {
-        try { recognition.start(); } catch {}
-      }
-    };
-
-    recognition.onend = () => {
-      if (shouldRecordRef.current) {
-        try { recognition.start(); } catch {}
-      }
-    };
-
-    recognitionRef.current = recognition;
+    const hasGUM = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    const hasMR = typeof (window as any).MediaRecorder !== 'undefined';
+    if (!hasGUM || !hasMR) setSupported(false);
   }, []);
 
   // Timer
@@ -100,6 +69,14 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
     }
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [isRecording]);
+
+  // Liberar recursos al desmontar
+  useEffect(() => {
+    return () => {
+      try { mediaRecorderRef.current?.stop(); } catch {}
+      streamRef.current?.getTracks().forEach(t => t.stop());
+    };
+  }, []);
 
   // Cargar historial
   const loadHistorial = useCallback(async () => {
@@ -113,52 +90,169 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
 
   useEffect(() => { loadHistorial(); }, [loadHistorial]);
 
-  // Iniciar grabación
-  const iniciarGrabacion = () => {
-    if (!recognitionRef.current || !numeroPaciente.trim()) return;
-    setTranscripcion('');
-    setInterimText('');
-    setDuracion(0);
-    setGuardado(false);
-    shouldRecordRef.current = true;
-    try {
-      recognitionRef.current.start();
-      setIsRecording(true);
-      setPaso('grabando');
-    } catch {}
+  // Blob → base64 (sin el prefijo "data:...;base64,")
+  const blobToBase64 = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      const commaIdx = result.indexOf(',');
+      resolve(commaIdx >= 0 ? result.substring(commaIdx + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+
+  // Enviar audio a Whisper
+  const transcribeAudio = async (blob: Blob): Promise<string> => {
+    const base64 = await blobToBase64(blob);
+    const response = await fetch(TRANSCRIBE_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audioBase64: base64,
+        mimeType: blob.type,
+        language: 'es',
+      }),
+    });
+    if (!response.ok) {
+      let msg = `Error ${response.status}`;
+      try { const d = await response.json(); if (d?.error) msg = d.error; } catch {}
+      throw new Error(msg);
+    }
+    const data = await response.json();
+    return data.text || '';
   };
 
-  // Pausar grabación (sin borrar)
-  const pausarGrabacion = () => {
-    shouldRecordRef.current = false;
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
+  // Iniciar grabación (solicita permiso de micrófono)
+  const iniciarGrabacion = async () => {
+    if (!numeroPaciente.trim()) return;
+    setTranscribeError(null);
+    setTranscripcion('');
+    setDuracion(0);
+    setGuardado(false);
+    audioChunksRef.current = [];
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+      streamRef.current = stream;
+
+      // Elegir mimeType que funcione en el dispositivo
+      const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg'];
+      let mimeType = '';
+      for (const m of candidates) {
+        if (typeof (window as any).MediaRecorder?.isTypeSupported === 'function' &&
+            (window as any).MediaRecorder.isTypeSupported(m)) {
+          mimeType = m;
+          break;
+        }
+      }
+
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onerror = (e: any) => {
+        console.error('MediaRecorder error:', e);
+        setTranscribeError('Error grabando audio: ' + (e?.error?.message || 'desconocido'));
+        setIsRecording(false);
+      };
+
+      recorder.start(1000); // emitir chunk cada 1s (por si corta la conexión, no perdemos todo)
+      setIsRecording(true);
+      setPaso('grabando');
+    } catch (err: any) {
+      console.error('getUserMedia error:', err);
+      const name = err?.name || '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        setTranscribeError('Permiso de micrófono denegado. Habilitalo en la configuración del navegador y reintentá.');
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        setTranscribeError('No se encontró un micrófono en este dispositivo.');
+      } else {
+        setTranscribeError('No se pudo acceder al micrófono: ' + (err?.message || name || 'error desconocido'));
+      }
     }
+  };
+
+  // Pausar
+  const pausarGrabacion = () => {
+    try { mediaRecorderRef.current?.pause(); } catch {}
     setIsRecording(false);
-    setInterimText('');
     setPaso('pausado');
   };
 
-  // Continuar grabación (sin borrar)
+  // Continuar
   const continuarGrabacion = () => {
-    if (!recognitionRef.current) return;
-    shouldRecordRef.current = true;
-    try {
-      recognitionRef.current.start();
-      setIsRecording(true);
-      setPaso('grabando');
-    } catch {}
+    try { mediaRecorderRef.current?.resume(); } catch {}
+    setIsRecording(true);
+    setPaso('grabando');
   };
 
-  // Finalizar grabación → revisión
-  const finalizarGrabacion = () => {
-    shouldRecordRef.current = false;
-    if (recognitionRef.current) {
-      try { recognitionRef.current.stop(); } catch {}
-    }
+  // Finalizar → detener, ensamblar audio, enviar a Whisper, ir a revisión
+  const finalizarGrabacion = async () => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder) return;
     setIsRecording(false);
-    setInterimText('');
-    setPaso('revision');
+    setIsTranscribing(true);
+
+    // Capturar el chunk final y esperar a que se detenga
+    await new Promise<void>((resolve) => {
+      recorder.addEventListener('stop', () => resolve(), { once: true });
+      try { recorder.stop(); } catch { resolve(); }
+    });
+
+    // Liberar micrófono
+    streamRef.current?.getTracks().forEach(t => t.stop());
+    streamRef.current = null;
+
+    // Ensamblar blob final
+    const mimeType = recorder.mimeType || audioChunksRef.current[0]?.type || 'audio/webm';
+    const blob = new Blob(audioChunksRef.current, { type: mimeType });
+
+    if (blob.size < 1000) {
+      setTranscribeError('Audio demasiado corto. Grabá al menos 1 segundo.');
+      setIsTranscribing(false);
+      setPaso('numero');
+      return;
+    }
+
+    try {
+      const text = await transcribeAudio(blob);
+      setTranscripcion(text);
+      setPaso('revision');
+    } catch (err: any) {
+      console.error('Transcribe error:', err);
+      setTranscribeError('Error al transcribir: ' + (err?.message || 'desconocido'));
+      setPaso('pausado'); // dejamos pausado para que pueda reintentar
+    } finally {
+      setIsTranscribing(false);
+    }
+  };
+
+  // Reintentar transcripción con el último audio grabado (si falló)
+  const reintentarTranscripcion = async () => {
+    if (audioChunksRef.current.length === 0) return;
+    setTranscribeError(null);
+    setIsTranscribing(true);
+    try {
+      const mimeType = mediaRecorderRef.current?.mimeType || audioChunksRef.current[0]?.type || 'audio/webm';
+      const blob = new Blob(audioChunksRef.current, { type: mimeType });
+      const text = await transcribeAudio(blob);
+      setTranscripcion(text);
+      setPaso('revision');
+    } catch (err: any) {
+      setTranscribeError('Error al transcribir: ' + (err?.message || 'desconocido'));
+    } finally {
+      setIsTranscribing(false);
+    }
   };
 
   // Guardar y siguiente
@@ -182,8 +276,6 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
       });
       setGuardado(true);
       loadHistorial();
-
-      // Ir a nueva biopsia con número precargado
       setTimeout(() => {
         onGoToNewBiopsy(numeroPaciente.trim());
       }, 800);
@@ -226,7 +318,7 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
         <div style={{ textAlign: 'center', maxWidth: '400px' }}>
           <div style={{ fontSize: '64px', marginBottom: '16px' }}>🎙️</div>
           <h2 style={{ color: 'white', marginBottom: '8px' }}>Dictado no disponible</h2>
-          <p style={{ color: '#94a3b8', fontSize: '14px' }}>Este navegador no soporta reconocimiento de voz. Usá Google Chrome.</p>
+          <p style={{ color: '#94a3b8', fontSize: '14px' }}>Tu navegador no soporta acceso al micrófono (getUserMedia) o grabación de audio (MediaRecorder).</p>
           <button onClick={onGoBack} style={{ marginTop: '16px', padding: '10px 24px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}>Volver</button>
         </div>
       </div>
@@ -242,7 +334,11 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
         display: 'flex', alignItems: 'center', justifyContent: 'space-between'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button onClick={() => { shouldRecordRef.current = false; if (recognitionRef.current) try { recognitionRef.current.stop(); } catch {} onGoBack(); }}
+          <button onClick={() => {
+            try { mediaRecorderRef.current?.stop(); } catch {}
+            streamRef.current?.getTracks().forEach(t => t.stop());
+            onGoBack();
+          }}
             style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '8px', padding: '8px', cursor: 'pointer', display: 'flex' }}>
             <ArrowLeft size={20} color="white" />
           </button>
@@ -258,6 +354,25 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
           <FileText size={14} /> Historial
         </button>
       </div>
+
+      {/* Banner de error */}
+      {transcribeError && (
+        <div style={{ background: '#991b1b', color: 'white', padding: '10px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <span>⚠️ {transcribeError}</span>
+          <button onClick={() => setTranscribeError(null)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', padding: '4px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Cerrar</button>
+        </div>
+      )}
+
+      {/* Overlay de transcripción en curso */}
+      {isTranscribing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#1e293b', padding: '32px 40px', borderRadius: '16px', textAlign: 'center', border: '1px solid #334155' }}>
+            <Loader size={48} color="#60a5fa" style={{ animation: 'spin 1.2s linear infinite', marginBottom: '12px' }} />
+            <div style={{ color: 'white', fontSize: '16px', fontWeight: 700 }}>Transcribiendo audio...</div>
+            <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '6px' }}>Enviando a Whisper. Tarda unos segundos.</div>
+          </div>
+        </div>
+      )}
 
       {showHistorial ? (
         /* HISTORIAL */
@@ -336,13 +451,12 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
             <Mic size={48} color="white" />
           </button>
           <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>
-            {numeroPaciente.trim() ? 'Tocá el micrófono para empezar a dictar' : 'Ingresá el número de paciente'}
+            {numeroPaciente.trim() ? 'Tocá el micrófono y autorizá el permiso' : 'Ingresá el número de paciente'}
           </p>
         </div>
       ) : paso === 'grabando' ? (
         /* PASO 2: Grabando */
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px', gap: '12px', overflow: 'hidden' }}>
-          {/* Info paciente */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ color: '#60a5fa', fontSize: '18px', fontWeight: 800 }}>Pac. #{numeroPaciente}</span>
@@ -358,20 +472,19 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
             </div>
           </div>
 
-          {/* Transcripción en vivo */}
+          {/* Placeholder grande mientras graba (Whisper transcribe al finalizar, no en vivo) */}
           <div style={{
-            flex: 1, padding: '16px', background: '#1a1a2e', border: '2px solid #ef4444',
-            borderRadius: '12px', color: 'white', fontSize: '16px', lineHeight: 1.7,
-            overflow: 'auto', minHeight: 0
+            flex: 1, padding: '24px', background: '#1a1a2e', border: '2px solid #ef4444',
+            borderRadius: '12px', color: 'white', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '16px'
           }}>
-            {transcripcion}
-            {interimText && <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>{interimText}</span>}
-            {!transcripcion && !interimText && (
-              <span style={{ color: '#475569' }}>Escuchando... hablá claro y pausado.</span>
-            )}
+            <div style={{ fontSize: '64px', animation: 'pulse 1.2s infinite' }}>🎙️</div>
+            <div style={{ fontSize: '18px', fontWeight: 700 }}>Hablá con claridad</div>
+            <div style={{ color: '#94a3b8', fontSize: '13px', maxWidth: '340px', lineHeight: 1.5 }}>
+              La transcripción se hace cuando tocás <b>Finalizar</b>. Podés <b>pausar</b> si necesitás una pausa larga.
+            </div>
           </div>
 
-          {/* Botones: Pausar + Finalizar */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexShrink: 0, padding: '8px 0' }}>
             <button onClick={pausarGrabacion} style={{
               width: '80px', height: '80px', borderRadius: '50%',
@@ -410,10 +523,22 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
           </div>
 
           <div style={{
-            flex: 1, padding: '16px', background: '#1e293b', border: '2px solid #f59e0b',
-            borderRadius: '12px', color: 'white', fontSize: '16px', lineHeight: 1.7, overflow: 'auto', minHeight: 0
+            flex: 1, padding: '24px', background: '#1e293b', border: '2px solid #f59e0b',
+            borderRadius: '12px', color: 'white', display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: '16px'
           }}>
-            {transcripcion || <span style={{ color: '#475569' }}>Sin transcripción aún</span>}
+            <Pause size={56} color="#f59e0b" />
+            <div style={{ fontSize: '16px', fontWeight: 600 }}>Grabación pausada</div>
+            <div style={{ color: '#94a3b8', fontSize: '12px', maxWidth: '340px' }}>
+              Tocá <b>Continuar</b> para seguir dictando, o <b>Finalizar</b> para transcribir.
+            </div>
+            {transcribeError && audioChunksRef.current.length > 0 && (
+              <button onClick={reintentarTranscripcion} style={{
+                marginTop: '8px', padding: '10px 20px', borderRadius: '10px',
+                background: '#1e40af', color: 'white', border: 'none', fontSize: '13px',
+                fontWeight: 700, cursor: 'pointer'
+              }}>Reintentar transcripción</button>
+            )}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexShrink: 0, padding: '8px 0' }}>
@@ -450,10 +575,10 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
             <span style={{ color: '#64748b', fontSize: '12px' }}><Clock size={12} style={{ verticalAlign: 'middle' }} /> {formatTime(duracion)}</span>
           </div>
 
-          {/* Transcripción editable */}
           <textarea
             value={transcripcion}
             onChange={e => setTranscripcion(e.target.value)}
+            placeholder="Revisá y corregí la transcripción aquí..."
             style={{
               flex: 1, width: '100%', padding: '16px',
               background: '#1e293b', border: '1px solid #334155',
@@ -462,9 +587,8 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
             }}
           />
 
-          {/* Botones */}
           <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
-            <button onClick={() => { setTranscripcion(''); setPaso('grabando'); iniciarGrabacion(); }}
+            <button onClick={() => { setTranscripcion(''); iniciarGrabacion(); }}
               style={{ padding: '14px', borderRadius: '10px', background: '#334155', border: 'none', color: 'white', fontSize: '13px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <Mic size={14} /> Redictar
             </button>
@@ -488,7 +612,10 @@ const DictadoMacroscopia: React.FC<DictadoMacroscopiaProps> = ({ doctorInfo, onG
         </div>
       )}
 
-      <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }`}</style>
+      <style>{`
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 };
