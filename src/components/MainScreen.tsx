@@ -574,7 +574,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
       remitosData.forEach((r: any) => {
         // Remitos anulados no suman a la facturación
-        if (r.estado === 'anulado' || r.modificadoPorSolicitud === 'anulacion') return;
+        const anuladoByNota = typeof r.notaServicioAdicional === 'string' && r.notaServicioAdicional.startsWith('ANULADO|');
+        if (r.estado === 'anulado' || anuladoByNota) return;
         const fecha = new Date(r.timestamp || r.fecha);
         const biopsias = (r.biopsias || []);
         // Usar precios del snapshot del remito si existe, sino precios actuales

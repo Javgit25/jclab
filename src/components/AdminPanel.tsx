@@ -463,7 +463,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       pendientes: remitos.filter(r => r.estado === 'pendiente').length,
       facturados: remitos.filter(r => r.estado === 'facturado').length,
       medicos: medicos.length,
-      totalFacturado: remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado), 0)
+      totalFacturado: remitos.filter(r => r.estado === 'facturado').reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito), 0)
     };
     
     const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
@@ -617,14 +617,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     return Number(total) || 0;
   };
 
-  const calcularTotalRemito = (biopsias: AdminBiopsia[], preciosSnapshot?: any, estado?: string, remito?: any) => {
-    // Remitos anulados no suman a la facturación
-    if (estado === 'anulado' || (remito && remito.modificadoPorSolicitud === 'anulacion')) return 0;
-    return biopsias.reduce((total, biopsia) => total + calcularTotalBiopsia(biopsia, preciosSnapshot), 0);
+  // Helper: detecta si un remito está anulado (usado para mostrar tachado y filtrar facturación)
+  // Marcador principal: notaServicioAdicional empieza con "ANULADO|" (TEXT compatible con schema Supabase)
+  const esAnulado = (r: any) => {
+    if (!r) return false;
+    if (typeof r.notaServicioAdicional === 'string' && r.notaServicioAdicional.startsWith('ANULADO|')) return true;
+    if (r.estado === 'anulado') return true;
+    return false;
   };
 
-  // Helper: detecta si un remito está anulado (usado para mostrar tachado y filtrar facturación)
-  const esAnulado = (r: any) => r?.estado === 'anulado' || r?.modificadoPorSolicitud === 'anulacion';
+  // Helper: parsea la nota de anulación para mostrar quién/cuándo/motivo
+  const parseAnulacion = (r: any) => {
+    const nota = typeof r?.notaServicioAdicional === 'string' && r.notaServicioAdicional.startsWith('ANULADO|')
+      ? r.notaServicioAdicional : null;
+    if (!nota) return null;
+    const parts = nota.split('|');
+    const quien = parts[1] || 'Médico';
+    const fecha = parts[2] ? new Date(parts[2]).toLocaleDateString('es-AR') : '';
+    const motivo = parts.slice(3).join('|') || 'Sin motivo';
+    return { quien, fecha, motivo };
+  };
+
+  const calcularTotalRemito = (biopsias: AdminBiopsia[], preciosSnapshot?: any, _estado?: string, remito?: any) => {
+    // Remitos anulados no suman a la facturación
+    if (remito && esAnulado(remito)) return 0;
+    if (_estado === 'anulado') return 0;
+    return biopsias.reduce((total, biopsia) => total + calcularTotalBiopsia(biopsia, preciosSnapshot), 0);
+  };
 
   const cambiarEstadoRemito = (remitoId: string, nuevoEstado: 'pendiente' | 'facturado') => {
     // Pedir confirmación solo al marcar como facturado
@@ -1036,7 +1055,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const remitosDelMedico = remitos.filter(r => r.medico === medico && (!centroFilter || (r.hospital || '') === centroFilter));
     const fechaActual = new Date().toLocaleDateString('es-AR');
     
-    const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado), 0);
+    const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito), 0);
     
     const totalPacientes = remitosDelMedico.reduce((s, r) => s + r.biopsias.length, 0);
     const totalBX = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo !== 'PQ' && b.tipo !== 'IHQ' && b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta').length, 0);
@@ -1342,7 +1361,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const th = 'padding:6px 8px;text-align:left;font-size:10px;color:#fff;';
 
     const seccion = (rm: any[], tit?: string) => {
-      const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+      const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
       const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
         const tipo = (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
         if (b.noVino) return '<tr style="color:#aaa;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + '">No recibido</td><td style="' + td + 'text-align:right;">$0</td></tr>';
@@ -1364,7 +1383,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     };
 
     const rmF = centroFilter ? rmAll.filter(r => (r.hospital || '') === centroFilter) : rmAll;
-    const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+    const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
     const totP = rmF.reduce((s, r) => s + r.biopsias.length, 0);
 
     let det = '';
@@ -1913,7 +1932,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   <div className="line-through text-gray-400">${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot).toLocaleString()}</div>
                                   <div className="text-red-600 font-extrabold">$0</div>
                                 </div>
-                              ) : `$${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado).toLocaleString()}`
+                              ) : `$${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito).toLocaleString()}`
                             ) : '—'}
                           </td>
                           <td className="py-2 px-3 text-center">
@@ -1924,14 +1943,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             )}
                           </td>
                           <td className="py-2 px-3 text-center">
-                            {esAnulado(remito) ? (
-                              <div>
-                                <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-300">🗑️ ANULADO</span>
-                                {(remito as any).modificadoPorAdmin && (
-                                  <div className="text-[9px] text-red-600 mt-0.5 italic">{(remito as any).modificadoPorAdmin}</div>
-                                )}
-                              </div>
-                            ) : isListo ? (
+                            {esAnulado(remito) ? (() => {
+                              const info = parseAnulacion(remito);
+                              return (
+                                <div>
+                                  <span className="text-xs font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded border border-red-300">🗑️ ANULADO</span>
+                                  {info && (
+                                    <div className="text-[9px] text-red-600 mt-0.5 italic">Por {info.quien} el {info.fecha}. {info.motivo}</div>
+                                  )}
+                                </div>
+                              );
+                            })() : isListo ? (
                               <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded">Listo</span>
                             ) : listasCount > 0 ? (
                               <span className="text-xs font-semibold text-orange-700 bg-orange-50 px-2 py-0.5 rounded">Parcial</span>
@@ -2530,7 +2552,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         <td className="py-3 px-4 text-center">
                           <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-md text-xs font-bold">{remito.biopsias.length}</span>
                         </td>
-                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado).toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right text-sm font-bold text-gray-900">${calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito).toLocaleString()}</td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex flex-col gap-1 items-center">
                             {(remito as any).estadoEnvio === 'listo' ? (
@@ -2994,7 +3016,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           )}
 
           {currentView === 'facturacion' && (() => {
-            const totalGeneral = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+            const totalGeneral = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
             const allBiopsias = remitos.flatMap(r => r.biopsias);
             const totalPacientes = allBiopsias.length;
             const countBX = allBiopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta' && b.tipo !== 'PQ' && b.tipo !== 'IHQ').length;
@@ -3076,8 +3098,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {(() => {
                         // Agrupar por médico, y dentro de cada médico por centro
                         const medicosSorted = [...medicos].sort((a, b) => {
-                          const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
-                          const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                          const tA = remitos.filter(r => r.medico === a).reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
+                          const tB = remitos.filter(r => r.medico === b).reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
                           return tB - tA;
                         });
                         const rows: React.ReactNode[] = [];
@@ -3085,7 +3107,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const rmMedico = remitos.filter(r => r.medico === medico);
                           const centros = [...new Set(rmMedico.map(r => r.hospital || 'Sin centro'))];
                           const tieneCentros = centros.length > 1 || (centros.length === 1 && centros[0] !== 'Sin centro');
-                          const totalMedico = rmMedico.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                          const totalMedico = rmMedico.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
 
                           if (tieneCentros && centros.length > 1) {
                             // Médico con múltiples centros: fila header del médico + subfila por centro
@@ -3125,7 +3147,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                             );
                             centros.forEach((centro) => {
                               const rm = rmMedico.filter(r => (r.hospital || 'Sin centro') === centro);
-                              const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                              const total = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
                               const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
                               const bx = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tejido !== 'PAP' && b.tejido !== 'Citología' && b.tejido !== 'Inmunohistoquímica' && b.tejido !== 'Taco en Consulta' && b.tipo !== 'PQ' && b.tipo !== 'IHQ').length, 0);
                               const pq = rm.reduce((s, r) => s + r.biopsias.filter(b => b.tipo === 'PQ').length, 0);
@@ -4441,6 +4463,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     setSolicitudesAdmin((prev: any[]) => prev.map(s => s.id === sol.id ? updated : s));
 
                     // ANULACIÓN DE REMITO: marcar el remito como anulado y descontar de facturación
+                    // Usa notaServicioAdicional (TEXT) para persistir — el schema de Supabase
+                    // rechaza 'anulado' en estado (CHECK constraint) y los campos modificadoPor* son BOOLEAN.
                     if (sol.tipo === 'anulacion_remito' && nuevoEstado === 'entregado') {
                       try {
                         const solRN = String(sol.remitoNumber || '').replace('#', '').trim();
@@ -4450,9 +4474,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const quien = sol.solicitadoPor || sol.doctorEmail || 'Médico';
                           const anulado: any = {
                             ...target,
-                            estado: 'anulado',
-                            modificadoPorAdmin: `Anulado por ${quien} el ${new Date().toLocaleDateString('es-AR')}. ${motivo || 'Sin motivo especificado.'}`,
-                            modificadoPorSolicitud: 'anulacion',
+                            // Marcador compatible con schema Supabase existente
+                            notaServicioAdicional: `ANULADO|${quien}|${new Date().toISOString()}|${motivo || 'Sin motivo'}`,
+                            modificadoPorSolicitud: true,
                             modificadoAt: new Date().toISOString()
                           };
                           await db.saveRemito(anulado);
@@ -4868,7 +4892,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           })()}
 
           {currentView === 'analytics' && (() => {
-            const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+            const totalFacturado = remitos.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
             // Filtrar pagos solo de médicos de este lab
             const medicosDelLab = new Set(medicos);
             let totalCobrado = 0;
@@ -4936,7 +4960,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                       {medicos.filter((medico) => {
                         if (cobrosFilter === 'todos') return true;
                         const rm = remitos.filter(r => r.medico === medico);
-                        const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                        const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
                         let pag = 0;
                         try { pag = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
                         const debe = Math.max(0, tot - pag);
@@ -4945,7 +4969,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         return true;
                       }).map((medico) => {
                         const remitosM = remitos.filter(r => r.medico === medico);
-                        const totalM = remitosM.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                        const totalM = remitosM.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
                         const pacientes = remitosM.reduce((s, r) => s + r.biopsias.length, 0);
                         let pagadoM = 0;
                         try { const payments = JSON.parse(localStorage.getItem('doctorPayments') || '[]'); pagadoM = payments.filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
@@ -4996,7 +5020,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     <div className="flex gap-2 flex-wrap">
                                       {centrosM.map((c, ci) => {
                                         const rmC = remitosM.filter(r => r.hospital === c);
-                                        const totC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                                        const totC = rmC.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
                                         return (
                                           <div key={ci} className="bg-white border border-blue-200 rounded-lg px-3 py-1.5 text-xs">
                                             <span className="font-semibold text-blue-600">{c}</span>
@@ -5047,7 +5071,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 const deudores: { medico: string; email: string; deuda: number }[] = [];
                 medicos.forEach(medico => {
                   const rm = remitos.filter(r => r.medico === medico);
-                  const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado), 0);
+                  const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
                   let pag = 0;
                   try { pag = JSON.parse(localStorage.getItem('doctorPayments') || '[]').filter((p: any) => p.medico === medico).reduce((s: number, p: any) => s + (p.monto || 0), 0); } catch {}
                   const debe = Math.max(0, tot - pag);

@@ -326,6 +326,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         db.saveNotification(notif).catch(console.error);
       }
       // Anulación de remito aprobada: marcar el remito como anulado en Supabase
+      // Usa notaServicioAdicional (TEXT) — el schema Supabase rechaza 'anulado' en estado.
       if (updated.estado === 'entregado' && sol.tipo === 'anulacion_remito') {
         try {
           const allRemitos = await db.getRemitos();
@@ -335,10 +336,8 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
             const quien = sol.solicitadoPor || sol.doctorEmail || 'Médico';
             const anulado = {
               ...target,
-              estado: 'anulado',
-              // Aprovechar campos existentes (no requiere migration de Supabase)
-              modificadoPorAdmin: `Anulado por ${quien} el ${new Date().toLocaleDateString('es-AR')}. ${motivo || 'Sin motivo especificado.'}`,
-              modificadoPorSolicitud: 'anulacion',
+              notaServicioAdicional: `ANULADO|${quien}|${new Date().toISOString()}|${motivo || 'Sin motivo'}`,
+              modificadoPorSolicitud: true,
               modificadoAt: new Date().toISOString()
             };
             await db.saveRemito(anulado);
