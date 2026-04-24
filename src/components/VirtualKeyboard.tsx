@@ -103,7 +103,7 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             ))}
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5">
+          <div className={`grid ${isCountOnly ? 'grid-cols-3' : 'grid-cols-4'} gap-1.5`}>
             <button
               onClick={() => onKeyPress('backspace')}
               className="bg-red-100 hover:bg-red-200 text-red-800 font-semibold py-2 px-2 rounded-lg transition-colors text-sm"
@@ -116,12 +116,14 @@ export const VirtualKeyboard: React.FC<VirtualKeyboardProps> = ({
             >
               Limpiar
             </button>
-            <button
-              onClick={() => onSwitchType('full')}
-              className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-2 px-2 rounded-lg transition-colors text-sm"
-            >
-              ABC
-            </button>
+            {!isCountOnly && (
+              <button
+                onClick={() => onSwitchType('full')}
+                className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-2 px-2 rounded-lg transition-colors text-sm"
+              >
+                ABC
+              </button>
+            )}
             <button
               onClick={onConfirm}
               className="bg-green-100 hover:bg-green-200 text-green-800 font-semibold py-2 px-2 rounded-lg transition-colors text-sm"

@@ -295,11 +295,25 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         tipoMsg = sn.length > 0 ? sn.join(', ') : 'Servicio Adicional';
       }
       const cassInfo = sol.cassetteLabels?.length > 0 ? `\nCassettes: ${sol.cassetteLabels.join(', ')}` : '';
-      const mensajes: Record<string, string> = {
-        en_proceso: `Su solicitud de ${tipoMsg} fue aceptada y está en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
-        entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`
-      };
+      // Mensajes específicos para anulación de remito (flujo distinto al de solicitudes normales)
+      const mensajes: Record<string, string> = sol.tipo === 'anulacion_remito'
+        ? {
+            en_proceso: `Su pedido de anulación del Remito #${sol.remitoNumber || ''} fue recibido y está en revisión por el laboratorio.`,
+            entregado: `✅ Anulación del Remito #${sol.remitoNumber || ''} APROBADA.\nEl remito fue descontado de la facturación.`,
+            rechazado: `❌ Anulación del Remito #${sol.remitoNumber || ''} RECHAZADA.\nEl remito se mantiene en la facturación.`
+          }
+        : {
+            en_proceso: `Su solicitud de ${tipoMsg} fue aceptada y está en proceso.\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`,
+            entregado: `${tipoMsg} listo para retirar!\nPaciente #${sol.numeroPaciente || ''} — ${sol.tejido || ''}${cassInfo}\nRemito #${sol.remitoNumber || ''}`
+          };
       if (mensajes[updated.estado]) {
+        // Para anulaciones aprobadas usamos tipo 'anulacion_aprobada' para label distinto
+        let notifTipo: string = updated.estado === 'entregado' ? 'listo' : 'material_recibido';
+        if (sol.tipo === 'anulacion_remito') {
+          if (updated.estado === 'entregado') notifTipo = 'anulacion_aprobada';
+          else if (updated.estado === 'rechazado') notifTipo = 'anulacion_rechazada';
+          else notifTipo = 'anulacion_en_revision';
+        }
         const notif = {
           id: `NOTIF_SOL_${Date.now()}`,
           remitoId: sol.id,
@@ -307,10 +321,31 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           mensaje: mensajes[updated.estado],
           fecha: new Date().toISOString(),
           leida: false,
-          tipo: updated.estado === 'entregado' ? 'listo' : 'material_recibido'
+          tipo: notifTipo
         };
         db.saveNotification(notif).catch(console.error);
       }
+      // Anulación de remito aprobada: marcar el remito como anulado en Supabase
+      if (updated.estado === 'entregado' && sol.tipo === 'anulacion_remito') {
+        try {
+          const allRemitos = await db.getRemitos();
+          const target = allRemitos.find((r: any) => String(r.remitoNumber) === String(sol.remitoNumber));
+          if (target) {
+            const motivo = (sol.descripcion || '').replace(/^ANULACIÓN solicitada por el médico\.\s*/i, '').trim();
+            const quien = sol.solicitadoPor || sol.doctorEmail || 'Médico';
+            const anulado = {
+              ...target,
+              estado: 'anulado',
+              // Aprovechar campos existentes (no requiere migration de Supabase)
+              modificadoPorAdmin: `Anulado por ${quien} el ${new Date().toLocaleDateString('es-AR')}. ${motivo || 'Sin motivo especificado.'}`,
+              modificadoPorSolicitud: 'anulacion',
+              modificadoAt: new Date().toISOString()
+            };
+            await db.saveRemito(anulado);
+          }
+        } catch (e) { console.error('Error marcando remito como anulado:', e); }
+      }
+
       // Auto-facturar: sumar profundización/servicio al remito cuando se marca entregado
       if (updated.estado === 'entregado' && (sol.tipo === 'profundizacion' || sol.tipo === 'servicio_adicional')) {
         const desc = sol.descripcion || '';

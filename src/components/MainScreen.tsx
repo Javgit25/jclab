@@ -572,6 +572,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       let totalRemitosDelMes = 0;
 
       remitosData.forEach((r: any) => {
+        // Remitos anulados no suman a la facturación
+        if (r.estado === 'anulado' || r.modificadoPorSolicitud === 'anulacion') return;
         const fecha = new Date(r.timestamp || r.fecha);
         const biopsias = (r.biopsias || []);
         // Usar precios del snapshot del remito si existe, sino precios actuales
@@ -2769,6 +2771,9 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                         let color = '#1e40af';
                         if (n.tipo === 'listo') { label = '✅ Listo para retirar'; color = '#059669'; }
                         else if (n.tipo === 'parcial') { label = '🟢 Material listo (parcial)'; color = '#059669'; }
+                        else if (n.tipo === 'anulacion_aprobada') { label = '✅ Anulación de remito aprobada'; color = '#059669'; }
+                        else if (n.tipo === 'anulacion_rechazada') { label = '❌ Anulación de remito rechazada'; color = '#dc2626'; }
+                        else if (n.tipo === 'anulacion_en_revision') { label = '⏳ Anulación en revisión'; color = '#d97706'; }
                         else if (n.tipo === 'material_recibido') {
                           color = '#d97706';
                           if (isSolicitud) {
