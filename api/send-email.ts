@@ -44,9 +44,12 @@ async function htmlToPdfViaPdfShift(html: string): Promise<string> {
     body: JSON.stringify({
       source: html,
       format: 'A4',
-      margin: '10mm',
+      // Sin márgenes de página: el HTML ya trae su propio padding interno.
+      // Así el banner del encabezado queda de borde a borde, como en el archivo descargado.
+      margin: '0',
       landscape: false,
-      use_print: true,
+      // No usamos @media print para que se vea igual que el HTML en pantalla
+      use_print: false,
     }),
   });
 
