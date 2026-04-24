@@ -97,17 +97,54 @@ export const sendBulkEmail = async (
 // Se mantiene para no romper call sites. Podemos eliminarla cuando migremos la UI.
 export const saveEmailConfig = (_serviceId: string, _templateId: string, _publicKey: string) => {};
 
-// Enviar email de prueba
+// Enviar email de prueba — sirve de preview del email de facturación con los
+// textos configurados (mensaje del email + pie de pago).
 export const sendTestEmail = async (toEmail: string) => {
   const labConfig = JSON.parse(localStorage.getItem('labConfig') || '{}');
+  let emailCfg: any = {};
+  try { emailCfg = JSON.parse(localStorage.getItem('emailjsConfig') || '{}'); } catch {}
+
+  const labName = labConfig.nombre || 'Laboratorio';
+  const mesEjemplo = (() => {
+    const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+    return m.charAt(0).toUpperCase() + m.slice(1);
+  })();
+
+  const bodyText = (emailCfg.bodyText || '').trim();
+  const mensajeHtml = bodyText
+    ? bodyText.replace(/\[nombre del médico\]/gi, '<strong>Dr/a. Apellido</strong>')
+              .replace(/\[mes actual\]/gi, '<strong>' + mesEjemplo + '</strong>')
+              .replace(/\n/g, '<br>')
+    : (
+      'Estimado/a Dr./Dra. <strong>Apellido</strong>,<br>' +
+      'Por medio de la presente, le adjuntamos el detalle completo de las biopsias y pacientes remitidos a nuestro laboratorio durante el mes de <strong>' + mesEjemplo + '</strong>.<br>' +
+      'Quedamos a su disposición para cualquier consulta o aclaración que considere necesaria.<br>' +
+      'Sin otro particular, saludamos a usted muy atentamente.'
+    );
+
+  const footerText = (emailCfg.footerText || '').trim();
+  const footerHtml = footerText
+    ? '<hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />' +
+      '<div style="font-size:12px;color:#475569;white-space:pre-line;">' + footerText.replace(/</g, '&lt;').replace(/\n/g, '<br>') + '</div>'
+    : '';
+
+  const messageHtml =
+    '<div style="font-family:Arial,sans-serif;max-width:600px;color:#1e293b;line-height:1.6;">' +
+      '<div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#92400e;">' +
+        '⚠️ <strong>Email de prueba</strong> — así se verá el email de facturación que reciben los médicos. Los valores <em>[nombre del médico]</em> y <em>[mes actual]</em> se reemplazan automáticamente en los envíos reales.' +
+      '</div>' +
+      '<h2 style="color:#0f172a;margin:0 0 12px;">' + labName + '</h2>' +
+      '<div>' + mensajeHtml + '</div>' +
+      footerHtml +
+      '<hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />' +
+      '<div style="font-size:11px;color:#94a3b8;">Enviado desde biopsytracker.io — integración con Resend.</div>' +
+    '</div>';
+
   return sendEmail({
     toEmail,
-    toName: 'Test',
-    subject: 'Prueba de email - ' + (labConfig.nombre || 'BiopsyTracker'),
-    messageHtml:
-      '<h2>Email de prueba</h2>' +
-      '<p>Si recibiste este email, la integración con Resend está funcionando correctamente.</p>' +
-      '<p>' + (labConfig.nombre || 'Laboratorio') + '</p>',
-    fromName: labConfig.nombre || 'BiopsyTracker',
+    toName: 'Prueba',
+    subject: 'Prueba de email - ' + labName,
+    messageHtml,
+    fromName: labName,
   });
 };
