@@ -2,11 +2,11 @@
 // La API key de Resend está en Vercel como env var RESEND_API_KEY (no en el front).
 
 // URL del endpoint: configurable por build-time env var VITE_EMAIL_API_URL.
-// Default: proyecto Vercel `jclab`. Si tu proyecto se llama distinto, ajustá VITE_EMAIL_API_URL
-// en .env.production o en la config de build.
+// Default: URL de Preview del proyecto jclab-dev (branch dev). Cuando se promueva
+// a Production (push a main), conviene cambiar este default a la URL de producción.
 const API_URL =
   (import.meta.env.VITE_EMAIL_API_URL as string | undefined) ||
-  'https://jclab.vercel.app/api/send-email';
+  'https://jclab-dev-git-dev-javiers-projects-393cfb5c.vercel.app/api/send-email';
 
 export type EmailAttachment = {
   filename: string;
