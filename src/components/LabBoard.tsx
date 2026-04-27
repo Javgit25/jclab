@@ -737,33 +737,38 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                     background: s.listo ? '#052e1a' : '#1a1a1a',
                     border: s.listo ? '2px solid #10b981' : '2px solid #7c3aed',
                     borderRadius: '10px', padding: '10px 14px',
-                    minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
+                    minWidth: '220px', flex: '1 1 260px', maxWidth: '340px',
                     cursor: s.listo ? 'default' : 'pointer',
                     opacity: s.listo ? 0.85 : 1,
                     transition: 'transform 0.1s',
+                    overflow: 'hidden',
                   }}
                   onTouchStart={e => { if (!s.listo) (e.currentTarget as HTMLElement).style.transform = 'scale(0.96)'; }}
                   onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: s.listo ? '#86efac' : '#c4b5fd' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{
+                      fontSize: '1.15rem', fontWeight: 800, color: s.listo ? '#86efac' : '#c4b5fd',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: 1,
+                    }}>
                       {s.medico?.startsWith('Dr') ? s.medico : 'Dr./Dra. ' + s.medico}
                     </span>
-                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      {s.listo && (
-                        <span style={{ background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>
-                          ✅ Listo
-                        </span>
-                      )}
-                      {s.servicios.map((svc: string, j: number) => (
-                        <span key={j} style={{
-                          background: svc.includes('IHQ') ? '#1e40af' : svc.includes('Giemsa') || svc.includes('PAS') || svc.includes('Masson') ? '#7c3aed' : svc.includes('Prof') ? '#0369a1' : '#475569',
-                          color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700
-                        }}>{svc}</span>
-                      ))}
-                    </div>
+                    {s.listo && (
+                      <span style={{ background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700, flexShrink: 0 }}>
+                        ✅ Listo
+                      </span>
+                    )}
                   </div>
-                  <div style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Pac. #{s.numero} · {s.tejido} · Remito #{s.remitoNumber}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '6px' }}>
+                    {s.servicios.map((svc: string, j: number) => (
+                      <span key={j} style={{
+                        background: svc.includes('IHQ') ? '#1e40af' : svc.includes('Giemsa') || svc.includes('PAS') || svc.includes('Masson') ? '#7c3aed' : svc.includes('Prof') ? '#0369a1' : '#475569',
+                        color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                      }}>{svc}</span>
+                    ))}
+                  </div>
+                  <div style={{ fontSize: '0.9rem', color: '#94a3b8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Pac. #{s.numero} · {s.tejido} · Remito #{s.remitoNumber}</div>
                   {s.fecha && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{new Date(s.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short' })}</div>}
                 </div>
               ))}
