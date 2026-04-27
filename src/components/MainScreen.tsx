@@ -75,15 +75,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   const [solicitudServicios, setSolicitudServicios] = useState<{ giemsa: boolean; pas: boolean; masson: boolean; vidriosIHQ: number; vidriosBlanco: number }>({ giemsa: false, pas: false, masson: false, vidriosIHQ: 0, vidriosBlanco: 0 });
 
   // Cargar notificaciones del médico (todas, incluidas leídas recientes)
+  // Filtrar por hospital actual: notifs sin hospital se muestran (legacy/retrocompat)
+  const filterByCentro = (list: any[]) => {
+    const currentHospital = (doctorInfo.hospital || '').trim();
+    if (!currentHospital) return list;
+    return list.filter((n: any) => {
+      const nh = (n.hospital || '').trim();
+      return !nh || nh === currentHospital;
+    });
+  };
   const loadNotifications = () => {
     try {
       const all = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
       const mine = all.filter((n: any) => n.medicoEmail === doctorInfo.email);
-      setNotificationsData(mine);
+      setNotificationsData(filterByCentro(mine));
     } catch { setNotificationsData([]); }
     // Fire-and-forget: refresh from Supabase
     db.getNotifications(doctorInfo.email).then((remote: any[]) => {
-      if (remote && remote.length > 0) setNotificationsData(remote);
+      if (remote && remote.length > 0) setNotificationsData(filterByCentro(remote));
     }).catch(() => {});
   };
 
@@ -155,13 +164,15 @@ export const MainScreen: React.FC<MainScreenProps> = ({
   React.useEffect(() => {
     const fetchNotifs = () => {
       db.getNotifications(doctorInfo.email).then((remote: any[]) => {
-        if (remote && remote.length > 0) setNotificationsData(prev => {
-          // Solo actualizar si hay cambios (evitar re-renders innecesarios)
-          if (JSON.stringify(prev.map(n => n.id + n.leida)) !== JSON.stringify(remote.map(n => n.id + n.leida))) {
-            return remote;
-          }
-          return prev;
-        });
+        if (remote && remote.length > 0) {
+          const filtered = filterByCentro(remote);
+          setNotificationsData(prev => {
+            if (JSON.stringify(prev.map(n => n.id + n.leida)) !== JSON.stringify(filtered.map((n: any) => n.id + n.leida))) {
+              return filtered;
+            }
+            return prev;
+          });
+        }
       }).catch(() => {});
     };
 

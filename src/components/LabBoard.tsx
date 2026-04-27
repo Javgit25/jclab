@@ -163,12 +163,15 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         });
         setUrgentes(urgs);
 
-        // Extraer servicios especiales de remitos no listos
+        // Extraer servicios especiales: pendientes (no listos) o listos hoy
         const svcs: any[] = [];
         data.forEach((r: any) => {
           const biopsiaListas = r.biopsia_listas || [];
           (r.biopsias || []).forEach((b: any, idx: number) => {
-            if (biopsiaListas[idx]) return; // ya listo, skip
+            const lista = biopsiaListas[idx];
+            const listaHoy = lista && isToday(b.listoAt || '');
+            // Skip si está lista pero no se marcó hoy (ya tuvo su día visible)
+            if (lista && !listaHoy) return;
             const sv = b.servicios || {};
             const items: string[] = [];
             if ((sv.corteBlancoIHQ || 0) > 0) items.push('Corte IHQ x' + sv.corteBlancoIHQ);
@@ -183,7 +186,12 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
             }
             if ((sv.profundizacion || 0) > 0) items.push('Profundización x' + sv.profundizacion);
             if (items.length > 0) {
-              svcs.push({ numero: b.numero, tejido: b.tejido, medico: r.medico, remitoNumber: r.remito_number, fecha: r.timestamp || r.fecha, servicios: items });
+              svcs.push({
+                numero: b.numero, tejido: b.tejido, medico: r.medico,
+                remitoNumber: r.remito_number, fecha: r.timestamp || r.fecha,
+                servicios: items, listo: !!lista,
+                remitoId: r.id, biopsiaIdx: idx,
+              });
             }
           });
         });
@@ -205,8 +213,14 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         while (biopsiaListas.length < (data.biopsias || []).length) biopsiaListas.push(false);
         biopsiaListas[urg.biopsiaIdx] = true;
         const todasListas = biopsiaListas.every(Boolean);
+        // Stamp listoAt en la biopsia para que SERVICIOS ESPECIALES la mantenga visible hoy
+        const biopsiasUpd = [...(data.biopsias || [])];
+        if (biopsiasUpd[urg.biopsiaIdx]) {
+          biopsiasUpd[urg.biopsiaIdx] = { ...biopsiasUpd[urg.biopsiaIdx], listoAt: new Date().toISOString() };
+        }
         await supabase.from('remitos').update({
           biopsia_listas: biopsiaListas,
+          biopsias: biopsiasUpd,
           estado_envio: todasListas ? 'listo' : data.estado_envio,
           listo_at: todasListas ? new Date().toISOString() : data.listo_at,
           updated_at: new Date().toISOString(),
@@ -219,13 +233,58 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         const remitoNum = data.remito_number || data.id.slice(-6).toUpperCase();
         const medicoEmail = data.doctor_email || data.email;
         const notif = todasListas
-          ? { id: `NOTIF_LISTO_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Su remito #${remitoNum} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' }
-          : { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Paciente #${biopsia.numero} (${urg.tipo} - ${biopsia.tejido}) está LISTO.\nProgreso: ${listasCount}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' };
+          ? { id: `NOTIF_LISTO_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Su remito #${remitoNum} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo', hospital: data.hospital || '' }
+          : { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Paciente #${biopsia.numero} (${urg.tipo} - ${biopsia.tejido}) está LISTO.\nProgreso: ${listasCount}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial', hospital: data.hospital || '' };
         db.saveNotification(notif).catch(console.error);
       }
     } catch (e) {
       console.error('Error marcando urgente:', e);
       setUrgentes(prev => prev.map(u => u.id === urg.id ? { ...u, listo: false } : u));
+    }
+  }, []);
+
+  // Marcar servicio especial como listo (toda la biopsia → listo)
+  const handleMarcarServicioListo = useCallback(async (svc: any) => {
+    if (svc.listo) return;
+    setServiciosEspeciales(prev => prev.map(s =>
+      s.remitoId === svc.remitoId && s.biopsiaIdx === svc.biopsiaIdx ? { ...s, listo: true } : s
+    ));
+    try {
+      const { supabase } = await import('../lib/supabase');
+      const { data } = await supabase.from('remitos').select('*').eq('id', svc.remitoId).single();
+      if (data) {
+        const biopsiaListas = data.biopsia_listas || [];
+        while (biopsiaListas.length < (data.biopsias || []).length) biopsiaListas.push(false);
+        biopsiaListas[svc.biopsiaIdx] = true;
+        const todasListas = biopsiaListas.every(Boolean);
+        const biopsiasUpd = [...(data.biopsias || [])];
+        if (biopsiasUpd[svc.biopsiaIdx]) {
+          biopsiasUpd[svc.biopsiaIdx] = { ...biopsiasUpd[svc.biopsiaIdx], listoAt: new Date().toISOString() };
+        }
+        await supabase.from('remitos').update({
+          biopsia_listas: biopsiaListas,
+          biopsias: biopsiasUpd,
+          estado_envio: todasListas ? 'listo' : data.estado_envio,
+          listo_at: todasListas ? new Date().toISOString() : data.listo_at,
+          updated_at: new Date().toISOString(),
+        }).eq('id', svc.remitoId);
+
+        // Notificar al médico
+        const biopsia = data.biopsias[svc.biopsiaIdx];
+        const totalBiopsias = data.biopsias.length;
+        const listasCount = biopsiaListas.filter(Boolean).length;
+        const remitoNum = data.remito_number || data.id.slice(-6).toUpperCase();
+        const medicoEmail = data.doctor_email || data.email;
+        const notif = todasListas
+          ? { id: `NOTIF_LISTO_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Su remito #${remitoNum} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo', hospital: data.hospital || '' }
+          : { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: data.id, medicoEmail, mensaje: `Paciente #${biopsia.numero} (${biopsia.tejido}) está LISTO.\nProgreso: ${listasCount}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial', hospital: data.hospital || '' };
+        db.saveNotification(notif).catch(console.error);
+      }
+    } catch (e) {
+      console.error('Error marcando servicio listo:', e);
+      setServiciosEspeciales(prev => prev.map(s =>
+        s.remitoId === svc.remitoId && s.biopsiaIdx === svc.biopsiaIdx ? { ...s, listo: false } : s
+      ));
     }
   }, []);
 
@@ -314,6 +373,16 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           else if (updated.estado === 'rechazado') notifTipo = 'anulacion_rechazada';
           else notifTipo = 'anulacion_en_revision';
         }
+        // Buscar el hospital del remito asociado para que la notif sólo aparezca en ese centro
+        let notifHospital = '';
+        try {
+          const { supabase: sb } = await import('../lib/supabase');
+          const solRN = (sol.remitoNumber || '').replace('#', '').trim();
+          if (solRN) {
+            const { data: rData } = await sb.from('remitos').select('hospital').eq('lab_code', labCode).eq('remito_number', solRN).limit(1);
+            if (rData && rData[0]) notifHospital = rData[0].hospital || '';
+          }
+        } catch {}
         const notif = {
           id: `NOTIF_SOL_${Date.now()}`,
           remitoId: sol.id,
@@ -321,7 +390,8 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
           mensaje: mensajes[updated.estado],
           fecha: new Date().toISOString(),
           leida: false,
-          tipo: notifTipo
+          tipo: notifTipo,
+          hospital: notifHospital,
         };
         db.saveNotification(notif).catch(console.error);
       }
@@ -656,19 +726,35 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         <div style={{ padding: '8px 12px', flexShrink: 0 }}>
           <div style={{ background: '#1a1a2e', border: '2px solid #7c3aed', borderRadius: '12px', padding: '10px 14px' }}>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#c4b5fd', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-              🧪 SERVICIOS ESPECIALES ({serviciosEspeciales.length})
+              🧪 SERVICIOS ESPECIALES ({serviciosEspeciales.filter(s => !s.listo).length} pendientes
+              {serviciosEspeciales.filter(s => s.listo).length > 0 ? ` · ${serviciosEspeciales.filter(s => s.listo).length} listos hoy` : ''}) — Toque para marcar listo
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
               {serviciosEspeciales.map((s, i) => (
-                <div key={i} style={{
-                  background: '#1a1a1a', border: '2px solid #7c3aed', borderRadius: '10px',
-                  padding: '10px 14px', minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
-                }}>
+                <div key={i}
+                  onClick={() => handleMarcarServicioListo(s)}
+                  style={{
+                    background: s.listo ? '#052e1a' : '#1a1a1a',
+                    border: s.listo ? '2px solid #10b981' : '2px solid #7c3aed',
+                    borderRadius: '10px', padding: '10px 14px',
+                    minWidth: '200px', flex: '1 1 220px', maxWidth: '300px',
+                    cursor: s.listo ? 'default' : 'pointer',
+                    opacity: s.listo ? 0.85 : 1,
+                    transition: 'transform 0.1s',
+                  }}
+                  onTouchStart={e => { if (!s.listo) (e.currentTarget as HTMLElement).style.transform = 'scale(0.96)'; }}
+                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)'; }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: '#c4b5fd' }}>
+                    <span style={{ fontSize: '1.3rem', fontWeight: 800, color: s.listo ? '#86efac' : '#c4b5fd' }}>
                       {s.medico?.startsWith('Dr') ? s.medico : 'Dr./Dra. ' + s.medico}
                     </span>
-                    <div style={{ display: 'flex', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {s.listo && (
+                        <span style={{ background: '#10b981', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 700 }}>
+                          ✅ Listo
+                        </span>
+                      )}
                       {s.servicios.map((svc: string, j: number) => (
                         <span key={j} style={{
                           background: svc.includes('IHQ') ? '#1e40af' : svc.includes('Giemsa') || svc.includes('PAS') || svc.includes('Masson') ? '#7c3aed' : svc.includes('Prof') ? '#0369a1' : '#475569',

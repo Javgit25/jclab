@@ -421,6 +421,7 @@ export const db = {
           fecha: n.fecha,
           leida: n.leida,
           tipo: n.tipo,
+          hospital: n.hospital || '',
         }));
         localStorage.setItem('doctorNotifications', JSON.stringify(notifs));
         return notifs;
@@ -435,17 +436,27 @@ export const db = {
     if (idx >= 0) notifs[idx] = notif; else notifs.push(notif);
     localStorage.setItem('doctorNotifications', JSON.stringify(notifs));
 
+    const basePayload: any = {
+      id: notif.id,
+      remito_id: notif.remitoId,
+      medico_email: (notif.medicoEmail || '').toLowerCase().trim(),
+      mensaje: notif.mensaje,
+      fecha: notif.fecha,
+      leida: notif.leida,
+      tipo: notif.tipo,
+    };
     try {
-      await supabase.from('doctor_notifications').upsert({
-        id: notif.id,
-        remito_id: notif.remitoId,
-        medico_email: (notif.medicoEmail || '').toLowerCase().trim(),
-        mensaje: notif.mensaje,
-        fecha: notif.fecha,
-        leida: notif.leida,
-        tipo: notif.tipo,
-      });
-    } catch (e) { console.error('Error saving notification:', e); }
+      // Intentar incluir hospital (requiere migración SQL: ALTER TABLE doctor_notifications ADD COLUMN hospital TEXT)
+      await supabase.from('doctor_notifications').upsert({ ...basePayload, hospital: notif.hospital || '' });
+    } catch (e: any) {
+      // Fallback si la columna hospital aún no existe en Supabase
+      if (e?.message?.includes('hospital') || e?.code === 'PGRST204' || e?.code === '42703') {
+        try { await supabase.from('doctor_notifications').upsert(basePayload); }
+        catch (e2) { console.error('Error saving notification:', e2); }
+      } else {
+        console.error('Error saving notification:', e);
+      }
+    }
   },
 
   async markNotificationRead(id: string) {

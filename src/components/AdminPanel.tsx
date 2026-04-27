@@ -104,6 +104,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [tacoBusqueda, setTacoBusqueda] = useState('');
   const [tacoResultados, setTacoResultados] = useState<any[]>([]);
   const [tacoBuscado, setTacoBuscado] = useState(false);
+  const [tacoMedicoFiltro, setTacoMedicoFiltro] = useState<string>('');
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
     precioCassette: 300,
@@ -694,7 +695,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           mensaje: `${labNombre} confirma que recibió el material de su remito #${nro} (${remito.biopsias.length} paciente${remito.biopsias.length !== 1 ? 's' : ''}).\nEl material está siendo procesado.`,
           fecha: new Date().toISOString(),
           leida: false,
-          tipo: 'material_recibido'
+          tipo: 'material_recibido',
+          hospital: (remito as any).hospital || ''
         };
         const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
         notifications.push(newNotif);
@@ -1835,8 +1837,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         while (nuevasListas.length < totalBiopsias) nuevasListas.push(false);
                         nuevasListas[idx] = valor;
                         const todasAhoraListas = nuevasListas.every(Boolean);
+                        // Stamp listoAt en la biopsia para que el pizarrón la mantenga visible hoy
+                        const biopsiasUpd = remito.biopsias.map((b: any, i: number) =>
+                          i === idx ? { ...b, listoAt: valor ? new Date().toISOString() : undefined } : b
+                        );
                         const updated = remitos.map(r => r.id === remito.id ? {
                           ...r,
+                          biopsias: biopsiasUpd,
                           biopsiaListas: nuevasListas,
                           estadoEnvio: todasAhoraListas ? 'listo' : (r as any).estadoEnvio === 'listo' ? undefined : (r as any).estadoEnvio,
                           listoAt: todasAhoraListas ? new Date().toISOString() : (r as any).listoAt
@@ -1854,10 +1861,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
                           let newNotif: any;
                           if (todasAhoraListas) {
-                            newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
+                            newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo', hospital: (remito as any).hospital || '' };
                             notifications.push(newNotif);
                           } else {
-                            newNotif = { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Paciente #${biopsia.numero} (${tipoB} - ${biopsia.tejido}) está LISTO.\nProgreso del remito: ${nuevasListas.filter(Boolean).length}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial' };
+                            newNotif = { id: `NOTIF_PARCIAL_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Paciente #${biopsia.numero} (${tipoB} - ${biopsia.tejido}) está LISTO.\nProgreso del remito: ${nuevasListas.filter(Boolean).length}/${totalBiopsias} estudios listos.`, fecha: new Date().toISOString(), leida: false, tipo: 'parcial', hospital: (remito as any).hospital || '' };
                             notifications.push(newNotif);
                           }
                           localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
@@ -1881,12 +1888,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
 
                       const marcarTodas = () => {
                         const nuevasListas = remito.biopsias.map(() => true);
-                        const updated = remitos.map(r => r.id === remito.id ? { ...r, biopsiaListas: nuevasListas, estadoEnvio: 'listo', listoAt: new Date().toISOString() } as any : r);
+                        const ahora = new Date().toISOString();
+                        // Stamp listoAt en cada biopsia que se marca lista (las que estaban pendientes)
+                        const biopsiasUpd = remito.biopsias.map((b: any, i: number) =>
+                          biopsiaListas[i] ? b : { ...b, listoAt: ahora }
+                        );
+                        const updated = remitos.map(r => r.id === remito.id ? { ...r, biopsias: biopsiasUpd, biopsiaListas: nuevasListas, estadoEnvio: 'listo', listoAt: ahora } as any : r);
                         setRemitos(updated);
                         localStorage.setItem('adminRemitos', JSON.stringify(updated));
                         db.saveRemitos(updated).catch(console.error);
                         const notifications = JSON.parse(localStorage.getItem('doctorNotifications') || '[]');
-                        const newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo' };
+                        const newNotif = { id: `NOTIF_LISTO_${Date.now()}`, remitoId: remito.id, medicoEmail: (remito as any).doctorEmail || remito.email, mensaje: `Su remito #${((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase())} está LISTO PARA RETIRAR.\nTodos los estudios (${totalBiopsias}) fueron procesados.`, fecha: new Date().toISOString(), leida: false, tipo: 'listo', hospital: (remito as any).hospital || '' };
                         notifications.push(newNotif);
                         localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
                         db.saveNotification(newNotif).catch(console.error);
@@ -2932,7 +2944,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   medicoEmail: (remito as any).doctorEmail || remito.email,
                                   mensaje: mensajeDetalle,
                                   fecha: now.toISOString(),
-                                  leida: false
+                                  leida: false,
+                                  hospital: (remito as any).hospital || ''
                                 };
                                 notifications.push(newNotif);
                                 localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
@@ -2965,7 +2978,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 medicoEmail: (remito as any).doctorEmail || remito.email,
                                 mensaje: mensajeDetalle,
                                 fecha: new Date().toISOString(),
-                                leida: false
+                                leida: false,
+                                hospital: (remito as any).hospital || ''
                               };
                               notifications.push(newNotif);
                               localStorage.setItem('doctorNotifications', JSON.stringify(notifications));
@@ -4550,6 +4564,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         else if (nuevoEstado === 'rechazado') notifTipo = 'anulacion_rechazada';
                         else if (nuevoEstado === 'en_proceso') notifTipo = 'anulacion_en_revision';
                       }
+                      // Buscar hospital del remito asociado para que la notif aparezca solo en ese centro
+                      let notifHospital = '';
+                      try {
+                        const solRN = (sol.remitoNumber || '').replace('#', '').trim();
+                        const r = remitos.find((rr: any) => ((rr.remitoNumber || '') + '').replace('#', '').trim() === solRN);
+                        if (r) notifHospital = (r as any).hospital || '';
+                      } catch {}
                       const notif = {
                         id: `NOTIF_SOL_${Date.now()}`,
                         remitoId: sol.id,
@@ -4557,7 +4578,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         mensaje: mensajes[nuevoEstado] || `${tipoMsg} actualizado: ${nuevoEstado}`,
                         fecha: new Date().toISOString(),
                         leida: false,
-                        tipo: notifTipo
+                        tipo: notifTipo,
+                        hospital: notifHospital
                       };
                       db.saveNotification(notif).catch(console.error);
 
@@ -4805,34 +4827,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           )}
 
           {currentView === 'buscador-tacos' && (() => {
+            // Lista única de médicos para el dropdown de filtro
+            const medicosUnicos = Array.from(new Set(
+              remitos.map(r => (r.medico || '').trim()).filter(Boolean)
+            )).sort((a, b) => a.localeCompare(b, 'es'));
+
             const buscarTaco = () => {
               if (!tacoBusqueda.trim()) return;
               const q = tacoBusqueda.trim().toLowerCase();
+              const medicoFiltro = (tacoMedicoFiltro || '').toLowerCase();
               setTacoBuscado(true);
               const results: any[] = [];
 
-              // Buscar en solicitudes de tipo "taco" entregadas
+              // Buscar en solicitudes de tipo "taco" entregadas (matchea cassette o número de paciente)
               solicitudesAdmin.filter(s => s.tipo === 'taco' && s.estado === 'entregado').forEach(sol => {
                 const labels = (sol.cassetteLabels || []).map((l: string) => l.toLowerCase());
-                if (labels.some((l: string) => l.includes(q))) {
+                const matchCassette = labels.some((l: string) => l.includes(q));
+                const matchPaciente = (sol.numeroPaciente || '').toLowerCase() === q;
+                if (matchCassette || matchPaciente) {
                   const medicoName = remitos.find(r => r.email?.toLowerCase() === sol.doctorEmail?.toLowerCase())?.medico || sol.doctorEmail;
+                  if (medicoFiltro && (medicoName || '').toLowerCase() !== medicoFiltro) return;
                   results.push({
                     tipo: 'entregado',
                     medico: medicoName,
                     fecha: sol.entregadoAt,
                     paciente: sol.numeroPaciente,
                     remito: sol.remitoNumber,
-                    cassettes: labels.filter((l: string) => l.includes(q)),
+                    cassettes: matchCassette ? labels.filter((l: string) => l.includes(q)) : ['(sin cassette numerado)'],
                     entregadoPor: sol.entregadoPor,
                   });
                 }
               });
 
-              // Buscar en biopsias de todos los remitos (cassettesNumbers)
+              // Buscar en biopsias de todos los remitos (cassettesNumbers + número de paciente)
               remitos.forEach(remito => {
+                if (medicoFiltro && (remito.medico || '').toLowerCase() !== medicoFiltro) return;
                 remito.biopsias.forEach((b: any) => {
                   const cassetteNums = (b.cassettesNumbers || []).map((c: any) => `${c.base}-${c.suffix}`.toLowerCase());
-                  if (cassetteNums.some((cn: string) => cn.includes(q))) {
+                  const matchCassette = cassetteNums.some((cn: string) => cn.includes(q));
+                  const matchPaciente = (b.numero || '').toLowerCase() === q;
+                  if (matchCassette || matchPaciente) {
                     const yaEntregado = results.find(r => r.tipo === 'entregado' && r.remito === (remito as any).remitoNumber && r.paciente === b.numero);
                     if (!yaEntregado) {
                       results.push({
@@ -4841,8 +4875,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         fecha: remito.fecha,
                         paciente: b.numero,
                         remito: (remito as any).remitoNumber,
-                        cassettes: cassetteNums.filter((cn: string) => cn.includes(q)),
-                        tejido: b.tissueType || b.type,
+                        cassettes: matchCassette ? cassetteNums.filter((cn: string) => cn.includes(q)) : ['(sin cassette numerado)'],
+                        tejido: b.tissueType || b.type || b.tejido,
+                        agregadoPorLab: !!b.agregadoPorLab,
                       });
                     }
                   }
@@ -4864,10 +4899,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     value={tacoBusqueda}
                     onChange={e => { setTacoBusqueda(e.target.value); setTacoBuscado(false); }}
                     onKeyDown={e => e.key === 'Enter' && buscarTaco()}
-                    placeholder="Ej: BX26-001, A1, 3..."
+                    placeholder="N° cassette (BX26-001, A1...) o N° paciente"
                     className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     autoFocus
                   />
+                  <select
+                    value={tacoMedicoFiltro}
+                    onChange={e => { setTacoMedicoFiltro(e.target.value); setTacoBuscado(false); }}
+                    className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none min-w-[180px]"
+                  >
+                    <option value="">Todos los médicos</option>
+                    {medicosUnicos.map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
                   <button
                     onClick={buscarTaco}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2"
