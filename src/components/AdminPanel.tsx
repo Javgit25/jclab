@@ -84,11 +84,14 @@ const DoctorWhatsAppEditor: React.FC<{ doc: any }> = ({ doc }) => {
     try {
       const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
       const target = docs.find((d: any) => d.id === doc.id);
-      if (!target) { setStatus('idle'); return; }
-      const updated = { ...target, whatsapp: current };
-      const newDocs = docs.map((d: any) => d.id === updated.id ? updated : d);
+      const base = target || doc;
+      const updated = { ...base, whatsapp: current };
+      const newDocs = docs.find((d: any) => d.id === updated.id)
+        ? docs.map((d: any) => d.id === updated.id ? updated : d)
+        : [...docs, updated];
       localStorage.setItem('registeredDoctors', JSON.stringify(newDocs));
       await db.saveDoctor(updated);
+      doc.whatsapp = current;
       setStatus('saved');
       setTimeout(() => setStatus('idle'), 1500);
     } catch (err) {
