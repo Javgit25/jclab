@@ -4406,8 +4406,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                     onBlur={(e) => {
                                       const val = e.target.value.replace(/\D/g, '');
                                       const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
-                                      docs[idx] = { ...docs[idx], whatsapp: val };
-                                      localStorage.setItem('registeredDoctors', JSON.stringify(docs));
+                                      const target = docs.find((d: any) => d.id === doc.id) || docs[idx];
+                                      if (!target) return;
+                                      if ((target.whatsapp || '') === val) return;
+                                      const updated = { ...target, whatsapp: val };
+                                      const newDocs = docs.map((d: any) => d.id === updated.id ? updated : d);
+                                      localStorage.setItem('registeredDoctors', JSON.stringify(newDocs));
+                                      db.saveDoctor(updated).catch((err: any) => console.error('Error guardando WhatsApp:', err));
                                     }}
                                   />
                                   {doc.whatsapp && (
