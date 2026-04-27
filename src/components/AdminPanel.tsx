@@ -4839,10 +4839,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               setTacoBuscado(true);
               const results: any[] = [];
 
-              // Buscar en solicitudes de tipo "taco" entregadas (matchea cassette o número de paciente)
+              // Match exacto: cassette completo (BX26-001), o solo el base (61169 → todos los cassettes del paciente)
+              const matchExacto = (cn: string, c?: any) => {
+                if (cn === q) return true;
+                if (c && (c.base || '').toLowerCase() === q) return true;
+                return false;
+              };
+
+              // Buscar en solicitudes de tipo "taco" entregadas (cassette o número de paciente — EXACTO)
               solicitudesAdmin.filter(s => s.tipo === 'taco' && s.estado === 'entregado').forEach(sol => {
                 const labels = (sol.cassetteLabels || []).map((l: string) => l.toLowerCase());
-                const matchCassette = labels.some((l: string) => l.includes(q));
+                const matchCassette = labels.some((l: string) => l === q);
                 const matchPaciente = (sol.numeroPaciente || '').toLowerCase() === q;
                 if (matchCassette || matchPaciente) {
                   const medicoName = remitos.find(r => r.email?.toLowerCase() === sol.doctorEmail?.toLowerCase())?.medico || sol.doctorEmail;
@@ -4853,18 +4860,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     fecha: sol.entregadoAt,
                     paciente: sol.numeroPaciente,
                     remito: sol.remitoNumber,
-                    cassettes: matchCassette ? labels.filter((l: string) => l.includes(q)) : ['(sin cassette numerado)'],
+                    cassettes: matchCassette ? labels.filter((l: string) => l === q) : ['(sin cassette numerado)'],
                     entregadoPor: sol.entregadoPor,
                   });
                 }
               });
 
-              // Buscar en biopsias de todos los remitos (cassettesNumbers + número de paciente)
+              // Buscar en biopsias de todos los remitos (cassettesNumbers + número de paciente — EXACTO)
               remitos.forEach(remito => {
                 if (medicoFiltro && (remito.medico || '').toLowerCase() !== medicoFiltro) return;
                 remito.biopsias.forEach((b: any) => {
-                  const cassetteNums = (b.cassettesNumbers || []).map((c: any) => `${c.base}-${c.suffix}`.toLowerCase());
-                  const matchCassette = cassetteNums.some((cn: string) => cn.includes(q));
+                  const cassetteList = (b.cassettesNumbers || []).map((c: any) => ({ raw: c, str: `${c.base}-${c.suffix}`.toLowerCase() }));
+                  const matchCassette = cassetteList.some((c: any) => matchExacto(c.str, c.raw));
                   const matchPaciente = (b.numero || '').toLowerCase() === q;
                   if (matchCassette || matchPaciente) {
                     const yaEntregado = results.find(r => r.tipo === 'entregado' && r.remito === (remito as any).remitoNumber && r.paciente === b.numero);
@@ -4875,7 +4882,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         fecha: remito.fecha,
                         paciente: b.numero,
                         remito: (remito as any).remitoNumber,
-                        cassettes: matchCassette ? cassetteNums.filter((cn: string) => cn.includes(q)) : ['(sin cassette numerado)'],
+                        cassettes: matchCassette ? cassetteList.filter((c: any) => matchExacto(c.str, c.raw)).map((c: any) => c.str) : ['(sin cassette numerado)'],
                         tejido: b.tissueType || b.type || b.tejido,
                         agregadoPorLab: !!b.agregadoPorLab,
                       });
