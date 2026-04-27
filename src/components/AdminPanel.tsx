@@ -71,6 +71,62 @@ interface Notification {
   leida: boolean;
 }
 
+const DoctorWhatsAppEditor: React.FC<{ doc: any }> = ({ doc }) => {
+  const [value, setValue] = useState<string>(doc.whatsapp || '');
+  const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const original = (doc.whatsapp || '').replace(/\D/g, '');
+  const current = value.replace(/\D/g, '');
+  const dirty = current !== original;
+
+  const save = async () => {
+    if (!dirty || status === 'saving') return;
+    setStatus('saving');
+    try {
+      const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+      const target = docs.find((d: any) => d.id === doc.id);
+      if (!target) { setStatus('idle'); return; }
+      const updated = { ...target, whatsapp: current };
+      const newDocs = docs.map((d: any) => d.id === updated.id ? updated : d);
+      localStorage.setItem('registeredDoctors', JSON.stringify(newDocs));
+      await db.saveDoctor(updated);
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 1500);
+    } catch (err) {
+      console.error('Error guardando WhatsApp:', err);
+      alert('No se pudo guardar el WhatsApp. Intentá de nuevo.');
+      setStatus('idle');
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        type="tel"
+        placeholder="WhatsApp"
+        value={value}
+        onChange={(e) => { setValue(e.target.value.replace(/\D/g, '')); if (status === 'saved') setStatus('idle'); }}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+        onBlur={save}
+        className="w-28 px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500"
+      />
+      {dirty ? (
+        <button
+          type="button"
+          onClick={save}
+          disabled={status === 'saving'}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap"
+        >
+          {status === 'saving' ? '...' : 'Guardar'}
+        </button>
+      ) : status === 'saved' ? (
+        <span className="text-xs text-green-600 font-semibold whitespace-nowrap">✓ Guardado</span>
+      ) : original ? (
+        <span className="text-xs text-green-600 font-semibold">WA ✓</span>
+      ) : null}
+    </div>
+  );
+};
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'tecnico'>('admin');
@@ -4397,28 +4453,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 <div className="text-xs text-gray-400">Alta: {new Date(doc.registeredAt).toLocaleDateString('es-AR')}</div>
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <div className="flex items-center gap-1">
-                                  <input
-                                    type="tel"
-                                    placeholder="WhatsApp"
-                                    defaultValue={doc.whatsapp || ''}
-                                    className="w-28 px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500"
-                                    onBlur={(e) => {
-                                      const val = e.target.value.replace(/\D/g, '');
-                                      const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
-                                      const target = docs.find((d: any) => d.id === doc.id) || docs[idx];
-                                      if (!target) return;
-                                      if ((target.whatsapp || '') === val) return;
-                                      const updated = { ...target, whatsapp: val };
-                                      const newDocs = docs.map((d: any) => d.id === updated.id ? updated : d);
-                                      localStorage.setItem('registeredDoctors', JSON.stringify(newDocs));
-                                      db.saveDoctor(updated).catch((err: any) => console.error('Error guardando WhatsApp:', err));
-                                    }}
-                                  />
-                                  {doc.whatsapp && (
-                                    <span className="text-xs text-green-600 font-semibold">WA ✓</span>
-                                  )}
-                                </div>
+                                <DoctorWhatsAppEditor doc={doc} />
                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                                   doc.active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                                 }`}>
