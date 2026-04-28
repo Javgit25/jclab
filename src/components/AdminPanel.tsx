@@ -163,6 +163,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [tacoBusqueda, setTacoBusqueda] = useState('');
   const [tacoResultados, setTacoResultados] = useState<any[]>([]);
   const [tacoBuscado, setTacoBuscado] = useState(false);
+  const [tiposTejidoExpanded, setTiposTejidoExpanded] = useState(false);
   const [tacoMedicoFiltro, setTacoMedicoFiltro] = useState<string>('');
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
@@ -3906,7 +3907,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {configuracion.tiposTejido.map((tipo, index) => (
+                  {(tiposTejidoExpanded ? configuracion.tiposTejido : configuracion.tiposTejido.slice(0, 12)).map((tipo, index) => (
                     <div key={index} className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
                       <span className="text-sm font-medium text-gray-700">{tipo}</span>
                       <div className="flex space-x-2">
@@ -3941,6 +3942,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                     </div>
                   ))}
                 </div>
+
+                {configuracion.tiposTejido.length > 12 && (
+                  <div className="mt-4 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setTiposTejidoExpanded(v => !v)}
+                      className="text-purple-600 hover:text-purple-800 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-purple-50 transition"
+                    >
+                      {tiposTejidoExpanded
+                        ? `▲ Ver menos`
+                        : `▼ Ver todos (${configuracion.tiposTejido.length - 12} más)`}
+                    </button>
+                  </div>
+                )}
 
                 {configuracion.tiposTejido.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
