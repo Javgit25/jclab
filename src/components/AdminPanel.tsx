@@ -2080,7 +2080,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                               )}
                               {/* Botón Entregar Todo */}
                               {!isListo && (
-                                <button onClick={() => { if (confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) marcarTodas(); }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">ENTREGAR TODO</button>
+                                <button onClick={() => {
+                                  if (!confirm(`¿Marcar TODAS las biopsias del remito de Dr/a. ${remito.medico} como listas para retirar?\n\n${pendientesCount} estudio(s) pendiente(s) serán marcados como listos.\nEsta acción no se puede deshacer.`)) return;
+                                  marcarTodas();
+                                  if (whatsappNum) {
+                                    const remitoNum = (remito as any).remitoNumber || remito.id.slice(-6).toUpperCase();
+                                    const msg = `Dr/a. ${remito.medico}, le informamos que todo su material del remito #${remitoNum} está listo para ser retirado.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`;
+                                    window.open(`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+                                  }
+                                }} className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-semibold whitespace-nowrap">ENTREGAR TODO</button>
                               )}
                               {isListo && <span className="text-xs text-green-600 font-bold">✓ Completo</span>}
                               </>}
