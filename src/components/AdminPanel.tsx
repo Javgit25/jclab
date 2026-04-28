@@ -2172,7 +2172,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                   return (
                                     <tr key={bi} className={`border-b border-gray-100 ${estaLista ? 'bg-green-50' : esUrgente ? 'bg-red-50' : ''}`}>
                                       <td className="py-1.5 px-2">
-                                        <button onClick={() => { if (!estaLista && confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO?\n\nNo se puede deshacer.`)) marcarBiopsia(bi, true); }}
+                                        <button onClick={() => {
+                                            if (estaLista) return;
+                                            if (!confirm(`¿Marcar paciente #${b.numero} (${b.tejido}) como LISTO?\n\nNo se puede deshacer.`)) return;
+                                            marcarBiopsia(bi, true);
+                                            if (whatsappNum) {
+                                              const remitoNum = (remito as any).remitoNumber || remito.id.slice(-6).toUpperCase();
+                                              const msg = `Dr/a. ${remito.medico}, le informamos que el paciente #${b.numero} (${b.tejido}) del remito #${remitoNum} está listo para ser retirado.\n\n${labConfig.nombre || 'Laboratorio'}\n${labConfig.telefono || ''}`;
+                                              window.open(`https://wa.me/549${whatsappNum}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener,noreferrer');
+                                            }
+                                          }}
                                           disabled={estaLista}
                                           className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${estaLista ? 'bg-green-600 border-green-600 text-white' : 'border-gray-300 hover:border-green-500 cursor-pointer'}`}>
                                           {estaLista && <CheckCircle size={12} />}

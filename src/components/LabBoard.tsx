@@ -103,6 +103,7 @@ interface UrgenteBiopsia {
   tejido: string;
   tipo: string;
   medico: string;
+  medicoEmail: string;
   remitoNumber: string;
   fecha: string;
   listo: boolean;
@@ -116,21 +117,43 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   const [serviciosEspeciales, setServiciosEspeciales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [doctorNames, setDoctorNames] = useState<Record<string, string>>({});
+  const doctorWhatsappsRef = useRef<Record<string, string>>({});
+  const labConfigRef = useRef<{ nombre?: string; telefono?: string }>({});
 
-  // Cargar nombres de doctores desde Supabase
+  // Cargar nombres y WhatsApps de doctores + labConfig desde Supabase / localStorage
   useEffect(() => {
     const loadNames = async () => {
       try {
         const doctors = await db.getDoctors();
         const names: Record<string, string> = {};
+        const wapps: Record<string, string> = {};
         doctors.forEach((d: any) => {
-          names[d.email.toLowerCase()] = `${d.firstName || ''} ${d.lastName || ''}`.trim();
+          const em = (d.email || '').toLowerCase();
+          if (!em) return;
+          names[em] = `${d.firstName || ''} ${d.lastName || ''}`.trim();
+          if (d.whatsapp) wapps[em] = String(d.whatsapp).replace(/\D/g, '');
         });
         setDoctorNames(names);
+        doctorWhatsappsRef.current = wapps;
+      } catch {}
+      try {
+        const cfg = JSON.parse(localStorage.getItem('labConfig') || '{}');
+        labConfigRef.current = { nombre: cfg.nombre, telefono: cfg.telefono };
       } catch {}
     };
     loadNames();
   }, []);
+
+  // Abre WhatsApp en pestana nueva. DEBE llamarse sincronicamente desde un click,
+  // antes de cualquier await, para no perder el gesto del usuario (sino el browser bloquea pop-ups).
+  const openWhatsapp = (medicoEmail: string, medicoNombre: string, mensaje: string) => {
+    const num = doctorWhatsappsRef.current[(medicoEmail || '').toLowerCase()];
+    if (!num) return;
+    const cfg = labConfigRef.current;
+    const pie = `\n\n${cfg.nombre || 'Laboratorio'}${cfg.telefono ? '\n' + cfg.telefono : ''}`;
+    const txt = `Dr/a. ${medicoNombre}, ${mensaje}${pie}`;
+    window.open(`https://wa.me/549${num}?text=${encodeURIComponent(txt)}`, '_blank', 'noopener,noreferrer');
+  };
   const prevIdsRef = useRef<Set<string>>(new Set());
   const initialLoadRef = useRef(true);
 
@@ -152,6 +175,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
                 tejido: b.tejido || '',
                 tipo: b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'Cito' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : 'BX',
                 medico: r.medico || '',
+                medicoEmail: (r.doctor_email || r.email || '').toLowerCase(),
                 remitoNumber: r.remito_number || '',
                 fecha: r.timestamp || r.fecha || '',
                 listo: biopsiaListas[idx] || false,
@@ -188,6 +212,7 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
             if (items.length > 0) {
               svcs.push({
                 numero: b.numero, tejido: b.tejido, medico: r.medico,
+                medicoEmail: (r.doctor_email || r.email || '').toLowerCase(),
                 remitoNumber: r.remito_number, fecha: r.timestamp || r.fecha,
                 servicios: items, listo: !!lista,
                 remitoId: r.id, biopsiaIdx: idx,
@@ -203,6 +228,12 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   // Marcar urgente como listo
   const handleMarcarUrgenteListo = useCallback(async (urg: UrgenteBiopsia) => {
     if (urg.listo) return;
+    // Abrir WhatsApp ANTES de cualquier await para no perder el gesto del click
+    openWhatsapp(
+      urg.medicoEmail,
+      urg.medico,
+      `le informamos que el paciente #${urg.numero} (${urg.tejido}) del remito #${urg.remitoNumber} está listo para ser retirado.`
+    );
     // Optimistic update
     setUrgentes(prev => prev.map(u => u.id === urg.id ? { ...u, listo: true } : u));
     try {
@@ -246,6 +277,13 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
   // Marcar servicio especial como listo (toda la biopsia → listo)
   const handleMarcarServicioListo = useCallback(async (svc: any) => {
     if (svc.listo) return;
+    // Abrir WhatsApp ANTES de cualquier await para no perder el gesto del click
+    const detalle = (svc.servicios || []).join(', ');
+    openWhatsapp(
+      svc.medicoEmail,
+      svc.medico,
+      `le informamos que el material adicional${detalle ? ' (' + detalle + ')' : ''} del paciente #${svc.numero} (${svc.tejido}) del remito #${svc.remitoNumber} está listo para ser retirado.`
+    );
     setServiciosEspeciales(prev => prev.map(s =>
       s.remitoId === svc.remitoId && s.biopsiaIdx === svc.biopsiaIdx ? { ...s, listo: true } : s
     ));
