@@ -642,17 +642,31 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
         }}
       >
         {/* Type badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <span style={{
-            background: badge.bg,
-            color: badge.color,
-            padding: '4px 12px',
-            borderRadius: '20px',
-            fontSize: '1.1rem',
-            fontWeight: 700,
-          }}>
-            {badge.label}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', gap: '6px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{
+              background: badge.bg,
+              color: badge.color,
+              padding: '4px 12px',
+              borderRadius: '20px',
+              fontSize: '1.1rem',
+              fontWeight: 700,
+            }}>
+              {badge.label}
+            </span>
+            {(sol as any).historico && (
+              <span style={{
+                background: '#7c2d12',
+                color: '#fdba74',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+              }}>
+                📁 HISTÓRICO
+              </span>
+            )}
+          </div>
           {urgent && (
             <span style={{ fontSize: '0.9rem', color: '#f59e0b', fontWeight: 600 }}>URGENTE</span>
           )}
@@ -671,8 +685,30 @@ const LabBoard: React.FC<LabBoardProps> = ({ labCode, onGoBack }) => {
 
         {/* Patient + Tissue + Remito */}
         <div style={{ fontSize: '1rem', color: '#94a3b8', marginBottom: '4px' }}>
-          Pac. #{sol.numeroPaciente || '---'}{sol.tejido ? ` · ${sol.tejido}` : ''} · Remito #{sol.remitoNumber || '---'}
+          Pac. #{sol.numeroPaciente || '---'}{sol.tejido ? ` · ${sol.tejido}` : ''}{!(sol as any).historico ? ` · Remito #${sol.remitoNumber || '---'}` : ''}
         </div>
+
+        {/* Datos del paciente histórico */}
+        {(sol as any).historico && (
+          <div style={{
+            background: 'rgba(124, 45, 18, 0.25)',
+            border: '1px solid #9a3412',
+            borderRadius: '8px',
+            padding: '8px 10px',
+            marginTop: '6px',
+            marginBottom: '4px',
+            fontSize: '0.9rem',
+            color: '#fdba74',
+            lineHeight: 1.4,
+          }}>
+            <div><strong>Fecha aprox.:</strong> {(sol as any).historicoFecha || '—'}</div>
+            <div><strong>Cassettes totales del estudio:</strong> {(sol as any).historicoTotalCassettes ?? '—'}</div>
+            <div><strong>Solicita:</strong> {(sol as any).historicoCantSolicitada ?? '—'}{(sol as any).historicoCantSolicitada === (sol as any).historicoTotalCassettes ? ' (todos)' : ''}</div>
+            {(sol as any).historicoIdentCassettes && (
+              <div><strong>Identificación:</strong> {(sol as any).historicoIdentCassettes}</div>
+            )}
+          </div>
+        )}
 
         {/* Cassettes/SUBs */}
         {sol.cassetteLabels && sol.cassetteLabels.length > 0 && (

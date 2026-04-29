@@ -5117,11 +5117,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                           </h3>
                           <div className="space-y-2">
                             {solsPendientes.map((sol: any) => (
-                              <div key={sol.id} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                              <div key={sol.id} className={`bg-white border rounded-xl p-4 shadow-sm ${sol.historico ? 'border-orange-300' : 'border-gray-200'}`}>
                                 <div className="flex items-center gap-2 mb-2 flex-wrap">
                                   <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${tipoBadge(sol.tipo)}`}>{tipoLabel(sol.tipo)}</span>
+                                  {sol.historico && (
+                                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-100 text-orange-800 border border-orange-300">📁 HISTÓRICO</span>
+                                  )}
                                   <span className="text-sm font-bold text-gray-800">Pac. #{sol.numeroPaciente}</span>
-                                  <span className="text-xs text-gray-500">Remito #{sol.remitoNumber}</span>
+                                  {!sol.historico && <span className="text-xs text-gray-500">Remito #{sol.remitoNumber}</span>}
                                   <span className={`text-xs font-bold px-2 py-0.5 rounded-full ml-auto ${estadoBadge(sol.estado)}`}>{estadoLabel(sol.estado)}</span>
                                 </div>
                                 <div className="text-sm text-gray-700 mb-1">
@@ -5131,6 +5134,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                 <div className="text-xs text-gray-500 mb-1">
                                   {new Date(sol.solicitadoAt).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' })}
                                 </div>
+                                {sol.historico && (
+                                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-2.5 mb-2 text-xs text-orange-900">
+                                    <div className="font-bold text-orange-800 mb-1">Datos del paciente histórico</div>
+                                    <div><strong>Fecha aprox.:</strong> {sol.historicoFecha || '—'}</div>
+                                    <div><strong>Cassettes totales del estudio:</strong> {sol.historicoTotalCassettes ?? '—'}</div>
+                                    <div><strong>Solicita:</strong> {sol.historicoCantSolicitada ?? '—'}{sol.historicoCantSolicitada === sol.historicoTotalCassettes ? ' (todos)' : ''}</div>
+                                    {sol.historicoIdentCassettes && (<div><strong>Identificación:</strong> {sol.historicoIdentCassettes}</div>)}
+                                  </div>
+                                )}
                                 {sol.cassetteLabels && sol.cassetteLabels.length > 0 && (
                                   <div className="text-xs text-gray-600 mb-1">Cassettes: <strong>{sol.cassetteLabels.join(', ')}</strong></div>
                                 )}
