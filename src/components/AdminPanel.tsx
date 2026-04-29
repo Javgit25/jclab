@@ -1414,7 +1414,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     document.body.removeChild(link);
   };
 
-  // Generar HTML compacto para el cuerpo del email de facturación
+  // Generar HTML compacto para el cuerpo del email de facturación (resumen ejecutivo, sin detalle por biopsia — el desglose va en el PDF adjunto)
   const generarHTMLEmailFacturacion = (medico: string, centroFilter?: string) => {
     const fn = labConfig.nombre || 'Laboratorio';
     const fa = new Date().toLocaleDateString('es-AR');
@@ -1426,68 +1426,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const bt = btRaw || defaultBody;
 
     const rmAll = remitos.filter(r => r.medico === medico);
-    const centros = centroFilter ? [centroFilter] : [...new Set(rmAll.map(r => r.hospital || '').filter(Boolean))];
-    const isMulti = !centroFilter && centros.length > 1;
-
-    // Estilos reutilizables abreviados
-    const td = 'padding:6px 8px;border-bottom:1px solid #eee;font-size:12px;';
-    const th = 'padding:6px 8px;text-align:left;font-size:10px;color:#fff;';
-
-    const seccion = (rm: any[], tit?: string) => {
-      const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
-      const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
-        const tipo = (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
-        if (esAnulado(r)) {
-          const ai = parseAnulacion(r);
-          const subtotalOrig = calcularTotalBiopsia(b, r.preciosSnapshot);
-          return '<tr style="background:#fef2f2;color:#991b1b;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + 'font-weight:700;text-decoration:none;">🗑️ ANULADO' + (ai ? ' — por ' + ai.quien + ' el ' + ai.fecha : '') + '</td><td style="' + td + 'text-align:right;text-decoration:none;"><span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOrig.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong></td></tr>';
-        }
-        if (b.noVino) return '<tr style="color:#aaa;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + '">No recibido</td><td style="' + td + 'text-align:right;">$0</td></tr>';
-        const sv: string[] = [];
-        if ((b.servicios?.cassetteUrgente || 0) > 0) sv.push('URGENTE');
-        if ((b.servicios?.corteBlancoIHQ || 0) > 0) sv.push('IHQ x' + b.servicios.corteBlancoIHQ);
-        if ((b.servicios?.corteBlanco || 0) > 0) sv.push('CB x' + b.servicios.corteBlanco);
-        if ((b.servicios?.giemsaPASMasson || 0) > 0) { const o = b.servicios?.giemsaOptions; const t = [o?.giemsa && 'Giemsa', o?.pas && 'PAS', o?.masson && 'Masson'].filter(Boolean); sv.push(t.length ? t.join('/') : 'Tinción'); }
-        if ((b.servicios?.profundizacion || 0) > 0) sv.push('Prof x' + b.servicios.profundizacion);
-        const ihq = tipo === 'IHQ' ? ((b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || parseInt(b.cassettes) || 0) : 0;
-        const cant = tipo === 'IHQ' ? (parseInt(b.cassettes) || 0) + '/' + ihq + 'v' : tipo === 'PAP' ? (b.papQuantity || 1) + 'v' : tipo === 'CITO' ? (b.citologiaQuantity || 1) + 'v' : String(parseInt(b.cassettes) || 0);
-        return '<tr><td style="' + td + 'font-weight:600;">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + 'font-weight:700;color:#1e40af;">' + tipo + '</td><td style="' + td + 'text-align:center;">' + cant + '</td><td style="' + td + 'font-size:11px;">' + (sv.length ? sv.join(', ') : '-') + '</td><td style="' + td + 'text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b, r.preciosSnapshot).toLocaleString() + '</td></tr>';
-      })).join('');
-      return (tit ? '<h3 style="color:#1e40af;font-size:13px;margin:16px 0 6px;border-bottom:2px solid #dbeafe;padding-bottom:4px;">' + tit + ' (' + rm.length + ' rem.)</h3>' : '') +
-        '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="background:#0f172a;"><th style="' + th + '">N°</th><th style="' + th + '">Material</th><th style="' + th + '">Tipo</th><th style="' + th + 'text-align:center;">Cant.</th><th style="' + th + '">Servicios</th><th style="' + th + 'text-align:right;">Subtotal</th></tr>' +
-        rows +
-        '<tr style="background:#0f172a;"><td colspan="5" style="padding:8px;text-align:right;font-weight:700;font-size:12px;color:#fff;">' + (tit ? 'Subtotal ' + tit : 'TOTAL') + '</td><td style="padding:8px;text-align:right;font-weight:700;font-size:15px;color:#fff;">$' + tot.toLocaleString() + '</td></tr></table>';
-    };
-
     const rmF = centroFilter ? rmAll.filter(r => (r.hospital || '') === centroFilter) : rmAll;
     const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
     const totP = rmF.reduce((s, r) => s + r.biopsias.length, 0);
 
-    let det = '';
-    if (isMulti) {
-      centros.forEach(c => det += seccion(rmAll.filter(r => (r.hospital || '') === c), c));
-      const sc = rmAll.filter(r => !r.hospital);
-      if (sc.length) det += seccion(sc, 'Sin centro');
-      det += '<div style="background:#0f172a;color:#fff;padding:12px 16px;border-radius:6px;margin-top:12px;text-align:right;"><b style="font-size:13px;margin-right:16px;">TOTAL GENERAL</b><b style="font-size:18px;">$' + totG.toLocaleString() + '</b></div>';
-    } else {
-      det = seccion(rmF);
-    }
+    // Mini-resumen por centro: solo cuando el médico tiene varios centros y no se filtró por uno específico
+    const centrosUnicos = [...new Set(rmF.map(r => r.hospital || 'Sin centro'))];
+    const isMulti = !centroFilter && centrosUnicos.length > 1;
+    const resumenPorCentro = isMulti ? (() => {
+      const td = 'padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;';
+      const filas = centrosUnicos.map(c => {
+        const rm = rmF.filter(r => (r.hospital || 'Sin centro') === c);
+        const sub = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
+        const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
+        return '<tr><td style="' + td + 'font-weight:600;color:#1e40af;">' + c + '</td><td style="' + td + 'text-align:center;color:#475569;">' + rm.length + '</td><td style="' + td + 'text-align:center;color:#475569;">' + pac + '</td><td style="' + td + 'text-align:right;font-weight:700;color:#0f172a;">$' + sub.toLocaleString() + '</td></tr>';
+      }).join('');
+      return '<div style="margin-bottom:20px;">' +
+        '<div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Desglose por centro</div>' +
+        '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">' +
+        '<tr style="background:#f1f5f9;"><th style="padding:8px 10px;text-align:left;font-size:10px;color:#475569;text-transform:uppercase;">Centro</th><th style="padding:8px 10px;text-align:center;font-size:10px;color:#475569;text-transform:uppercase;">Remitos</th><th style="padding:8px 10px;text-align:center;font-size:10px;color:#475569;text-transform:uppercase;">Pacientes</th><th style="padding:8px 10px;text-align:right;font-size:10px;color:#475569;text-transform:uppercase;">Subtotal</th></tr>' +
+        filas +
+        '</table></div>';
+    })() : '';
+
+    const avisoPdf = '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:20px;padding:14px 16px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;">📎 En el archivo PDF adjunto encontrará el detalle completo de remitos, biopsias y servicios facturados.</div>';
 
     const pie = ft ? '<div style="margin-top:20px;padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;"><div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:6px;">Datos de pago</div><div style="font-size:12px;color:#1e293b;line-height:1.5;">' + ft.replace(/\n/g, '<br>') + '</div></div>' : '';
 
     return '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;">' +
-      '<div style="background:#0f172a;color:#fff;padding:20px;text-align:center;">' +
-      '<h2 style="margin:0;font-size:17px;">' + fn + '</h2>' +
-      (info ? '<p style="margin:4px 0 0;font-size:10px;opacity:0.7;">' + info + '</p>' : '') + '</div>' +
-      '<div style="padding:20px;">' +
-      (bt ? '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:20px;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
-      '<table style="width:100%;margin-bottom:16px;"><tr><td><div style="font-size:16px;font-weight:700;color:#0f172a;">Facturación ' + mesActual + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
-      '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-top:3px;">Dr/a. ' + medico + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-top:3px;">' + fa + ' · ' + rmF.length + ' rem. · ' + totP + ' pac.</div></td>' +
-      '<td style="text-align:right;vertical-align:top;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:24px;font-weight:800;color:#0f172a;">$' + totG.toLocaleString() + '</div></td></tr></table>' +
-      det + pie +
-      '<div style="text-align:center;padding:12px 0;margin-top:16px;color:#aaa;font-size:9px;border-top:1px solid #eee;">' + fa + ' · BiopsyTracker</div>' +
+      '<div style="background:#0f172a;color:#fff;padding:24px;text-align:center;">' +
+      '<h2 style="margin:0;font-size:18px;">' + fn + '</h2>' +
+      (info ? '<p style="margin:6px 0 0;font-size:11px;opacity:0.75;">' + info + '</p>' : '') + '</div>' +
+      '<div style="padding:28px;">' +
+      (bt ? '<div style="font-size:13px;color:#333;line-height:1.7;margin-bottom:24px;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
+      '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:20px;">' +
+      '<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Resumen del mes</div>' +
+      '<div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:4px;">Facturación ' + mesActual + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
+      '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-bottom:14px;">Dr/a. ' + medico + '</div>' +
+      '<table style="width:100%;border-top:1px solid #e2e8f0;padding-top:14px;margin-top:6px;"><tr>' +
+      '<td style="padding-top:14px;font-size:11px;color:#666;">' + rmF.length + ' remito(s) · ' + totP + ' paciente(s)</td>' +
+      '<td style="padding-top:14px;text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:26px;font-weight:800;color:#0f172a;line-height:1;">$' + totG.toLocaleString() + '</div></td>' +
+      '</tr></table></div>' +
+      resumenPorCentro +
+      avisoPdf +
+      pie +
+      '<div style="text-align:center;padding:14px 0;margin-top:20px;color:#aaa;font-size:9px;border-top:1px solid #eee;">' + fa + ' · BiopsyTracker</div>' +
       '</div></div>';
   };
 
