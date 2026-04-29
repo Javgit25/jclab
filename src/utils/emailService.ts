@@ -11,6 +11,9 @@ export type EmailAttachment = {
   filename: string;
   // base64 puro (sin prefijo data:...;base64,)
   content: string;
+  // Si se pasa content_id, Resend trata el adjunto como inline y se referencia en el HTML como <img src="cid:<content_id>">
+  content_type?: string;
+  content_id?: string;
 };
 
 // Init dummy (se mantiene para compatibilidad con call sites existentes)
