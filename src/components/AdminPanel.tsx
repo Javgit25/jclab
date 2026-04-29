@@ -1125,6 +1125,128 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const totalPAP = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.papQuantity || 0), 0), 0);
     const totalCito = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.citologiaQuantity || 0), 0), 0);
 
+    const renderFilaBiopsia = (remito: any, biopsia: any): string => {
+      const citoSub = (biopsia as any).citologiaSubType || '';
+      const tipo = (biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'IHQ' : biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
+      const bc = tipo === 'IHQ' ? 'badge-bx' : tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
+      const svcs: string[] = [];
+      if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
+      if ((biopsia.servicios?.papUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">PAP Urgente</span>');
+      if ((biopsia.servicios?.citologiaUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">Cito Urgente</span>');
+      const cn = (biopsia as any).cassettesNumbers || [];
+      const getCassNames = (indices: number[]) => {
+        if (!indices || indices.length === 0) return '';
+        return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ') + ']';
+      };
+      if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
+        const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoIHQCassettes || []);
+        svcs.push('<span class="badge badge-servicio">Corte IHQ &times;' + biopsia.servicios.corteBlancoIHQ + cassNames + '</span>');
+      }
+      if ((biopsia.servicios?.corteBlanco || 0) > 0) {
+        const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoComunCassettes || []);
+        svcs.push('<span class="badge badge-servicio">Corte Blanco &times;' + biopsia.servicios.corteBlanco + cassNames + '</span>');
+      }
+      if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
+        const opts = biopsia.servicios?.giemsaOptions;
+        const t: string[] = [];
+        if (opts?.giemsa) t.push('Giemsa');
+        if (opts?.pas) t.push('PAS');
+        if (opts?.masson) t.push('Masson');
+        const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
+        svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Tinción') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
+      }
+      if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
+      if ((biopsia.servicios as any)?.incluyeCitologia) {
+        const fmt = (biopsia.servicios as any).citologiaFormato === 'jeringa' ? 'Jeringa' : (biopsia.servicios as any).citologiaFormato === 'frasco' ? 'Frasco' : ((biopsia.servicios as any).citologiaVidriosQty || 1) + ' vid.';
+        svcs.push('<span class="badge badge-servicio" style="background:#f3e8ff;color:#7c3aed;">Citología (' + fmt + ')</span>');
+      }
+      if ((biopsia as any).desclasificar === 'Sí' || (biopsia as any).declassify === 'Sí') svcs.push('<span class="badge badge-servicio" style="background:#fee2e2;color:#dc2626;">🛡️ Desclasificación</span>');
+      const currCass = Number(biopsia.cassettes) || 0;
+      let diff = 0;
+      if (((remito as any).modificadoPorAdmin || (remito as any).modificadoPorSolicitud) && tipo !== 'PAP' && tipo !== 'CITO') {
+        const origCass = (biopsia as any)._originalCassettes;
+        if (origCass !== undefined && origCass !== null && currCass > origCass) {
+          diff = currCass - origCass;
+        } else {
+          try {
+            const rn = (remito as any).remitoNumber;
+            const email = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
+            const histKey = `doctor_${email}_history`;
+            const hist = JSON.parse(localStorage.getItem(histKey) || '{}');
+            const origEntry = Object.values(hist).find((e: any) => e.remitoNumber === rn) as any;
+            if (origEntry?.biopsies) {
+              const origBiopsy = origEntry.biopsies.find((ob: any) => ob.number === biopsia.numero);
+              if (origBiopsy) {
+                const origC = Number(origBiopsy.cassettes) || 0;
+                if (currCass > origC) diff = currCass - origC;
+              }
+            }
+          } catch {}
+        }
+      }
+      const ihqVidTotal = tipo === 'IHQ' ? ((biopsia.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || currCass) : 0;
+      const cantLabel = tipo === 'IHQ' ? currCass + ' cass. / ' + ihqVidTotal + ' vid.'
+        : tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
+        : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
+        : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
+      const isNoVino = (biopsia as any).noVino;
+      const isAnuladoRemito = esAnulado(remito);
+      const isProf = !isAnuladoRemito && (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
+      const isSA = !isAnuladoRemito && (remito as any).esServicioAdicional && !isProf;
+      const rowStyle = isAnuladoRemito
+        ? 'background:#fef2f2;text-decoration:line-through;color:#b91c1c;'
+        : isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
+      const cargadoPorLabel = (remito as any).cargadoPor || '';
+      const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
+      const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
+      const anulInfo = isAnuladoRemito ? parseAnulacion(remito) : null;
+      const subtotalOriginal = calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot);
+      const subtotalHtml = isAnuladoRemito
+        ? '<span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOriginal.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong>'
+        : '$' + subtotalOriginal.toLocaleString();
+      const serviciosHtml = isAnuladoRemito
+        ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">🗑️ ANULADO' + (anulInfo ? ' — eliminado por ' + anulInfo.quien + ' el ' + anulInfo.fecha : '') + '</span>'
+        : (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>');
+      return '<tr style="' + rowStyle + '">' +
+        '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
+        '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
+        '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
+        '<td><strong>' + biopsia.numero + '</strong>' + (biopsia.numeroExterno ? ' <span style="color:#b45309;font-size:10px;">(Ext: ' + biopsia.numeroExterno + ')</span>' : '') + '</td>' +
+        '<td>' + biopsia.tejido + '</td>' +
+        '<td>' + tipoDisplay + '</td>' +
+        '<td>' + cantLabel + '</td>' +
+        '<td class="servicios-cell">' + serviciosHtml + '</td>' +
+        '<td class="subtotal">' + subtotalHtml + '</td>' +
+        '</tr>';
+    };
+
+    const renderTablaSeccion = (rms: any[], titulo?: string): string => {
+      const subtotal = rms.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
+      const totPac = rms.reduce((s, r) => s + r.biopsias.length, 0);
+      const filas = [...rms]
+        .sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime())
+        .flatMap(r => r.biopsias.map((b: any) => renderFilaBiopsia(r, b)))
+        .join('');
+      const tituloHtml = titulo
+        ? '<h3 style="margin:24px 0 8px;font-size:15px;color:#1e40af;border-bottom:2px solid #dbeafe;padding-bottom:6px;">🏥 ' + titulo + ' <span style="font-size:11px;color:#64748b;font-weight:400;">(' + rms.length + ' rem. · ' + totPac + ' pac.)</span></h3>'
+        : '';
+      const subtotalRow = titulo
+        ? '<tr style="background:#1e40af;color:white;"><td colspan="8" style="text-align:right;text-transform:uppercase;letter-spacing:1px;font-size:11px;font-weight:700;padding:10px 12px;color:white;">Subtotal ' + titulo + '</td><td style="text-align:right;font-size:14px;font-weight:700;padding:10px 12px;color:white;">$' + subtotal.toLocaleString() + '</td></tr>'
+        : '<tr class="total-row"><td colspan="8" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td><td style="text-align:right; font-size:18px;">$' + subtotal.toLocaleString() + '</td></tr>';
+      return tituloHtml +
+        '<table>' +
+        '<thead><tr><th>Remito</th><th>Cargado por</th><th>Fecha</th><th>N° Estudio</th><th>Material</th><th>Tipo</th><th>Cant.</th><th>Servicios / Detalle</th><th style="text-align:right">Subtotal</th></tr></thead>' +
+        '<tbody>' + filas + subtotalRow + '</tbody>' +
+        '</table>';
+    };
+
+    const centrosUnicosPdf = [...new Set(remitosDelMedico.map(r => r.hospital || 'Sin centro'))];
+    const isMultiCentroPdf = !centroFilter && centrosUnicosPdf.length > 1;
+    const tablasHtml = isMultiCentroPdf
+      ? centrosUnicosPdf.map(c => renderTablaSeccion(remitosDelMedico.filter(r => (r.hospital || 'Sin centro') === c), c)).join('') +
+        '<div style="background:#0f172a;color:#fff;padding:14px 20px;border-radius:8px;margin-top:16px;text-align:right;"><span style="font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-right:16px;">Total General</span><span style="font-size:20px;font-weight:800;">$' + totalGeneral.toLocaleString() + '</span></div>'
+      : renderTablaSeccion(remitosDelMedico);
+
     const htmlContent = `
     <!DOCTYPE html>
     <html>
@@ -1198,130 +1320,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <div class="kpi"><div class="val">${totalCito}</div><div class="lbl">Citología</div></div>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Remito</th>
-              <th>Cargado por</th>
-              <th>Fecha</th>
-              <th>N° Estudio</th>
-              <th>Material</th>
-              <th>Tipo</th>
-              <th>Cant.</th>
-              <th>Servicios / Detalle</th>
-              <th style="text-align:right">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${[...remitosDelMedico].sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime()).map(remito =>
-              remito.biopsias.map((biopsia: any) => {
-                const citoSub = (biopsia as any).citologiaSubType || '';
-                const tipo = (biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'IHQ' : biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
-                const bc = tipo === 'IHQ' ? 'badge-bx' : tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
-
-                const svcs: string[] = [];
-                if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
-                if ((biopsia.servicios?.papUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">PAP Urgente</span>');
-                if ((biopsia.servicios?.citologiaUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">Cito Urgente</span>');
-                const cn = (biopsia as any).cassettesNumbers || [];
-                const getCassNames = (indices: number[]) => {
-                  if (!indices || indices.length === 0) return '';
-                  return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ') + ']';
-                };
-                if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
-                  const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoIHQCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">Corte IHQ &times;' + biopsia.servicios.corteBlancoIHQ + cassNames + '</span>');
-                }
-                if ((biopsia.servicios?.corteBlanco || 0) > 0) {
-                  const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoComunCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">Corte Blanco &times;' + biopsia.servicios.corteBlanco + cassNames + '</span>');
-                }
-                if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
-                  const opts = biopsia.servicios?.giemsaOptions;
-                  const t: string[] = [];
-                  if (opts?.giemsa) t.push('Giemsa');
-                  if (opts?.pas) t.push('PAS');
-                  if (opts?.masson) t.push('Masson');
-                  const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Tinción') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
-                }
-                if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
-                if ((biopsia.servicios as any)?.incluyeCitologia) {
-                  const fmt = (biopsia.servicios as any).citologiaFormato === 'jeringa' ? 'Jeringa' : (biopsia.servicios as any).citologiaFormato === 'frasco' ? 'Frasco' : ((biopsia.servicios as any).citologiaVidriosQty || 1) + ' vid.';
-                  svcs.push('<span class="badge badge-servicio" style="background:#f3e8ff;color:#7c3aed;">Citología (' + fmt + ')</span>');
-                }
-                if ((biopsia as any).desclasificar === 'Sí' || (biopsia as any).declassify === 'Sí') svcs.push('<span class="badge badge-servicio" style="background:#fee2e2;color:#dc2626;">🛡️ Desclasificación</span>');
-                // PAP y Cito ya se muestran en la columna Cant., no duplicar aquí
-
-                // Calcular diferencia si fue editado por el lab
-                const currCass = Number(biopsia.cassettes) || 0;
-                let diff = 0;
-                if (((remito as any).modificadoPorAdmin || (remito as any).modificadoPorSolicitud) && tipo !== 'PAP' && tipo !== 'CITO') {
-                  // Buscar cantidad original del historial del doctor
-                  const origCass = (biopsia as any)._originalCassettes;
-                  if (origCass !== undefined && origCass !== null && currCass > origCass) {
-                    diff = currCass - origCass;
-                  } else {
-                    // Buscar en el historial del doctor por remitoNumber
-                    try {
-                      const rn = (remito as any).remitoNumber;
-                      const email = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
-                      const histKey = `doctor_${email}_history`;
-                      const hist = JSON.parse(localStorage.getItem(histKey) || '{}');
-                      const origEntry = Object.values(hist).find((e: any) => e.remitoNumber === rn) as any;
-                      if (origEntry?.biopsies) {
-                        const origBiopsy = origEntry.biopsies.find((ob: any) => ob.number === biopsia.numero);
-                        if (origBiopsy) {
-                          const origC = Number(origBiopsy.cassettes) || 0;
-                          if (currCass > origC) diff = currCass - origC;
-                        }
-                      }
-                    } catch {}
-                  }
-                }
-                const ihqVidTotal = tipo === 'IHQ' ? ((biopsia.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || currCass) : 0;
-                const cantLabel = tipo === 'IHQ' ? currCass + ' cass. / ' + ihqVidTotal + ' vid.'
-                  : tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
-                  : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
-                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
-
-                const isNoVino = (biopsia as any).noVino;
-                const isAnuladoRemito = esAnulado(remito);
-                const isProf = !isAnuladoRemito && (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
-                const isSA = !isAnuladoRemito && (remito as any).esServicioAdicional && !isProf;
-                const rowStyle = isAnuladoRemito
-                  ? 'background:#fef2f2;text-decoration:line-through;color:#b91c1c;'
-                  : isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
-                const cargadoPorLabel = (remito as any).cargadoPor || '';
-                const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
-                const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
-                const anulInfo = isAnuladoRemito ? parseAnulacion(remito) : null;
-                const subtotalOriginal = calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot);
-                const subtotalHtml = isAnuladoRemito
-                  ? '<span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOriginal.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong>'
-                  : '$' + subtotalOriginal.toLocaleString();
-                const serviciosHtml = isAnuladoRemito
-                  ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">🗑️ ANULADO' + (anulInfo ? ' — eliminado por ' + anulInfo.quien + ' el ' + anulInfo.fecha : '') + '</span>'
-                  : (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>');
-                return '<tr style="' + rowStyle + '">' +
-                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
-                  '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
-                  '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
-                  '<td><strong>' + biopsia.numero + '</strong>' + (biopsia.numeroExterno ? ' <span style="color:#b45309;font-size:10px;">(Ext: ' + biopsia.numeroExterno + ')</span>' : '') + '</td>' +
-                  '<td>' + biopsia.tejido + '</td>' +
-                  '<td>' + tipoDisplay + '</td>' +
-                  '<td>' + cantLabel + '</td>' +
-                  '<td class="servicios-cell">' + serviciosHtml + '</td>' +
-                  '<td class="subtotal">' + subtotalHtml + '</td>' +
-                  '</tr>';
-              }).join('')
-            ).join('')}
-            <tr class="total-row">
-              <td colspan="8" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td>
-              <td style="text-align:right; font-size:18px;">$${totalGeneral.toLocaleString()}</td>
-            </tr>
-          </tbody>
-        </table>
+        ${tablasHtml}
       </div>
 
       ${(() => {
