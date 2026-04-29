@@ -3709,13 +3709,64 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               alert(`Actualización guardada. Los nuevos precios entrarán en vigencia el ${formatFechaEs(fechaGuardada)}.`);
             };
 
+            const buildEmailHtml = (mensaje: string, precios: PreciosFuturos): string => {
+              const labName = labConfig.nombre || 'Laboratorio';
+              const labInfo = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
+              const filas = PRECIO_KEYS.map((k, i) => {
+                const valor = (precios as any)[k] as number;
+                return '<tr style="border-bottom:1px solid #f1f5f9;' + (i % 2 !== 0 ? 'background:#f8fafc;' : '') + '"><td style="padding:10px 14px;font-size:13px;color:#374151;">' + PRECIO_LABELS[k] + '</td><td style="padding:10px 14px;text-align:right;font-weight:700;color:#0f172a;font-size:13px;">$' + valor.toLocaleString() + '</td></tr>';
+              }).join('');
+              return '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f8fafc;">' +
+                '<div style="background:linear-gradient(135deg,#0f172a 0%,#1e40af 100%);color:white;padding:24px;text-align:center;">' +
+                (labConfig.logoUrl ? '<img src="' + labConfig.logoUrl + '" style="height:50px;margin-bottom:8px;" /><br>' : '') +
+                '<h2 style="margin:0;font-size:18px;font-weight:700;">' + labName + '</h2>' +
+                (labInfo ? '<p style="margin:6px 0 0;font-size:11px;opacity:0.75;">' + labInfo + '</p>' : '') + '</div>' +
+                '<div style="padding:28px;background:white;">' +
+                '<div style="white-space:pre-line;font-size:14px;line-height:1.7;color:#374151;margin-bottom:24px;">' + mensaje + '</div>' +
+                '<div style="background:#fefce8;border-left:3px solid #eab308;padding:14px 16px;border-radius:4px;margin-bottom:24px;">' +
+                '<div style="font-size:10px;color:#854d0e;text-transform:uppercase;font-weight:bold;letter-spacing:0.5px;margin-bottom:2px;">Vigente desde</div>' +
+                '<div style="font-size:16px;color:#0f172a;font-weight:bold;">' + formatFechaEs(precios.fechaVigencia) + '</div>' +
+                '</div>' +
+                '<h3 style="margin:0 0 12px;color:#0f172a;font-size:15px;">Nuevos aranceles</h3>' +
+                '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">' +
+                '<thead><tr style="background:#0f172a;"><th style="padding:10px 14px;text-align:left;color:white;font-size:12px;">Concepto</th><th style="padding:10px 14px;text-align:right;color:white;font-size:12px;">Precio</th></tr></thead>' +
+                '<tbody>' + filas + '</tbody></table>' +
+                '<div style="text-align:center;padding-top:20px;color:#94a3b8;font-size:11px;">Powered by BiopsyTracker</div>' +
+                '</div></div>';
+            };
+
             const guardarYEnviar = async () => {
               if (!draftPrecios) return;
+              const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+              const recipients = docs.filter((d: any) => d.email).map((d: any) => ({ email: d.email, name: (d.firstName || '') + ' ' + (d.lastName || '') }));
+              if (recipients.length === 0) {
+                alert('No hay médicos con email registrado.');
+                return;
+              }
+              if (!confirm(`¿Guardar la actualización (vigente desde ${formatFechaEs(draftPrecios.fechaVigencia)}) y enviar email a ${recipients.length} médico(s)?`)) return;
+
               await persistir({ ...configuracion, preciosFuturos: draftPrecios });
-              const msg = draftMensaje;
+              const preciosSnapshot = { ...draftPrecios };
+              const mensajeSnapshot = draftMensaje;
               setDraftPrecios(null); setDraftMensaje('');
-              setEmailModal({ open: true, medico: 'Todos los médicos', email: 'todos' });
-              setEmailMessage(msg);
+
+              try {
+                const { sendBulkEmail } = await import('../utils/emailService');
+                const fromName = labConfig.nombre || 'Laboratorio';
+                const subject = 'Actualización de Aranceles - ' + fromName;
+                const messageHtml = buildEmailHtml(mensajeSnapshot, preciosSnapshot);
+                const results = await sendBulkEmail(recipients, { subject, messageHtml, fromName });
+                const ok = results.filter((r: any) => r.success).length;
+                const fail = results.length - ok;
+                let alertMsg = `Actualización guardada (vigente desde ${formatFechaEs(preciosSnapshot.fechaVigencia)}).\n\nEmail enviado a ${ok} de ${results.length} médico(s).`;
+                if (fail > 0) {
+                  const failed = results.filter((r: any) => !r.success).map((r: any) => r.email).join(', ');
+                  alertMsg += `\n\nFallaron ${fail}: ${failed}`;
+                }
+                alert(alertMsg);
+              } catch (e: any) {
+                alert('Actualización guardada, pero hubo un error enviando emails: ' + (e?.message || e));
+              }
             };
 
             const descartarPendiente = async () => {
