@@ -1114,7 +1114,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   };
 
   const generarHTMLFacturacion = (medico: string, centroFilter?: string) => {
-    const remitosDelMedico = remitos.filter(r => r.medico === medico && (!centroFilter || (r.hospital || '') === centroFilter));
+    const matchCentro = (r: any): boolean => {
+      if (!centroFilter) return true;
+      if (centroFilter === 'Sin centro') return !r.hospital;
+      return (r.hospital || '') === centroFilter;
+    };
+    const remitosDelMedico = remitos.filter(r => r.medico === medico && matchCentro(r));
     const fechaActual = new Date().toLocaleDateString('es-AR');
     
     const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito), 0);
@@ -1425,7 +1430,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const bt = btRaw || defaultBody;
 
     const rmAll = remitos.filter(r => r.medico === medico);
-    const rmF = centroFilter ? rmAll.filter(r => (r.hospital || '') === centroFilter) : rmAll;
+    const rmF = centroFilter ? rmAll.filter(r => centroFilter === 'Sin centro' ? !r.hospital : (r.hospital || '') === centroFilter) : rmAll;
     const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
     const totP = rmF.reduce((s, r) => s + r.biopsias.length, 0);
 
@@ -1448,7 +1453,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         '</table></div>';
     })() : '';
 
-    const avisoPdf = '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:20px;padding:14px 16px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;">📎 En el archivo PDF adjunto encontrará el detalle completo de remitos, biopsias y servicios facturados.</div>';
+    const avisoPdf = isMulti
+      ? '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:20px;padding:14px 16px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;">📎 Adjuntamos un archivo PDF por cada centro con el detalle completo de remitos, biopsias y servicios facturados.</div>'
+      : '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:20px;padding:14px 16px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;">📎 En el archivo PDF adjunto encontrará el detalle completo de remitos, biopsias y servicios facturados.</div>';
 
     const pie = ft ? '<div style="margin-top:20px;padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;"><div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:6px;">Datos de pago</div><div style="font-size:12px;color:#1e293b;line-height:1.5;">' + ft.replace(/\n/g, '<br>') + '</div></div>' : '';
 
@@ -3253,18 +3260,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       const fromName = labConfig.nombre || 'Laboratorio';
                                       const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
                                       const mesArchivo = mesEmail.replace(/\s+/g, '_');
-                                      const pdfFilename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}.pdf`;
                                       // Body = resumen ejecutivo. PDF adjunto = detalle completo (Chrome real via PDFShift).
+                                      // Si el médico tiene varios centros, mandamos un PDF por centro (más prolijo: el médico forwardea cada uno al hospital correspondiente).
                                       const emailHtml = generarHTMLEmailFacturacion(medico);
-                                      const detalleHtml = generarHTMLFacturacion(medico);
-                                      await sendEmail({
+                                      const remitosMed = remitos.filter(r => r.medico === medico);
+                                      const centrosMed = [...new Set(remitosMed.map(r => r.hospital || 'Sin centro'))];
+                                      const sendPayload: any = {
                                         toEmail: doctorEmail, toName: medico,
                                         subject: 'Facturación ' + mesEmail + ' - ' + fromName,
                                         messageHtml: emailHtml, fromName,
-                                        htmlForPdf: detalleHtml, pdfFilename,
-                                      });
+                                      };
+                                      if (centrosMed.length > 1) {
+                                        sendPayload.htmlsForPdf = centrosMed.map(c => ({
+                                          html: generarHTMLFacturacion(medico, c),
+                                          filename: `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}_${c.replace(/\s+/g, '_')}.pdf`,
+                                        }));
+                                      } else {
+                                        sendPayload.htmlForPdf = generarHTMLFacturacion(medico);
+                                        sendPayload.pdfFilename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}.pdf`;
+                                      }
+                                      await sendEmail(sendPayload);
                                       registrarEmailEnviado(medico, doctorEmail);
-                                      alert('Email enviado a ' + doctorEmail + ' con el PDF adjunto.');
+                                      const adjuntosMsg = centrosMed.length > 1 ? `${centrosMed.length} PDFs (uno por centro)` : 'el PDF';
+                                      alert('Email enviado a ' + doctorEmail + ' con ' + adjuntosMsg + ' adjunto.');
                                     } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
                                   }} className={`${emailYaEnviado(medico) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico) ? 'Ya enviado — click para reenviar' : 'Enviar email con PDF adjunto'}>
                                     {emailYaEnviado(medico) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
