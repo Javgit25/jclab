@@ -48,6 +48,20 @@ interface AdminBiopsia {
   numeroExterno?: string;
 }
 
+interface PreciosFuturos {
+  fechaVigencia: string; // 'YYYY-MM-DD'
+  precioCassette: number;
+  precioCassetteUrgente: number;
+  precioProfundizacion: number;
+  precioPAP: number;
+  precioPAPUrgente: number;
+  precioCitologia: number;
+  precioCitologiaUrgente: number;
+  precioCorteBlanco: number;
+  precioCorteBlancoIHQ: number;
+  precioGiemsaPASMasson: number;
+}
+
 interface Configuracion {
   precioCassette: number;
   precioCassetteUrgente: number;
@@ -60,7 +74,56 @@ interface Configuracion {
   precioCorteBlancoIHQ: number;
   precioGiemsaPASMasson: number;
   tiposTejido: string[];
+  preciosFuturos?: PreciosFuturos;
 }
+
+const PRECIO_KEYS: Array<keyof Omit<PreciosFuturos, 'fechaVigencia'>> = [
+  'precioCassette', 'precioCassetteUrgente', 'precioProfundizacion',
+  'precioPAP', 'precioPAPUrgente', 'precioCitologia', 'precioCitologiaUrgente',
+  'precioCorteBlanco', 'precioCorteBlancoIHQ', 'precioGiemsaPASMasson',
+];
+
+const PRECIO_LABELS: Record<string, string> = {
+  precioCassette: 'Cassette (BX/PQ)',
+  precioCassetteUrgente: 'Cassette Urgente (24hs)',
+  precioProfundizacion: 'Profundización',
+  precioPAP: 'PAP',
+  precioPAPUrgente: 'PAP Urgente',
+  precioCitologia: 'Citología',
+  precioCitologiaUrgente: 'Citología Urgente',
+  precioCorteBlanco: 'Corte en Blanco',
+  precioCorteBlancoIHQ: 'Corte en Blanco IHQ',
+  precioGiemsaPASMasson: 'Giemsa/PAS/Masson',
+};
+
+// Devuelve YYYY-MM-DD del primer día hábil del mes siguiente (salta sábado/domingo).
+const primerDiaHabilMesSiguiente = (): string => {
+  const today = new Date();
+  const d = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+};
+
+// 'YYYY-MM-DD' → '01 de mayo de 2026'
+const formatFechaEs = (ymd: string): string => {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+const todayYmd = (): string => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+};
+
+// Si la fecha de vigencia ya llegó, promueve preciosFuturos a precios actuales y los borra.
+const promoverPreciosSiCorresponde = (cfg: Configuracion): { cfg: Configuracion; promovido: boolean } => {
+  if (!cfg.preciosFuturos) return { cfg, promovido: false };
+  if (cfg.preciosFuturos.fechaVigencia > todayYmd()) return { cfg, promovido: false };
+  const { fechaVigencia: _fv, ...nuevosPrecios } = cfg.preciosFuturos;
+  const { preciosFuturos: _pf, ...rest } = cfg;
+  return { cfg: { ...rest, ...nuevosPrecios }, promovido: true };
+};
 
 interface Notification {
   id: string;
@@ -164,6 +227,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [tacoResultados, setTacoResultados] = useState<any[]>([]);
   const [tacoBuscado, setTacoBuscado] = useState(false);
   const [tiposTejidoExpanded, setTiposTejidoExpanded] = useState(false);
+  // Editor de actualización de precios programada
+  const [draftPrecios, setDraftPrecios] = useState<PreciosFuturos | null>(null);
+  const [draftMensaje, setDraftMensaje] = useState('');
   const [tacoMedicoFiltro, setTacoMedicoFiltro] = useState<string>('');
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
@@ -438,7 +504,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       const savedConfig = localStorage.getItem('adminConfig');
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
-        setConfiguracion(prev => ({ ...prev, ...parsedConfig }));
+        const { cfg: promoted, promovido } = promoverPreciosSiCorresponde({ ...parsedConfig } as Configuracion);
+        if (promovido) {
+          // Persistir la promoción para que los próximos remitos snapshot los nuevos precios
+          localStorage.setItem('adminConfig', JSON.stringify(promoted));
+          if (currentLabCode) db.saveAdminConfig(currentLabCode, promoted).catch(console.error);
+        }
+        setConfiguracion(prev => ({ ...prev, ...promoted }));
       }
 
       // Background sync from Supabase
@@ -457,7 +529,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         }).catch(console.error);
         db.getAdminConfig(currentLabCode).then(dbConfig => {
           if (dbConfig && Object.keys(dbConfig).length > 0) {
-            setConfiguracion(prev => ({ ...prev, ...dbConfig }));
+            const { cfg: promoted, promovido } = promoverPreciosSiCorresponde({ ...dbConfig } as Configuracion);
+            if (promovido) {
+              localStorage.setItem('adminConfig', JSON.stringify(promoted));
+              db.saveAdminConfig(currentLabCode, promoted).catch(console.error);
+            }
+            setConfiguracion(prev => ({ ...prev, ...promoted }));
           }
         }).catch(console.error);
       }
@@ -1617,6 +1694,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               { id: 'solicitudes', icon: Package, label: 'Solicitudes', desc: 'Tacos, profundizaciones y servicios adicionales', roles: ['admin', 'tecnico'] },
               { id: 'buscador-tacos', icon: Search, label: 'Buscar Taco', desc: 'Buscar cassette por número', roles: ['admin', 'tecnico'] },
               { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico', roles: ['admin'] },
+              { id: 'actualizar-precios', icon: TrendingUp, label: 'Actualización de Precios', desc: 'Programar nuevos aranceles y avisar a los médicos', roles: ['admin'] },
               { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos', roles: ['admin'] },
               { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos', roles: ['admin'] }
             ].filter(item => item.roles.includes(userRole)).map(({ id, icon: Icon, label, desc }) => (
@@ -3476,123 +3554,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 ) : null;
               })()}
 
-              {/* Sección de actualización de precios (colapsable) */}
+              {/* CTA al tab nuevo de actualización de precios */}
               <div className="px-5 pb-4">
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div style={{ background: '#0f172a' }} className="px-4 py-3 flex items-center justify-between cursor-pointer"
-                    onClick={() => {
-                      const el = document.getElementById('preciosSection');
-                      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-                    }}>
+                <button
+                  onClick={() => setCurrentView('actualizar-precios')}
+                  className="w-full bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between hover:border-blue-400 hover:bg-blue-50/30 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 rounded-lg p-2.5"><DollarSign size={18} className="text-blue-700" /></div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">Comunicar actualización de precios</h3>
-                      <p className="text-xs text-white/50">Enviar tabla de precios vigentes a todos los médicos</p>
-                    </div>
-                    <span className="text-white/60 text-xs">▼</span>
-                  </div>
-                  <div id="preciosSection" style={{ display: 'none' }}>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Tabla de precios */}
-                      <div>
-                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Precios vigentes</div>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-gray-50">
-                                <th className="text-left py-1.5 px-3 text-gray-500 font-semibold">Servicio</th>
-                                <th className="text-right py-1.5 px-3 text-gray-500 font-semibold">Precio</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {[
-                                { name: 'Cassette Normal', price: configuracion.precioCassette },
-                                { name: 'Cassette Urgente (24hs)', price: configuracion.precioCassetteUrgente },
-                                { name: 'Profundización (cassette adicional)', price: configuracion.precioProfundizacion },
-                                { name: 'PAP', price: configuracion.precioPAP },
-                                { name: 'PAP Urgente', price: configuracion.precioPAPUrgente },
-                                { name: 'Citología', price: configuracion.precioCitologia },
-                                { name: 'Citología Urgente', price: configuracion.precioCitologiaUrgente },
-                                { name: 'Corte en Blanco', price: configuracion.precioCorteBlanco },
-                                { name: 'Corte en Blanco IHQ', price: configuracion.precioCorteBlancoIHQ },
-                                { name: 'Giemsa/PAS/Masson (por técnica)', price: configuracion.precioGiemsaPASMasson },
-                              ].map((item, i) => (
-                                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                                  <td className="py-1.5 px-3 text-gray-700">{item.name}</td>
-                                  <td className="py-1.5 px-3 text-right font-bold text-gray-900">${item.price.toLocaleString()}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Mensaje personalizado */}
-                      <div className="flex flex-col">
-                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Mensaje para los médicos</div>
-                        <textarea
-                          id="preciosEmailMsg"
-                          defaultValue={`Estimado/a Doctor/a:\n\nLe comunicamos la actualización de aranceles vigentes a partir de ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}.\n\nA continuación encontrará el detalle de los nuevos valores.\n\nQuedamos a disposición ante cualquier consulta.\n\nSaludos cordiales,\n${labConfig.nombre || 'Laboratorio'}`}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 resize-none"
-                          rows={8}
-                        />
-                        <button
-                          onClick={() => {
-                            const msg = (document.getElementById('preciosEmailMsg') as HTMLTextAreaElement)?.value || '';
-
-                            // Generar HTML profesional con logo y colores
-                            const preciosRows = [
-                              ['Cassette Normal', configuracion.precioCassette],
-                              ['Cassette Urgente (24hs)', configuracion.precioCassetteUrgente],
-                              ['Profundización (cassette adicional)', configuracion.precioProfundizacion],
-                              ['PAP', configuracion.precioPAP],
-                              ['PAP Urgente', configuracion.precioPAPUrgente],
-                              ['Citología', configuracion.precioCitologia],
-                              ['Citología Urgente', configuracion.precioCitologiaUrgente],
-                              ['Corte en Blanco', configuracion.precioCorteBlanco],
-                              ['Corte en Blanco IHQ', configuracion.precioCorteBlancoIHQ],
-                              ['Giemsa/PAS/Masson (por técnica)', configuracion.precioGiemsaPASMasson],
-                            ];
-
-                            const fullHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;margin:0;padding:20px;background:#f8fafc;">' +
-                              '<div style="max-width:600px;margin:0 auto;">' +
-                              '<div style="background:linear-gradient(135deg,#0f172a 0%,#1e40af 100%);color:white;padding:28px;border-radius:12px;text-align:center;margin-bottom:24px;">' +
-                              (labConfig.logoUrl ? '<img src="' + labConfig.logoUrl + '" style="height:60px;margin-bottom:10px;" /><br>' : '') +
-                              '<h2 style="margin:0;font-size:20px;font-weight:700;">' + (labConfig.nombre || 'Laboratorio') + '</h2>' +
-                              '<p style="margin:6px 0 0;font-size:12px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + ' | ' + (labConfig.email || '') + '</p>' +
-                              '</div>' +
-                              '<div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;">' +
-                              '<h3 style="margin:0 0 16px;color:#0f172a;font-size:16px;">Actualización de Aranceles</h3>' +
-                              '<div style="white-space:pre-line;font-size:14px;line-height:1.6;color:#374151;margin-bottom:20px;">' + msg + '</div>' +
-                              '</div>' +
-                              '<div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
-                              '<table style="width:100%;border-collapse:collapse;">' +
-                              '<tr style="background:#0f172a;"><th style="padding:12px 16px;text-align:left;color:white;font-size:13px;">Servicio</th><th style="padding:12px 16px;text-align:right;color:white;font-size:13px;">Precio</th></tr>' +
-                              preciosRows.map(function(row, i) { return '<tr style="border-bottom:1px solid #f1f5f9;' + (i % 2 !== 0 ? 'background:#f8fafc;' : '') + '"><td style="padding:10px 16px;font-size:13px;color:#374151;">' + row[0] + '</td><td style="padding:10px 16px;text-align:right;font-weight:700;color:#0f172a;font-size:13px;">$' + Number(row[1]).toLocaleString() + '</td></tr>'; }).join('') +
-                              '</table></div>' +
-                              '<p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:20px;">Powered by BiopsyTracker</p>' +
-                              '</div></body></html>';
-
-                            // Descargar HTML
-                            const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8;' });
-                            const link = document.createElement('a');
-                            link.href = URL.createObjectURL(blob);
-                            link.download = 'Actualizacion_Precios_' + new Date().toISOString().split('T')[0] + '.html';
-                            link.click();
-
-                            // Abrir modal de email
-                            setEmailModal({ open: true, medico: 'Todos los médicos', email: 'todos' });
-                            setEmailMessage(msg);
-                          }}
-                          className="mt-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
-                        >
-                          <Mail size={14} /> Enviar actualización de precios por email
-                        </button>
-                      </div>
+                      <div className="text-sm font-bold text-gray-900">Actualización de Precios</div>
+                      <div className="text-xs text-gray-500">{configuracion.preciosFuturos ? `Hay una actualización programada para el ${formatFechaEs(configuracion.preciosFuturos.fechaVigencia)}` : 'Programá nuevos aranceles y avisá a los médicos'}</div>
                     </div>
                   </div>
-                  </div>{/* cierre preciosSection */}
-                </div>
+                  <span className="text-blue-600 font-semibold text-sm">Ir →</span>
+                </button>
               </div>
 
                 {/* Modal de envío de email */}
@@ -3667,6 +3643,293 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             );
           })()}
 
+          {currentView === 'actualizar-precios' && (() => {
+            const pending = configuracion.preciosFuturos;
+            const editing = draftPrecios !== null;
+
+            const fechaParaMensaje = (ymd: string) => `a partir del ${formatFechaEs(ymd)}`;
+            const buildDefaultMsg = (ymd: string) => `Estimado/a Doctor/a:\n\nLe comunicamos la actualización de aranceles vigentes ${fechaParaMensaje(ymd)}.\n\nA continuación encontrará el detalle de los nuevos valores.\n\nQuedamos a disposición ante cualquier consulta.\n\nSaludos cordiales,\n${labConfig.nombre || 'Laboratorio'}`;
+
+            const iniciarEdicion = () => {
+              const fecha = pending?.fechaVigencia || primerDiaHabilMesSiguiente();
+              const base: PreciosFuturos = pending
+                ? { ...pending }
+                : {
+                    fechaVigencia: fecha,
+                    precioCassette: configuracion.precioCassette,
+                    precioCassetteUrgente: configuracion.precioCassetteUrgente,
+                    precioProfundizacion: configuracion.precioProfundizacion,
+                    precioPAP: configuracion.precioPAP,
+                    precioPAPUrgente: configuracion.precioPAPUrgente,
+                    precioCitologia: configuracion.precioCitologia,
+                    precioCitologiaUrgente: configuracion.precioCitologiaUrgente,
+                    precioCorteBlanco: configuracion.precioCorteBlanco,
+                    precioCorteBlancoIHQ: configuracion.precioCorteBlancoIHQ,
+                    precioGiemsaPASMasson: configuracion.precioGiemsaPASMasson,
+                  };
+              setDraftPrecios(base);
+              setDraftMensaje(buildDefaultMsg(base.fechaVigencia));
+            };
+
+            const aplicarPorcentaje = (pct: number) => {
+              if (!draftPrecios) return;
+              const nuevo: any = { ...draftPrecios };
+              PRECIO_KEYS.forEach(k => {
+                nuevo[k] = Math.round((configuracion as any)[k] * (1 + pct / 100));
+              });
+              setDraftPrecios(nuevo);
+            };
+
+            const cambiarPrecio = (k: keyof PreciosFuturos, val: number) => {
+              if (!draftPrecios) return;
+              setDraftPrecios({ ...draftPrecios, [k]: Math.max(0, Math.round(val)) } as PreciosFuturos);
+            };
+
+            const cambiarFecha = (ymd: string) => {
+              if (!draftPrecios) return;
+              setDraftPrecios({ ...draftPrecios, fechaVigencia: ymd });
+              setDraftMensaje(buildDefaultMsg(ymd));
+            };
+
+            const cancelar = () => { setDraftPrecios(null); setDraftMensaje(''); };
+
+            const persistir = async (cfg: Configuracion) => {
+              setConfiguracion(cfg);
+              localStorage.setItem('adminConfig', JSON.stringify(cfg));
+              if (currentLabCode) {
+                try { await db.saveAdminConfig(currentLabCode, cfg); } catch (e) { console.error(e); }
+              }
+            };
+
+            const guardar = async () => {
+              if (!draftPrecios) return;
+              await persistir({ ...configuracion, preciosFuturos: draftPrecios });
+              const fechaGuardada = draftPrecios.fechaVigencia;
+              setDraftPrecios(null); setDraftMensaje('');
+              alert(`Actualización guardada. Los nuevos precios entrarán en vigencia el ${formatFechaEs(fechaGuardada)}.`);
+            };
+
+            const guardarYEnviar = async () => {
+              if (!draftPrecios) return;
+              await persistir({ ...configuracion, preciosFuturos: draftPrecios });
+              const msg = draftMensaje;
+              setDraftPrecios(null); setDraftMensaje('');
+              setEmailModal({ open: true, medico: 'Todos los médicos', email: 'todos' });
+              setEmailMessage(msg);
+            };
+
+            const descartarPendiente = async () => {
+              if (!confirm('¿Descartar la actualización programada?\n\nLos precios actuales seguirán vigentes y no se aplicará ningún cambio.')) return;
+              const cfg = { ...configuracion };
+              delete cfg.preciosFuturos;
+              await persistir(cfg);
+            };
+
+            // ===== EDITOR =====
+            if (editing && draftPrecios) {
+              const totalActual = PRECIO_KEYS.reduce((s, k) => s + (configuracion as any)[k], 0);
+              const totalNuevo = PRECIO_KEYS.reduce((s, k) => s + (draftPrecios as any)[k], 0);
+              const variacion = totalActual > 0 ? Math.round(((totalNuevo - totalActual) / totalActual) * 1000) / 10 : 0;
+
+              return (
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{pending ? 'Editar actualización programada' : 'Nueva actualización de precios'}</h2>
+                    <p className="text-sm text-gray-500 mt-1">Programá nuevos aranceles. Los precios actuales siguen rigiendo hasta la fecha de vigencia.</p>
+                  </div>
+
+                  {/* Fecha de vigencia */}
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 p-5">
+                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Fecha de vigencia</div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <input
+                        type="date"
+                        value={draftPrecios.fechaVigencia}
+                        min={todayYmd()}
+                        onChange={e => cambiarFecha(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-600">→ <span className="font-semibold text-blue-700">{formatFechaEs(draftPrecios.fechaVigencia)}</span></span>
+                      <button
+                        onClick={() => cambiarFecha(primerDiaHabilMesSiguiente())}
+                        className="text-xs text-blue-600 hover:underline ml-auto"
+                      >Usar 1° día hábil del mes siguiente</button>
+                    </div>
+                  </div>
+
+                  {/* Aumento porcentual rápido */}
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-green-800">Aplicar a todos:</span>
+                    {[5, 10, 15, 20, 25, 30].map(pct => (
+                      <button key={pct} onClick={() => aplicarPorcentaje(pct)}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold">+{pct}%</button>
+                    ))}
+                    <span className="text-xs text-green-700 ml-2">(parte de los precios actuales y aplica el porcentaje)</span>
+                  </div>
+
+                  {/* Tabla side-by-side */}
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Concepto</th>
+                          <th className="px-4 py-3 text-right">Precio actual</th>
+                          <th className="px-4 py-3 text-right">Precio nuevo</th>
+                          <th className="px-4 py-3 text-right">Variación</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRECIO_KEYS.map(k => {
+                          const actual = (configuracion as any)[k] as number;
+                          const nuevo = (draftPrecios as any)[k] as number;
+                          const diff = nuevo - actual;
+                          const pct = actual > 0 ? Math.round((diff / actual) * 1000) / 10 : 0;
+                          const colorClass = diff > 0 ? 'text-green-700' : diff < 0 ? 'text-red-700' : 'text-gray-500';
+                          return (
+                            <tr key={k} className="border-b border-gray-100">
+                              <td className="px-4 py-2.5 text-gray-800">{PRECIO_LABELS[k]}</td>
+                              <td className="px-4 py-2.5 text-right text-gray-600">${actual.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-right">
+                                <div className="relative inline-block">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                                  <input
+                                    type="number" min={0} step={1}
+                                    value={nuevo}
+                                    onChange={e => cambiarPrecio(k, Number(e.target.value))}
+                                    className="w-32 pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-right text-sm focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </td>
+                              <td className={`px-4 py-2.5 text-right text-xs font-semibold ${colorClass}`}>
+                                {diff === 0 ? '—' : `${diff > 0 ? '+' : ''}$${diff.toLocaleString()} (${pct > 0 ? '+' : ''}${pct}%)`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="bg-gray-50 font-bold">
+                          <td className="px-4 py-2.5 text-gray-900">Suma de la lista</td>
+                          <td className="px-4 py-2.5 text-right text-gray-700">${totalActual.toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-right text-gray-900">${totalNuevo.toLocaleString()}</td>
+                          <td className={`px-4 py-2.5 text-right text-xs ${variacion > 0 ? 'text-green-700' : variacion < 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                            {variacion === 0 ? '—' : `${variacion > 0 ? '+' : ''}${variacion}%`}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mensaje email */}
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 p-5">
+                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Mensaje del email</div>
+                    <textarea
+                      value={draftMensaje}
+                      onChange={e => setDraftMensaje(e.target.value)}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 resize-none font-mono"
+                    />
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex gap-3 flex-wrap">
+                    <button onClick={cancelar} className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50">Cancelar</button>
+                    <button onClick={guardar} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">Guardar (sin enviar email)</button>
+                    <button onClick={guardarYEnviar} className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold flex items-center gap-2">
+                      <Mail size={16} /> Guardar y enviar email a todos los médicos
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ===== ESTADO PENDIENTE =====
+            if (pending) {
+              return (
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Actualización de Precios</h2>
+                    <p className="text-sm text-gray-500 mt-1">Hay una actualización programada.</p>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-amber-200 rounded-lg p-2"><DollarSign size={20} className="text-amber-800" /></div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-amber-900">Actualización programada</div>
+                        <div className="text-base text-amber-800 mt-0.5">Los nuevos precios entran en vigencia el <span className="font-bold">{formatFechaEs(pending.fechaVigencia)}</span>.</div>
+                        <div className="text-xs text-amber-700 mt-1">Hasta esa fecha, los precios actuales se siguen aplicando a los remitos nuevos.</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Concepto</th>
+                          <th className="px-4 py-3 text-right">Actual</th>
+                          <th className="px-4 py-3 text-right">Próximo</th>
+                          <th className="px-4 py-3 text-right">Variación</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRECIO_KEYS.map(k => {
+                          const actual = (configuracion as any)[k] as number;
+                          const proximo = (pending as any)[k] as number;
+                          const diff = proximo - actual;
+                          const pct = actual > 0 ? Math.round((diff / actual) * 1000) / 10 : 0;
+                          const colorClass = diff > 0 ? 'text-green-700' : diff < 0 ? 'text-red-700' : 'text-gray-500';
+                          return (
+                            <tr key={k} className="border-b border-gray-100">
+                              <td className="px-4 py-2.5 text-gray-800">{PRECIO_LABELS[k]}</td>
+                              <td className="px-4 py-2.5 text-right text-gray-600">${actual.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-right text-gray-900 font-semibold">${proximo.toLocaleString()}</td>
+                              <td className={`px-4 py-2.5 text-right text-xs font-semibold ${colorClass}`}>
+                                {diff === 0 ? '—' : `${diff > 0 ? '+' : ''}$${diff.toLocaleString()} (${pct > 0 ? '+' : ''}${pct}%)`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex gap-3 flex-wrap">
+                    <button onClick={iniciarEdicion} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">Editar actualización</button>
+                    <button onClick={descartarPendiente} className="px-5 py-2.5 border border-red-300 text-red-700 rounded-lg font-semibold hover:bg-red-50">Descartar pendiente</button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ===== IDLE =====
+            return (
+              <div className="p-6 space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Actualización de Precios</h2>
+                  <p className="text-sm text-gray-500 mt-1">Programá nuevos aranceles. Los nuevos precios entran en vigencia recién a partir de la fecha que elijas y solo se aplican a remitos nuevos.</p>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 text-xs font-bold text-gray-600 uppercase">Precios vigentes</div>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {PRECIO_KEYS.map(k => (
+                        <tr key={k} className="border-b border-gray-100">
+                          <td className="px-4 py-2.5 text-gray-800">{PRECIO_LABELS[k]}</td>
+                          <td className="px-4 py-2.5 text-right font-semibold text-gray-900">${((configuracion as any)[k] as number).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <button onClick={iniciarEdicion} className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow">
+                  <DollarSign size={20} /> Iniciar actualización de precios
+                </button>
+              </div>
+            );
+          })()}
+
           {currentView === 'configuracion' && (
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
@@ -3698,31 +3961,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
-              {/* Configuración de Precios */}
+              {/* Configuración de Precios — vista de solo lectura. La edición vive en el tab "Actualización de Precios". */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
                   <DollarSign className="mr-2 text-green-600" size={20} />
-                  Configuración de Precios
+                  Precios vigentes
                 </h3>
-                
-                {/* Aumento porcentual */}
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 flex-wrap">
-                  <span className="text-sm font-semibold text-green-800">Aumentar todos los precios:</span>
-                  {[5, 10, 15, 20, 25, 30].map(pct => (
-                    <button key={pct} onClick={() => {
-                      if (!confirm(`¿Aumentar todos los precios un ${pct}%?`)) return;
-                      setConfiguracion(prev => {
-                        const updated = { ...prev };
-                        const keys = ['precioCassette', 'precioCassetteUrgente', 'precioProfundizacion', 'precioPAP', 'precioPAPUrgente', 'precioCitologia', 'precioCitologiaUrgente', 'precioCorteBlanco', 'precioCorteBlancoIHQ', 'precioGiemsaPASMasson'];
-                        keys.forEach(k => { (updated as any)[k] = Math.round((updated as any)[k] * (1 + pct / 100)); });
-                        return updated;
-                      });
-                    }}
-                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors">
-                      +{pct}%
-                    </button>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-500 mb-4">Los cambios se programan desde <button onClick={() => setCurrentView('actualizar-precios')} className="text-blue-600 font-semibold hover:underline">Actualización de Precios</button>{configuracion.preciosFuturos ? <> · <span className="text-amber-700 font-semibold">Hay una actualización programada para el {formatFechaEs(configuracion.preciosFuturos.fechaVigencia)}</span></> : null}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Precios Normales */}
@@ -3741,14 +3986,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         ].map(({ label, key }) => (
                           <tr key={key} className="border-b border-gray-100">
                             <td className="px-4 py-2.5 font-medium text-gray-700">{label}</td>
-                            <td className="px-4 py-2.5 w-32">
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
-                                <input type="number" value={(configuracion as any)[key]} min="0"
-                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Math.round(Number(e.target.value)) }))} step="1"
-                                  className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500" />
-                              </div>
-                            </td>
+                            <td className="px-4 py-2.5 w-32 text-right font-bold text-gray-900">${((configuracion as any)[key] as number).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3767,14 +4005,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         ].map(({ label, key }) => (
                           <tr key={key} className="border-b border-gray-100">
                             <td className="px-4 py-2.5 font-medium text-gray-700">{label}</td>
-                            <td className="px-4 py-2.5 w-32">
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
-                                <input type="number" value={(configuracion as any)[key]} min="0"
-                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Math.round(Number(e.target.value)) }))} step="1"
-                                  className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-red-500" />
-                              </div>
-                            </td>
+                            <td className="px-4 py-2.5 w-32 text-right font-bold text-gray-900">${((configuracion as any)[key] as number).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
