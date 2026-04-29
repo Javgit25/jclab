@@ -1673,6 +1673,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
       applyKeyToSetter(setNewAyudantePassword);
     } else if (activeField === 'centro-nombre') {
       applyKeyToSetter(setNewCentro);
+    } else if (activeField === 'solicitud-hist-totalcass') {
+      applyKeyToSetter(setSolicitudHistTotalCass);
+    } else if (activeField === 'solicitud-hist-cantsolic') {
+      applyKeyToSetter(setSolicitudHistCantSolic);
+    } else if (activeField === 'solicitud-hist-ident') {
+      applyKeyToSetter(setSolicitudHistIdent);
     }
   };
 
@@ -1683,7 +1689,8 @@ export const MainScreen: React.FC<MainScreenProps> = ({
 
   const handleFieldFocus = (fieldName: string) => {
     setActiveField(fieldName);
-    setKeyboardType(fieldName === 'solicitud-paciente' ? 'numeric' : 'full');
+    const numericFields = ['solicitud-paciente', 'solicitud-hist-totalcass', 'solicitud-hist-cantsolic'];
+    setKeyboardType(numericFields.includes(fieldName) ? 'numeric' : 'full');
     setShowKeyboard(true);
   };
 
@@ -2311,16 +2318,24 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           <input
                             type="month" value={solicitudHistFecha}
                             onChange={e => setSolicitudHistFecha(e.target.value)}
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
+                            onKeyDown={e => e.preventDefault()}
+                            onClick={(e) => {
+                              setShowKeyboard(false); setActiveField(null);
+                              const inp = e.currentTarget as any;
+                              if (typeof inp.showPicker === 'function') { try { inp.showPicker(); } catch {} }
+                            }}
+                            style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white', cursor: 'pointer' }}
                           />
                         </div>
                         <div>
                           <label style={{ fontSize: '11px', fontWeight: '700', color: '#7c2d12', marginBottom: '4px', display: 'block' }}>Cassettes totales (estudio original)</label>
                           <input
-                            type="number" min={1} value={solicitudHistTotalCass}
-                            onChange={e => setSolicitudHistTotalCass(e.target.value)}
-                            placeholder="ej: 5"
-                            style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
+                            value={solicitudHistTotalCass}
+                            readOnly inputMode="none"
+                            onFocus={() => handleFieldFocus('solicitud-hist-totalcass')}
+                            onClick={() => handleFieldFocus('solicitud-hist-totalcass')}
+                            placeholder="Tocar — ej: 5"
+                            style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: activeField === 'solicitud-hist-totalcass' ? '2px solid #f97316' : '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
                           />
                         </div>
                       </div>
@@ -2328,12 +2343,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                       <div style={{ marginBottom: (() => { const t = parseInt(solicitudHistTotalCass) || 0; const s = parseInt(solicitudHistCantSolic) || 0; return s > 0 && s < t ? '10px' : '0'; })() }}>
                         <label style={{ fontSize: '11px', fontWeight: '700', color: '#7c2d12', marginBottom: '4px', display: 'block' }}>Cassettes solicitados ahora</label>
                         <input
-                          type="number" min={1}
-                          max={parseInt(solicitudHistTotalCass) || undefined}
                           value={solicitudHistCantSolic}
-                          onChange={e => setSolicitudHistCantSolic(e.target.value)}
-                          placeholder="ej: 2"
-                          style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
+                          readOnly inputMode="none"
+                          onFocus={() => handleFieldFocus('solicitud-hist-cantsolic')}
+                          onClick={() => handleFieldFocus('solicitud-hist-cantsolic')}
+                          placeholder="Tocar — ej: 2"
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: activeField === 'solicitud-hist-cantsolic' ? '2px solid #f97316' : '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
                         />
                       </div>
 
@@ -2345,10 +2360,12 @@ export const MainScreen: React.FC<MainScreenProps> = ({
                           <div>
                             <label style={{ fontSize: '11px', fontWeight: '700', color: '#7c2d12', marginBottom: '4px', display: 'block' }}>¿Cuáles cassettes? (identificación)</label>
                             <input
-                              type="text" value={solicitudHistIdent}
-                              onChange={e => setSolicitudHistIdent(e.target.value)}
-                              placeholder="ej: 1, 3   o   A, C"
-                              style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
+                              value={solicitudHistIdent}
+                              readOnly inputMode="none"
+                              onFocus={() => handleFieldFocus('solicitud-hist-ident')}
+                              onClick={() => handleFieldFocus('solicitud-hist-ident')}
+                              placeholder="Tocar — ej: 1, 3   o   A, C"
+                              style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: activeField === 'solicitud-hist-ident' ? '2px solid #f97316' : '1px solid #fdba74', fontSize: '13px', boxSizing: 'border-box', background: 'white' }}
                             />
                             <div style={{ fontSize: '10px', color: '#9a3412', marginTop: '4px' }}>El laboratorio usa esta identificación para encontrar los cassettes correctos en el archivo físico.</div>
                           </div>
@@ -4200,7 +4217,7 @@ export const MainScreen: React.FC<MainScreenProps> = ({
               isOpen: showKeyboard,
               type: keyboardType,
               targetField: activeField || '',
-              targetValue: activeField === 'solicitud-paciente' ? solicitudPaciente : activeField === 'solicitud-descripcion' ? solicitudDescripcion : activeField === 'ayudante-nombre' ? newAyudanteNombre : activeField === 'ayudante-password' ? newAyudantePassword : activeField === 'centro-nombre' ? newCentro : searchFilters.query
+              targetValue: activeField === 'solicitud-paciente' ? solicitudPaciente : activeField === 'solicitud-descripcion' ? solicitudDescripcion : activeField === 'ayudante-nombre' ? newAyudanteNombre : activeField === 'ayudante-password' ? newAyudantePassword : activeField === 'centro-nombre' ? newCentro : activeField === 'solicitud-hist-totalcass' ? solicitudHistTotalCass : activeField === 'solicitud-hist-cantsolic' ? solicitudHistCantSolic : activeField === 'solicitud-hist-ident' ? solicitudHistIdent : searchFilters.query
             }}
             onKeyPress={handleKeyPress}
             onConfirm={handleKeyboardConfirm}
