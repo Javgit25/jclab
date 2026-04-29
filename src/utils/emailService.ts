@@ -32,6 +32,7 @@ export const sendEmail = async (params: {
   attachments?: EmailAttachment[];
   htmlForPdf?: string;
   pdfFilename?: string;
+  htmlsForPdf?: Array<{ html: string; filename: string }>;
 }) => {
   // reply_to del email del laboratorio en labConfig (para que las respuestas lleguen al lab)
   let replyTo = '';
@@ -50,6 +51,7 @@ export const sendEmail = async (params: {
       attachments: params.attachments || undefined,
       htmlForPdf: params.htmlForPdf || undefined,
       pdfFilename: params.pdfFilename || undefined,
+      htmlsForPdf: params.htmlsForPdf || undefined,
     }),
   });
 

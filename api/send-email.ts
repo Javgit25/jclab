@@ -28,6 +28,8 @@ type Body = {
   // Si viene, se convierte a PDF en el server y se adjunta con este nombre.
   htmlForPdf?: string;
   pdfFilename?: string;
+  // Múltiples PDFs (uno por item). Se procesan en paralelo y se adjuntan todos.
+  htmlsForPdf?: Array<{ html: string; filename: string }>;
 };
 
 // Convierte HTML a PDF llamando al API de PDFShift. Devuelve base64.
@@ -96,7 +98,7 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body: Body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const { toEmail, toName, subject, messageHtml, fromName, replyTo, htmlForPdf, pdfFilename } = body || {};
+    const { toEmail, toName, subject, messageHtml, fromName, replyTo, htmlForPdf, pdfFilename, htmlsForPdf } = body || {};
     let { attachments } = body || {};
 
     if (!toEmail || !subject || !messageHtml) {
@@ -116,6 +118,28 @@ export default async function handler(req: any, res: any) {
         res.status(200).json({
           success: false,
           warning: 'Email no enviado por fallo en PDF: ' + (pdfErr?.message || 'error'),
+        });
+        return;
+      }
+    }
+
+    // Si vienen varios htmlsForPdf, generarlos en paralelo y adjuntarlos todos
+    if (Array.isArray(htmlsForPdf) && htmlsForPdf.length > 0) {
+      try {
+        const pdfs = await Promise.all(
+          htmlsForPdf
+            .filter(it => it && typeof it.html === 'string' && it.html.trim().length > 0)
+            .map(async (it) => ({
+              filename: it.filename || 'Documento.pdf',
+              content: await htmlToPdfViaPdfShift(it.html),
+            }))
+        );
+        attachments = [...(attachments || []), ...pdfs];
+      } catch (pdfErr: any) {
+        console.error('Error generando PDFs múltiples:', pdfErr);
+        res.status(200).json({
+          success: false,
+          warning: 'Email no enviado por fallo en PDFs: ' + (pdfErr?.message || 'error'),
         });
         return;
       }
