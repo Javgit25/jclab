@@ -15,6 +15,9 @@ type Attachment = {
   filename: string;
   // base64 string sin el prefijo "data:...;base64,"
   content: string;
+  // Inline image support: si viene content_id, Resend lo trata como inline y se referencia en el HTML como <img src="cid:<content_id>">
+  content_type?: string;
+  content_id?: string;
 };
 
 type Body = {
