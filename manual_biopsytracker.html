@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>BiopsyTracker - Manual de Usuario</title>
+<style>
+  @page { size: A4; margin: 15mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'Segoe UI', Arial, sans-serif; color: #1e293b; font-size: 11pt; line-height: 1.5; }
+  .page { page-break-after: always; padding: 20px 0; }
+  .page:last-child { page-break-after: avoid; }
+
+  /* Cover */
+  .cover { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; text-align: center; }
+  .cover h1 { font-size: 36pt; font-weight: 800; color: #0f172a; letter-spacing: -1px; margin-bottom: 8px; }
+  .cover .subtitle { font-size: 16pt; color: #64748b; margin-bottom: 40px; }
+  .cover .version { font-size: 11pt; color: #94a3b8; }
+  .cover .logo-icon { font-size: 80pt; margin-bottom: 20px; }
+
+  h2 { font-size: 20pt; font-weight: 800; color: #0f172a; border-bottom: 3px solid #1e40af; padding-bottom: 8px; margin: 30px 0 16px; }
+  h3 { font-size: 14pt; font-weight: 700; color: #1e40af; margin: 20px 0 10px; }
+  h4 { font-size: 12pt; font-weight: 600; color: #334155; margin: 14px 0 8px; }
+
+  p { margin-bottom: 8px; }
+
+  .step-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 18px; margin: 10px 0; }
+  .step-box .step-title { font-weight: 700; color: #1e40af; font-size: 12pt; margin-bottom: 6px; }
+  .step-box .step-desc { color: #475569; font-size: 10pt; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 6px; font-weight: 700; font-size: 9pt; color: white; margin: 2px; }
+  .badge-green { background: #166534; }
+  .badge-orange { background: #c2410c; }
+  .badge-purple { background: #7c3aed; }
+  .badge-gray { background: #475569; }
+  .badge-red { background: #dc2626; }
+  .badge-blue { background: #1e40af; }
+  .badge-amber { background: #92400e; }
+
+  .flow-arrow { text-align: center; font-size: 20pt; color: #94a3b8; margin: 8px 0; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 10px 0; }
+
+  .card { background: white; border: 2px solid #e2e8f0; border-radius: 10px; padding: 14px; }
+  .card-title { font-weight: 700; font-size: 11pt; color: #0f172a; margin-bottom: 4px; }
+  .card-desc { font-size: 9pt; color: #64748b; }
+
+  .icon-circle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; font-size: 16pt; margin-right: 8px; }
+
+  .tip { background: #eff6ff; border-left: 4px solid #1e40af; padding: 10px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; font-size: 10pt; }
+  .warning { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 14px; margin: 10px 0; border-radius: 0 8px 8px 0; font-size: 10pt; }
+
+  .kanban-demo { display: flex; gap: 8px; margin: 10px 0; }
+  .kanban-col { flex: 1; border-radius: 8px; padding: 10px; min-height: 80px; }
+  .kanban-col-amber { background: #78350f; color: #fbbf24; }
+  .kanban-col-blue { background: #1e3a5f; color: #60a5fa; }
+  .kanban-col-green { background: #064e3b; color: #34d399; }
+  .kanban-col h5 { text-align: center; font-size: 9pt; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .kanban-card { background: #0f172a; border-radius: 6px; padding: 6px 8px; margin: 4px 0; font-size: 8pt; color: #e2e8f0; }
+
+  .toc { margin: 20px 0; }
+  .toc a { display: block; padding: 6px 0; color: #1e40af; text-decoration: none; font-size: 12pt; border-bottom: 1px solid #f1f5f9; }
+  .toc a:hover { color: #1e3a5f; }
+
+  .price-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10pt; }
+  .price-table th { background: #0f172a; color: white; padding: 8px 12px; text-align: left; }
+  .price-table td { padding: 6px 12px; border-bottom: 1px solid #e2e8f0; }
+  .price-table tr:nth-child(even) { background: #f8fafc; }
+
+  ul { margin: 8px 0 8px 20px; }
+  li { margin-bottom: 4px; font-size: 10pt; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .no-print { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="no-print" style="text-align:center;padding:16px;background:#1e40af;color:white;">
+  <button onclick="window.print()" style="background:white;color:#1e40af;border:none;padding:12px 30px;border-radius:8px;font-size:14pt;font-weight:700;cursor:pointer;">Guardar como PDF (Ctrl+P)</button>
+</div>
+
+<!-- PORTADA -->
+<div class="page cover">
+  <div class="logo-icon">🔬</div>
+  <h1>BiopsyTracker</h1>
+  <div class="subtitle">Manual de Usuario</div>
+  <div style="width:200px;height:3px;background:linear-gradient(90deg,#1e40af,#7c3aed);margin:20px auto;border-radius:2px;"></div>
+  <div class="version">Sistema de Registro de Biopsias v2.5</div>
+  <div style="margin-top:40px;color:#94a3b8;font-size:10pt;">Guía completa para médicos, laboratorios y administradores</div>
+</div>
+
+<!-- ÍNDICE -->
+<div class="page">
+  <h2>Contenido</h2>
+  <div class="toc">
+    <a>1. Inicio de Sesión</a>
+    <a>2. Pantalla Principal del Médico</a>
+    <a>3. Cargar una Biopsia (7 pasos)</a>
+    <a>4. Historial de Remitos</a>
+    <a>5. Solicitudes al Laboratorio</a>
+    <a>6. Búsqueda Avanzada</a>
+    <a>7. Facturación del Médico</a>
+    <a>8. Panel de Administración</a>
+    <a>9. Pizarrón del Laboratorio</a>
+    <a>10. Super Administrador</a>
+  </div>
+</div>
+
+<!-- 1. LOGIN -->
+<div class="page">
+  <h2>1. Inicio de Sesión</h2>
+
+  <h3>Primer uso — Registrarse</h3>
+  <div class="step-box">
+    <div class="step-title">Paso 1: Ingrese su email</div>
+    <div class="step-desc">Si es la primera vez, el sistema le pedirá registrarse.</div>
+  </div>
+  <div class="flow-arrow">↓</div>
+  <div class="step-box">
+    <div class="step-title">Paso 2: Complete sus datos</div>
+    <div class="step-desc">Nombre, Apellido, Hospital, WhatsApp, Código del Laboratorio (se lo da el admin) y una contraseña.</div>
+  </div>
+  <div class="flow-arrow">↓</div>
+  <div class="step-box">
+    <div class="step-title">Paso 3: ¡Listo!</div>
+    <div class="step-desc">Ya puede empezar a cargar biopsias.</div>
+  </div>
+
+  <h3>Inicio habitual</h3>
+  <p>Ingrese su email y contraseña. Si tiene ayudantes configurados, seleccione su usuario.</p>
+
+  <div class="tip">💡 <strong>Ayudantes:</strong> El médico puede configurar usuarios adicionales (técnicos, secretarias) que cargan biopsias en su nombre.</div>
+
+  <div class="warning">⚠️ <strong>¿Olvidó su contraseña?</strong> Toque "Olvidé mi contraseña" para recuperarla.</div>
+</div>
+
+<!-- 2. PANTALLA PRINCIPAL -->
+<div class="page">
+  <h2>2. Pantalla Principal</h2>
+  <p>Al ingresar, verá las siguientes opciones:</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">➕ Cargar Biopsia</div>
+      <div class="card-desc">Iniciar el registro de un nuevo paciente/material.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 Búsqueda</div>
+      <div class="card-desc">Buscar pacientes por número, tejido, fecha o servicios.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 Historial</div>
+      <div class="card-desc">Ver todos los remitos enviados al laboratorio.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Facturación</div>
+      <div class="card-desc">Ver el detalle mensual de estudios y costos.</div>
+    </div>
+  </div>
+
+  <h3>Otras funciones</h3>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📦 Solicitudes</div>
+      <div class="card-desc">Pedir tacos, profundizaciones o servicios adicionales al laboratorio.</div>
+    </div>
+    <div class="card">
+      <div class="card-title">🔔 Notificaciones</div>
+      <div class="card-desc">Recibir alertas cuando el laboratorio procesa sus materiales.</div>
+    </div>
+  </div>
+
+  <div class="tip">💡 Las notificaciones se actualizan automáticamente. Cuando su remito está listo para retirar, suena una alerta.</div>
+</div>
+
+<!-- 3. CARGAR BIOPSIA -->
+<div class="page">
+  <h2>3. Cargar una Biopsia</h2>
+  <p>El proceso tiene <strong>7 pasos</strong> simples. Para PAP y Citología se omiten los pasos 3 a 5.</p>
+
+  <div class="step-box">
+    <div class="step-title">Paso 1 — Número de Paciente</div>
+    <div class="step-desc">Ingrese el número identificador del paciente. El sistema sugiere el siguiente número automáticamente.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">Paso 2 — Tipo de Tejido</div>
+    <div class="step-desc">Seleccione el material: Gástrica, Piel, Endometrio, PAP, Citología, etc. Los tejidos más usados aparecen primero.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">Paso 3 — Tipo de Estudio</div>
+    <div class="step-desc">Seleccione <span class="badge badge-green">BX</span> (Biopsia) o <span class="badge badge-orange">PQ</span> (Pieza Quirúrgica).</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">Paso 4 — Cassettes y Trozos</div>
+    <div class="step-desc">Indique cuántos cassettes tiene el material y cuántos trozos por cassette.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">Paso 5 — Descalcificación</div>
+    <div class="step-desc">¿El material requiere descalcificación? Seleccione Sí o No.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">Paso 6 — Servicios Adicionales</div>
+    <div class="step-desc">Seleccione si necesita:
+      <ul>
+        <li><span class="badge badge-red">Urgente 24hs</span> — Procesamiento prioritario</li>
+        <li><strong>Corte IHQ</strong> — Inmunohistoquímica (indique cantidad)</li>
+        <li><strong>Corte en Blanco</strong> — (indique cantidad)</li>
+        <li><strong>Tinciones:</strong> Giemsa, PAS, Masson</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">Paso 7 — Vista Previa y Guardar</div>
+    <div class="step-desc">Revise toda la información. Agregue observaciones si es necesario. Opciones:
+      <ul>
+        <li><strong>📦 Entregar con Taco</strong> — Solicitar la devolución de los cassettes/tacos</li>
+        <li><strong>Guardar</strong> — Guarda el paciente y permite cargar otro</li>
+        <li><strong>Finalizar Remito</strong> — Cierra el remito del día y lo envía al laboratorio</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- 4. HISTORIAL -->
+<div class="page">
+  <h2>4. Historial de Remitos</h2>
+  <p>Muestra todos los remitos enviados al laboratorio, ordenados por fecha.</p>
+
+  <h3>Cada remito muestra:</h3>
+  <ul>
+    <li>Número de remito y fecha</li>
+    <li>Cantidad de pacientes/estudios</li>
+    <li>Quién lo cargó (médico o ayudante)</li>
+  </ul>
+
+  <h3>Ver Remito</h3>
+  <p>Al tocar <strong>"Ver"</strong> se abre el detalle completo con:</p>
+  <ul>
+    <li>Datos del laboratorio y médico</li>
+    <li>Tabla de pacientes con colores por tipo:
+      <span class="badge badge-green">BX</span>
+      <span class="badge badge-orange">PQ</span>
+      <span class="badge badge-purple">PAP</span>
+      <span class="badge badge-gray">Cito</span>
+    </li>
+    <li>Servicios adicionales con badges de color</li>
+    <li>Pacientes urgentes destacados en rojo</li>
+    <li>Solicitudes de devolución de taco</li>
+  </ul>
+</div>
+
+<!-- 5. SOLICITUDES -->
+<div class="page">
+  <h2>5. Solicitudes al Laboratorio</h2>
+  <p>Desde la pantalla principal, toque el botón <strong>📦 Solicitudes</strong> para pedir servicios sobre materiales ya enviados.</p>
+
+  <h3>Tipos de solicitud:</h3>
+
+  <div class="grid-3">
+    <div class="card" style="border-color:#fbbf24;">
+      <div class="card-title">📦 Taco</div>
+      <div class="card-desc">Pedir la devolución de cassettes/tacos. Seleccione cuáles cassettes necesita.</div>
+    </div>
+    <div class="card" style="border-color:#60a5fa;">
+      <div class="card-title">🔬 Profundización</div>
+      <div class="card-desc">Pedir cortes más profundos del material ya procesado.</div>
+    </div>
+    <div class="card" style="border-color:#c084fc;">
+      <div class="card-title">➕ Serv. Adicional</div>
+      <div class="card-desc">Agregar Giemsa, PAS, Masson, vidrios IHQ o vidrios en blanco.</div>
+    </div>
+  </div>
+
+  <h3>¿Cómo crear una solicitud?</h3>
+  <div class="step-box">
+    <div class="step-title">1. Seleccione el tipo</div>
+    <div class="step-desc">Taco, Profundización o Servicio Adicional.</div>
+  </div>
+  <div class="step-box">
+    <div class="step-title">2. Seleccione el paciente</div>
+    <div class="step-desc">Escriba el número o seleccione de la lista. El remito se completa automáticamente.</div>
+  </div>
+  <div class="step-box">
+    <div class="step-title">3. Enviar</div>
+    <div class="step-desc">El laboratorio recibe la solicitud inmediatamente en su pizarrón.</div>
+  </div>
+
+  <div class="tip">💡 En "Mis Solicitudes" puede ver el estado: <span class="badge badge-amber">Pendiente</span> → <span class="badge badge-blue">En proceso</span> → <span class="badge badge-green">Entregado</span></div>
+</div>
+
+<!-- 6. BÚSQUEDA -->
+<div class="page">
+  <h2>6. Búsqueda Avanzada</h2>
+  <p>Busque pacientes por múltiples criterios:</p>
+  <ul>
+    <li><strong>Texto:</strong> número de paciente, tejido, nombre</li>
+    <li><strong>Tipo:</strong> BX, PQ, PAP, Citología</li>
+    <li><strong>Fecha:</strong> rango de fechas</li>
+    <li><strong>Servicios:</strong> urgentes, con tinciones, con IHQ</li>
+  </ul>
+  <p>Cada resultado muestra el detalle del paciente con costo calculado. Toque <strong>"Ver remito"</strong> para abrir el remito completo.</p>
+
+  <h2>7. Facturación del Médico</h2>
+  <p>Desde la pantalla principal, toque <strong>📊 Facturación</strong>.</p>
+  <p>Muestra el resumen mensual:</p>
+  <ul>
+    <li><strong>Total Facturado</strong> — Monto total del mes</li>
+    <li><strong>Promedio por Estudio</strong></li>
+    <li><strong>Cantidad de Remitos</strong></li>
+    <li><strong>Desglose:</strong> BX, PQ, PAP, Citología</li>
+    <li><strong>Tendencia:</strong> comparación con el mes anterior</li>
+  </ul>
+  <div class="tip">💡 Los montos se sincronizan con el administrador. Si el lab modificó cassettes o marcó "No vino", se refleja automáticamente.</div>
+</div>
+
+<!-- 8. ADMIN -->
+<div class="page">
+  <h2>8. Panel de Administración</h2>
+  <p>El administrador del laboratorio accede con su código de laboratorio + usuario + contraseña.</p>
+
+  <h3>Secciones del menú:</h3>
+
+  <div class="step-box">
+    <div class="step-title">📊 Dashboard</div>
+    <div class="step-desc">Vista general: urgentes pendientes, remitos en proceso, listos para retirar. Botón "Todo ✓" para marcar un remito completo como listo. Botón "Imprimir pendientes" para imprimir los remitos del día.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">📋 Gestión de Remitos</div>
+    <div class="step-desc">Ver y editar remitos. Agregar cassettes, marcar "No vino", agregar pacientes que el médico olvidó. Los remitos entregados no se pueden editar.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">📦 Solicitudes</div>
+    <div class="step-desc">Ver solicitudes de los médicos (tacos, profundizaciones, servicios adicionales). Marcar como en proceso o entregado.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">🔍 Buscar Taco</div>
+    <div class="step-desc">Buscar un cassette por número. Muestra si está en el laboratorio o fue entregado al médico.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">💰 Facturación</div>
+    <div class="step-desc">Detalle mensual por médico. Abrir ventana de facturación, enviar por email. Muestra servicios, cassettes divididos por el lab, "No se recibió en el Lab".</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">💳 Cobros</div>
+    <div class="step-desc">Registrar pagos de médicos. Ver deudas pendientes. Historial de pagos.</div>
+  </div>
+
+  <div class="step-box">
+    <div class="step-title">⚙️ Configuración</div>
+    <div class="step-desc">Precios (normales y urgentes), tipos de tejido, datos del laboratorio, credenciales.</div>
+  </div>
+</div>
+
+<!-- PRECIOS -->
+<div class="page">
+  <h3>Configuración de Precios</h3>
+  <div class="grid-2">
+    <div>
+      <h4 style="color:#1e40af;">Precios Normales</h4>
+      <table class="price-table">
+        <tr><th>Servicio</th><th>Precio</th></tr>
+        <tr><td>Cassette (BX/PQ)</td><td>Configurable</td></tr>
+        <tr><td>PAP</td><td>Configurable</td></tr>
+        <tr><td>Citología</td><td>Configurable</td></tr>
+        <tr><td>Profundización</td><td>Configurable</td></tr>
+        <tr><td>Corte en Blanco</td><td>Configurable</td></tr>
+        <tr><td>Corte IHQ</td><td>Configurable</td></tr>
+        <tr><td>Giemsa/PAS/Masson</td><td>Configurable</td></tr>
+      </table>
+    </div>
+    <div>
+      <h4 style="color:#dc2626;">Precios Urgentes</h4>
+      <table class="price-table">
+        <tr><th>Servicio</th><th>Precio</th></tr>
+        <tr><td>Cassette Urgente</td><td>Configurable</td></tr>
+        <tr><td>PAP Urgente</td><td>Configurable</td></tr>
+        <tr><td>Citología Urgente</td><td>Configurable</td></tr>
+      </table>
+      <div class="tip" style="margin-top:10px;">El precio urgente reemplaza al normal (no se suma).</div>
+    </div>
+  </div>
+</div>
+
+<!-- 9. PIZARRÓN -->
+<div class="page">
+  <h2>9. Pizarrón del Laboratorio</h2>
+  <p>Pantalla táctil para uso diario del laboratorio. Reemplaza el pizarrón con fibra.</p>
+  <p><strong>Acceso:</strong> Abrir la URL del sistema con <code>?lab=CODIGO</code> (sin login).</p>
+
+  <h3>⚡ Sección de Urgentes (arriba)</h3>
+  <p>Muestra todos los pacientes con servicios urgentes. Permanecen hasta que se procesan.</p>
+  <p><strong>1 toque</strong> en la tarjeta → se marca como listo → el médico recibe notificación.</p>
+
+  <h3>Tablero Kanban (3 columnas)</h3>
+  <div class="kanban-demo">
+    <div class="kanban-col kanban-col-amber">
+      <h5>Pendientes</h5>
+      <div class="kanban-card">🔬 Prof. #12 - Gástrica<br>Dr. López</div>
+      <div class="kanban-card">📦 Taco #15 - Piel<br>Dr. García</div>
+    </div>
+    <div class="kanban-col kanban-col-blue">
+      <h5>En Proceso</h5>
+      <div class="kanban-card">➕ IHQ #18 - Mama<br>Dr. Pérez</div>
+    </div>
+    <div class="kanban-col kanban-col-green">
+      <h5>Listos Hoy</h5>
+      <div class="kanban-card">✅ Taco #10 - Colon<br>Dr. López</div>
+    </div>
+  </div>
+
+  <h3>¿Cómo se usa?</h3>
+  <div class="step-box">
+    <div class="step-title">Llega una solicitud</div>
+    <div class="step-desc">Aparece en "Pendientes" con sonido de alerta.</div>
+  </div>
+  <div class="flow-arrow">↓ toque</div>
+  <div class="step-box">
+    <div class="step-title">Se empieza a trabajar</div>
+    <div class="step-desc">Pasa a "En Proceso".</div>
+  </div>
+  <div class="flow-arrow">↓ toque</div>
+  <div class="step-box">
+    <div class="step-title">Se completó</div>
+    <div class="step-desc">Pasa a "Listos Hoy". El médico recibe notificación automática.</div>
+  </div>
+
+  <div class="tip">💡 La pantalla se actualiza sola cada 15 segundos. No necesita recargar.</div>
+</div>
+
+<!-- 10. SUPER ADMIN -->
+<div class="page">
+  <h2>10. Super Administrador</h2>
+  <p>Panel para gestionar todos los laboratorios del sistema.</p>
+
+  <h3>Funciones:</h3>
+  <ul>
+    <li><strong>Agregar laboratorios</strong> — Nombre, datos, código único auto-generado</li>
+    <li><strong>Gestionar suscripciones</strong> — Renovar, suspender, activar</li>
+    <li><strong>Ver métricas</strong> — Labs activos, médicos, remitos totales</li>
+    <li><strong>Configurar precios</strong> — Precio por médico activo por mes</li>
+  </ul>
+
+  <h2 style="margin-top:60px;">Soporte</h2>
+  <p>Para consultas o soporte técnico:</p>
+  <div class="card" style="max-width:400px;">
+    <div class="card-title">📧 support@biopsytracker.com</div>
+    <div class="card-desc" style="margin-top:8px;">BiopsyTracker v2.5 — Sistema de Registro de Biopsias</div>
+  </div>
+</div>
+
+</body>
+</html>

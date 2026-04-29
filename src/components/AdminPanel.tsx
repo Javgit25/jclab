@@ -48,6 +48,20 @@ interface AdminBiopsia {
   numeroExterno?: string;
 }
 
+interface PreciosFuturos {
+  fechaVigencia: string; // 'YYYY-MM-DD'
+  precioCassette: number;
+  precioCassetteUrgente: number;
+  precioProfundizacion: number;
+  precioPAP: number;
+  precioPAPUrgente: number;
+  precioCitologia: number;
+  precioCitologiaUrgente: number;
+  precioCorteBlanco: number;
+  precioCorteBlancoIHQ: number;
+  precioGiemsaPASMasson: number;
+}
+
 interface Configuracion {
   precioCassette: number;
   precioCassetteUrgente: number;
@@ -60,7 +74,56 @@ interface Configuracion {
   precioCorteBlancoIHQ: number;
   precioGiemsaPASMasson: number;
   tiposTejido: string[];
+  preciosFuturos?: PreciosFuturos;
 }
+
+const PRECIO_KEYS: Array<keyof Omit<PreciosFuturos, 'fechaVigencia'>> = [
+  'precioCassette', 'precioCassetteUrgente', 'precioProfundizacion',
+  'precioPAP', 'precioPAPUrgente', 'precioCitologia', 'precioCitologiaUrgente',
+  'precioCorteBlanco', 'precioCorteBlancoIHQ', 'precioGiemsaPASMasson',
+];
+
+const PRECIO_LABELS: Record<string, string> = {
+  precioCassette: 'Cassette (BX/PQ)',
+  precioCassetteUrgente: 'Cassette Urgente (24hs)',
+  precioProfundizacion: 'Profundización',
+  precioPAP: 'PAP',
+  precioPAPUrgente: 'PAP Urgente',
+  precioCitologia: 'Citología',
+  precioCitologiaUrgente: 'Citología Urgente',
+  precioCorteBlanco: 'Corte en Blanco',
+  precioCorteBlancoIHQ: 'Corte en Blanco IHQ',
+  precioGiemsaPASMasson: 'Giemsa/PAS/Masson',
+};
+
+// Devuelve YYYY-MM-DD del primer día hábil del mes siguiente (salta sábado/domingo).
+const primerDiaHabilMesSiguiente = (): string => {
+  const today = new Date();
+  const d = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+};
+
+// 'YYYY-MM-DD' → '01 de mayo de 2026'
+const formatFechaEs = (ymd: string): string => {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+const todayYmd = (): string => {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+};
+
+// Si la fecha de vigencia ya llegó, promueve preciosFuturos a precios actuales y los borra.
+const promoverPreciosSiCorresponde = (cfg: Configuracion): { cfg: Configuracion; promovido: boolean } => {
+  if (!cfg.preciosFuturos) return { cfg, promovido: false };
+  if (cfg.preciosFuturos.fechaVigencia > todayYmd()) return { cfg, promovido: false };
+  const { fechaVigencia: _fv, ...nuevosPrecios } = cfg.preciosFuturos;
+  const { preciosFuturos: _pf, ...rest } = cfg;
+  return { cfg: { ...rest, ...nuevosPrecios }, promovido: true };
+};
 
 interface Notification {
   id: string;
@@ -164,6 +227,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   const [tacoResultados, setTacoResultados] = useState<any[]>([]);
   const [tacoBuscado, setTacoBuscado] = useState(false);
   const [tiposTejidoExpanded, setTiposTejidoExpanded] = useState(false);
+  // Editor de actualización de precios programada
+  const [draftPrecios, setDraftPrecios] = useState<PreciosFuturos | null>(null);
+  const [draftMensaje, setDraftMensaje] = useState('');
   const [tacoMedicoFiltro, setTacoMedicoFiltro] = useState<string>('');
 
   const [configuracion, setConfiguracion] = useState<Configuracion>({
@@ -438,7 +504,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
       const savedConfig = localStorage.getItem('adminConfig');
       if (savedConfig) {
         const parsedConfig = JSON.parse(savedConfig);
-        setConfiguracion(prev => ({ ...prev, ...parsedConfig }));
+        const { cfg: promoted, promovido } = promoverPreciosSiCorresponde({ ...parsedConfig } as Configuracion);
+        if (promovido) {
+          // Persistir la promoción para que los próximos remitos snapshot los nuevos precios
+          localStorage.setItem('adminConfig', JSON.stringify(promoted));
+          if (currentLabCode) db.saveAdminConfig(currentLabCode, promoted).catch(console.error);
+        }
+        setConfiguracion(prev => ({ ...prev, ...promoted }));
       }
 
       // Background sync from Supabase
@@ -457,7 +529,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
         }).catch(console.error);
         db.getAdminConfig(currentLabCode).then(dbConfig => {
           if (dbConfig && Object.keys(dbConfig).length > 0) {
-            setConfiguracion(prev => ({ ...prev, ...dbConfig }));
+            const { cfg: promoted, promovido } = promoverPreciosSiCorresponde({ ...dbConfig } as Configuracion);
+            if (promovido) {
+              localStorage.setItem('adminConfig', JSON.stringify(promoted));
+              db.saveAdminConfig(currentLabCode, promoted).catch(console.error);
+            }
+            setConfiguracion(prev => ({ ...prev, ...promoted }));
           }
         }).catch(console.error);
       }
@@ -1114,7 +1191,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
   };
 
   const generarHTMLFacturacion = (medico: string, centroFilter?: string) => {
-    const remitosDelMedico = remitos.filter(r => r.medico === medico && (!centroFilter || (r.hospital || '') === centroFilter));
+    const matchCentro = (r: any): boolean => {
+      if (!centroFilter) return true;
+      if (centroFilter === 'Sin centro') return !r.hospital;
+      return (r.hospital || '') === centroFilter;
+    };
+    const remitosDelMedico = remitos.filter(r => r.medico === medico && matchCentro(r));
     const fechaActual = new Date().toLocaleDateString('es-AR');
     
     const totalGeneral = remitosDelMedico.reduce((total, remito) => total + calcularTotalRemito(remito.biopsias, (remito as any).preciosSnapshot, remito.estado, remito), 0);
@@ -1124,6 +1206,128 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const totalPQ = remitosDelMedico.reduce((s, r) => s + r.biopsias.filter((b: any) => b.tipo === 'PQ').length, 0);
     const totalPAP = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.papQuantity || 0), 0), 0);
     const totalCito = remitosDelMedico.reduce((s, r) => s + r.biopsias.reduce((ss: number, b: any) => ss + (b.citologiaQuantity || 0), 0), 0);
+
+    const renderFilaBiopsia = (remito: any, biopsia: any): string => {
+      const citoSub = (biopsia as any).citologiaSubType || '';
+      const tipo = (biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'IHQ' : biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
+      const bc = tipo === 'IHQ' ? 'badge-bx' : tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
+      const svcs: string[] = [];
+      if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
+      if ((biopsia.servicios?.papUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">PAP Urgente</span>');
+      if ((biopsia.servicios?.citologiaUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">Cito Urgente</span>');
+      const cn = (biopsia as any).cassettesNumbers || [];
+      const getCassNames = (indices: number[]) => {
+        if (!indices || indices.length === 0) return '';
+        return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ') + ']';
+      };
+      if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
+        const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoIHQCassettes || []);
+        svcs.push('<span class="badge badge-servicio">Corte IHQ &times;' + biopsia.servicios.corteBlancoIHQ + cassNames + '</span>');
+      }
+      if ((biopsia.servicios?.corteBlanco || 0) > 0) {
+        const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoComunCassettes || []);
+        svcs.push('<span class="badge badge-servicio">Corte Blanco &times;' + biopsia.servicios.corteBlanco + cassNames + '</span>');
+      }
+      if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
+        const opts = biopsia.servicios?.giemsaOptions;
+        const t: string[] = [];
+        if (opts?.giemsa) t.push('Giemsa');
+        if (opts?.pas) t.push('PAS');
+        if (opts?.masson) t.push('Masson');
+        const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
+        svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Tinción') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
+      }
+      if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
+      if ((biopsia.servicios as any)?.incluyeCitologia) {
+        const fmt = (biopsia.servicios as any).citologiaFormato === 'jeringa' ? 'Jeringa' : (biopsia.servicios as any).citologiaFormato === 'frasco' ? 'Frasco' : ((biopsia.servicios as any).citologiaVidriosQty || 1) + ' vid.';
+        svcs.push('<span class="badge badge-servicio" style="background:#f3e8ff;color:#7c3aed;">Citología (' + fmt + ')</span>');
+      }
+      if ((biopsia as any).desclasificar === 'Sí' || (biopsia as any).declassify === 'Sí') svcs.push('<span class="badge badge-servicio" style="background:#fee2e2;color:#dc2626;">🛡️ Desclasificación</span>');
+      const currCass = Number(biopsia.cassettes) || 0;
+      let diff = 0;
+      if (((remito as any).modificadoPorAdmin || (remito as any).modificadoPorSolicitud) && tipo !== 'PAP' && tipo !== 'CITO') {
+        const origCass = (biopsia as any)._originalCassettes;
+        if (origCass !== undefined && origCass !== null && currCass > origCass) {
+          diff = currCass - origCass;
+        } else {
+          try {
+            const rn = (remito as any).remitoNumber;
+            const email = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
+            const histKey = `doctor_${email}_history`;
+            const hist = JSON.parse(localStorage.getItem(histKey) || '{}');
+            const origEntry = Object.values(hist).find((e: any) => e.remitoNumber === rn) as any;
+            if (origEntry?.biopsies) {
+              const origBiopsy = origEntry.biopsies.find((ob: any) => ob.number === biopsia.numero);
+              if (origBiopsy) {
+                const origC = Number(origBiopsy.cassettes) || 0;
+                if (currCass > origC) diff = currCass - origC;
+              }
+            }
+          } catch {}
+        }
+      }
+      const ihqVidTotal = tipo === 'IHQ' ? ((biopsia.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || currCass) : 0;
+      const cantLabel = tipo === 'IHQ' ? currCass + ' cass. / ' + ihqVidTotal + ' vid.'
+        : tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
+        : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
+        : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
+      const isNoVino = (biopsia as any).noVino;
+      const isAnuladoRemito = esAnulado(remito);
+      const isProf = !isAnuladoRemito && (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
+      const isSA = !isAnuladoRemito && (remito as any).esServicioAdicional && !isProf;
+      const rowStyle = isAnuladoRemito
+        ? 'background:#fef2f2;text-decoration:line-through;color:#b91c1c;'
+        : isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
+      const cargadoPorLabel = (remito as any).cargadoPor || '';
+      const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
+      const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
+      const anulInfo = isAnuladoRemito ? parseAnulacion(remito) : null;
+      const subtotalOriginal = calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot);
+      const subtotalHtml = isAnuladoRemito
+        ? '<span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOriginal.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong>'
+        : '$' + subtotalOriginal.toLocaleString();
+      const serviciosHtml = isAnuladoRemito
+        ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">🗑️ ANULADO' + (anulInfo ? ' — eliminado por ' + anulInfo.quien + ' el ' + anulInfo.fecha : '') + '</span>'
+        : (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>');
+      return '<tr style="' + rowStyle + '">' +
+        '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
+        '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
+        '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
+        '<td><strong>' + biopsia.numero + '</strong>' + (biopsia.numeroExterno ? ' <span style="color:#b45309;font-size:10px;">(Ext: ' + biopsia.numeroExterno + ')</span>' : '') + '</td>' +
+        '<td>' + biopsia.tejido + '</td>' +
+        '<td>' + tipoDisplay + '</td>' +
+        '<td>' + cantLabel + '</td>' +
+        '<td class="servicios-cell">' + serviciosHtml + '</td>' +
+        '<td class="subtotal">' + subtotalHtml + '</td>' +
+        '</tr>';
+    };
+
+    const renderTablaSeccion = (rms: any[], titulo?: string): string => {
+      const subtotal = rms.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
+      const totPac = rms.reduce((s, r) => s + r.biopsias.length, 0);
+      const filas = [...rms]
+        .sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime())
+        .flatMap(r => r.biopsias.map((b: any) => renderFilaBiopsia(r, b)))
+        .join('');
+      const tituloHtml = titulo
+        ? '<h3 style="margin:24px 0 8px;font-size:15px;color:#1e40af;border-bottom:2px solid #dbeafe;padding-bottom:6px;">🏥 ' + titulo + ' <span style="font-size:11px;color:#64748b;font-weight:400;">(' + rms.length + ' rem. · ' + totPac + ' pac.)</span></h3>'
+        : '';
+      const subtotalRow = titulo
+        ? '<tr style="background:#1e40af;color:white;"><td colspan="8" style="text-align:right;text-transform:uppercase;letter-spacing:1px;font-size:11px;font-weight:700;padding:10px 12px;color:white;">Subtotal ' + titulo + '</td><td style="text-align:right;font-size:14px;font-weight:700;padding:10px 12px;color:white;">$' + subtotal.toLocaleString() + '</td></tr>'
+        : '<tr class="total-row"><td colspan="8" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td><td style="text-align:right; font-size:18px;">$' + subtotal.toLocaleString() + '</td></tr>';
+      return tituloHtml +
+        '<table>' +
+        '<thead><tr><th>Remito</th><th>Cargado por</th><th>Fecha</th><th>N° Estudio</th><th>Material</th><th>Tipo</th><th>Cant.</th><th>Servicios / Detalle</th><th style="text-align:right">Subtotal</th></tr></thead>' +
+        '<tbody>' + filas + subtotalRow + '</tbody>' +
+        '</table>';
+    };
+
+    const centrosUnicosPdf = [...new Set(remitosDelMedico.map(r => r.hospital || 'Sin centro'))];
+    const isMultiCentroPdf = !centroFilter && centrosUnicosPdf.length > 1;
+    const tablasHtml = isMultiCentroPdf
+      ? centrosUnicosPdf.map(c => renderTablaSeccion(remitosDelMedico.filter(r => (r.hospital || 'Sin centro') === c), c)).join('') +
+        '<div style="background:#0f172a;color:#fff;padding:14px 20px;border-radius:8px;margin-top:16px;text-align:right;"><span style="font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-right:16px;">Total General</span><span style="font-size:20px;font-weight:800;">$' + totalGeneral.toLocaleString() + '</span></div>'
+      : renderTablaSeccion(remitosDelMedico);
 
     const htmlContent = `
     <!DOCTYPE html>
@@ -1198,130 +1402,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
           <div class="kpi"><div class="val">${totalCito}</div><div class="lbl">Citología</div></div>
         </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Remito</th>
-              <th>Cargado por</th>
-              <th>Fecha</th>
-              <th>N° Estudio</th>
-              <th>Material</th>
-              <th>Tipo</th>
-              <th>Cant.</th>
-              <th>Servicios / Detalle</th>
-              <th style="text-align:right">Subtotal</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${[...remitosDelMedico].sort((a, b) => new Date((a as any).timestamp || a.fecha).getTime() - new Date((b as any).timestamp || b.fecha).getTime()).map(remito =>
-              remito.biopsias.map((biopsia: any) => {
-                const citoSub = (biopsia as any).citologiaSubType || '';
-                const tipo = (biopsia.tipo === 'IHQ' || biopsia.tejido === 'Inmunohistoquímica') ? 'IHQ' : biopsia.tipo === 'TC' || biopsia.tejido === 'Taco en Consulta' ? 'TACO' : biopsia.tipo === 'PQ' ? 'PQ' : biopsia.tejido === 'PAP' ? 'PAP' : biopsia.tejido === 'Citología' ? (citoSub || 'CITO') : 'BX';
-                const bc = tipo === 'IHQ' ? 'badge-bx' : tipo === 'TACO' ? 'badge-pq' : tipo === 'PQ' ? 'badge-pq' : tipo === 'PAP' ? 'badge-pap' : biopsia.tejido === 'Citología' ? 'badge-cito' : 'badge-bx';
-
-                const svcs: string[] = [];
-                if ((biopsia.servicios?.cassetteUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">URGENTE 24hs</span>');
-                if ((biopsia.servicios?.papUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">PAP Urgente</span>');
-                if ((biopsia.servicios?.citologiaUrgente || 0) > 0) svcs.push('<span class="badge badge-urgente">Cito Urgente</span>');
-                const cn = (biopsia as any).cassettesNumbers || [];
-                const getCassNames = (indices: number[]) => {
-                  if (!indices || indices.length === 0) return '';
-                  return ' [' + indices.map((c: number) => c === 0 ? (cn[0]?.base || 'C') : 'S/' + (cn[c]?.suffix || c)).join(', ') + ']';
-                };
-                if ((biopsia.servicios?.corteBlancoIHQ || 0) > 0) {
-                  const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoIHQCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">Corte IHQ &times;' + biopsia.servicios.corteBlancoIHQ + cassNames + '</span>');
-                }
-                if ((biopsia.servicios?.corteBlanco || 0) > 0) {
-                  const cassNames = getCassNames((biopsia.servicios as any)?.corteBlancoComunCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">Corte Blanco &times;' + biopsia.servicios.corteBlanco + cassNames + '</span>');
-                }
-                if ((biopsia.servicios?.giemsaPASMasson || 0) > 0) {
-                  const opts = biopsia.servicios?.giemsaOptions;
-                  const t: string[] = [];
-                  if (opts?.giemsa) t.push('Giemsa');
-                  if (opts?.pas) t.push('PAS');
-                  if (opts?.masson) t.push('Masson');
-                  const cassNames = getCassNames((biopsia.servicios as any)?.giemsaCassettes || []);
-                  svcs.push('<span class="badge badge-servicio">' + (t.length > 0 ? t.join(', ') : 'Tinción') + ' &times;' + biopsia.servicios.giemsaPASMasson + cassNames + '</span>');
-                }
-                if ((biopsia.servicios?.profundizacion || 0) > 0) svcs.push('<span class="badge badge-servicio" style="background:#dbeafe;color:#1d4ed8;">Profundización &times;' + biopsia.servicios.profundizacion + '</span>');
-                if ((biopsia.servicios as any)?.incluyeCitologia) {
-                  const fmt = (biopsia.servicios as any).citologiaFormato === 'jeringa' ? 'Jeringa' : (biopsia.servicios as any).citologiaFormato === 'frasco' ? 'Frasco' : ((biopsia.servicios as any).citologiaVidriosQty || 1) + ' vid.';
-                  svcs.push('<span class="badge badge-servicio" style="background:#f3e8ff;color:#7c3aed;">Citología (' + fmt + ')</span>');
-                }
-                if ((biopsia as any).desclasificar === 'Sí' || (biopsia as any).declassify === 'Sí') svcs.push('<span class="badge badge-servicio" style="background:#fee2e2;color:#dc2626;">🛡️ Desclasificación</span>');
-                // PAP y Cito ya se muestran en la columna Cant., no duplicar aquí
-
-                // Calcular diferencia si fue editado por el lab
-                const currCass = Number(biopsia.cassettes) || 0;
-                let diff = 0;
-                if (((remito as any).modificadoPorAdmin || (remito as any).modificadoPorSolicitud) && tipo !== 'PAP' && tipo !== 'CITO') {
-                  // Buscar cantidad original del historial del doctor
-                  const origCass = (biopsia as any)._originalCassettes;
-                  if (origCass !== undefined && origCass !== null && currCass > origCass) {
-                    diff = currCass - origCass;
-                  } else {
-                    // Buscar en el historial del doctor por remitoNumber
-                    try {
-                      const rn = (remito as any).remitoNumber;
-                      const email = ((remito as any).doctorEmail || remito.email || '').toLowerCase().trim().replace(/\s+/g, '');
-                      const histKey = `doctor_${email}_history`;
-                      const hist = JSON.parse(localStorage.getItem(histKey) || '{}');
-                      const origEntry = Object.values(hist).find((e: any) => e.remitoNumber === rn) as any;
-                      if (origEntry?.biopsies) {
-                        const origBiopsy = origEntry.biopsies.find((ob: any) => ob.number === biopsia.numero);
-                        if (origBiopsy) {
-                          const origC = Number(origBiopsy.cassettes) || 0;
-                          if (currCass > origC) diff = currCass - origC;
-                        }
-                      }
-                    } catch {}
-                  }
-                }
-                const ihqVidTotal = tipo === 'IHQ' ? ((biopsia.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || currCass) : 0;
-                const cantLabel = tipo === 'IHQ' ? currCass + ' cass. / ' + ihqVidTotal + ' vid.'
-                  : tipo === 'PAP' ? (biopsia.papQuantity || 1) + ' vid.'
-                  : tipo === 'CITO' ? (biopsia.citologiaQuantity || 1) + ' vid.'
-                  : diff > 0 ? currCass + ' <span style="color:#059669;font-size:10px;font-weight:700">(+' + diff + ')</span> <span style="color:#6b7280;font-size:9px;font-style:italic;">Dividido por el Lab</span>' : String(currCass);
-
-                const isNoVino = (biopsia as any).noVino;
-                const isAnuladoRemito = esAnulado(remito);
-                const isProf = !isAnuladoRemito && (remito as any).esServicioAdicional && ((remito as any).notaServicioAdicional || '').includes('Profundización');
-                const isSA = !isAnuladoRemito && (remito as any).esServicioAdicional && !isProf;
-                const rowStyle = isAnuladoRemito
-                  ? 'background:#fef2f2;text-decoration:line-through;color:#b91c1c;'
-                  : isNoVino ? 'background:#fef2f2;text-decoration:line-through;color:#9ca3af;' : diff > 0 ? 'background:#f0fdf4;' : isProf ? 'background:#eff6ff;' : isSA ? 'background:#f5f3ff;' : '';
-                const cargadoPorLabel = (remito as any).cargadoPor || '';
-                const remitoDisplay = ((remito as any).remitoNumber || remito.id.slice(-6).toUpperCase()) + ((remito as any).remitoOriginalId ? '<br><span style="font-size:9px;color:#94a3b8;">Orig: #' + (remito as any).remitoOriginalId + '</span>' : '');
-                const tipoDisplay = isProf ? '<span class="badge" style="background:#dbeafe;color:#1d4ed8;">PROF</span>' : isSA ? '<span class="badge" style="background:#f3e8ff;color:#7c3aed;">SA</span>' : '<span class="badge ' + bc + '">' + tipo + '</span>';
-                const anulInfo = isAnuladoRemito ? parseAnulacion(remito) : null;
-                const subtotalOriginal = calcularTotalBiopsia(biopsia, (remito as any).preciosSnapshot);
-                const subtotalHtml = isAnuladoRemito
-                  ? '<span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOriginal.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong>'
-                  : '$' + subtotalOriginal.toLocaleString();
-                const serviciosHtml = isAnuladoRemito
-                  ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">🗑️ ANULADO' + (anulInfo ? ' — eliminado por ' + anulInfo.quien + ' el ' + anulInfo.fecha : '') + '</span>'
-                  : (isNoVino ? '<span style="color:#dc2626;font-weight:700;text-decoration:none;display:inline-block;">❌ No se recibió en el Lab</span>' : svcs.length > 0 ? svcs.join(' ') : '<span style="color:#94a3b8">Estándar</span>');
-                return '<tr style="' + rowStyle + '">' +
-                  '<td style="font-size:11px;color:#64748b;font-family:monospace;">#' + remitoDisplay + '</td>' +
-                  '<td style="font-size:11px;color:#d97706;">' + (cargadoPorLabel || '-') + '</td>' +
-                  '<td>' + new Date((remito as any).timestamp || remito.fecha).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', timeZone: 'America/Argentina/Buenos_Aires' }) + '</td>' +
-                  '<td><strong>' + biopsia.numero + '</strong>' + (biopsia.numeroExterno ? ' <span style="color:#b45309;font-size:10px;">(Ext: ' + biopsia.numeroExterno + ')</span>' : '') + '</td>' +
-                  '<td>' + biopsia.tejido + '</td>' +
-                  '<td>' + tipoDisplay + '</td>' +
-                  '<td>' + cantLabel + '</td>' +
-                  '<td class="servicios-cell">' + serviciosHtml + '</td>' +
-                  '<td class="subtotal">' + subtotalHtml + '</td>' +
-                  '</tr>';
-              }).join('')
-            ).join('')}
-            <tr class="total-row">
-              <td colspan="8" style="text-align:right; text-transform:uppercase; letter-spacing:1px; font-size:12px;">Total a Facturar</td>
-              <td style="text-align:right; font-size:18px;">$${totalGeneral.toLocaleString()}</td>
-            </tr>
-          </tbody>
-        </table>
+        ${tablasHtml}
       </div>
 
       ${(() => {
@@ -1414,7 +1495,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     document.body.removeChild(link);
   };
 
-  // Generar HTML compacto para el cuerpo del email de facturación
+  // Generar HTML compacto para el cuerpo del email de facturación (resumen ejecutivo, sin detalle por biopsia — el desglose va en el PDF adjunto)
   const generarHTMLEmailFacturacion = (medico: string, centroFilter?: string) => {
     const fn = labConfig.nombre || 'Laboratorio';
     const fa = new Date().toLocaleDateString('es-AR');
@@ -1426,68 +1507,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
     const bt = btRaw || defaultBody;
 
     const rmAll = remitos.filter(r => r.medico === medico);
-    const centros = centroFilter ? [centroFilter] : [...new Set(rmAll.map(r => r.hospital || '').filter(Boolean))];
-    const isMulti = !centroFilter && centros.length > 1;
-
-    // Estilos reutilizables abreviados
-    const td = 'padding:6px 8px;border-bottom:1px solid #eee;font-size:12px;';
-    const th = 'padding:6px 8px;text-align:left;font-size:10px;color:#fff;';
-
-    const seccion = (rm: any[], tit?: string) => {
-      const tot = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
-      const rows = rm.flatMap(r => r.biopsias.map((b: any) => {
-        const tipo = (b.tipo === 'IHQ' || b.tejido === 'Inmunohistoquímica') ? 'IHQ' : (b.tipo === 'TC' || b.tejido === 'Taco en Consulta') ? 'TACO' : b.tipo === 'PQ' ? 'PQ' : b.tejido === 'PAP' ? 'PAP' : b.tejido === 'Citología' ? 'CITO' : 'BX';
-        if (esAnulado(r)) {
-          const ai = parseAnulacion(r);
-          const subtotalOrig = calcularTotalBiopsia(b, r.preciosSnapshot);
-          return '<tr style="background:#fef2f2;color:#991b1b;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + 'font-weight:700;text-decoration:none;">🗑️ ANULADO' + (ai ? ' — por ' + ai.quien + ' el ' + ai.fecha : '') + '</td><td style="' + td + 'text-align:right;text-decoration:none;"><span style="color:#9ca3af;text-decoration:line-through;">$' + subtotalOrig.toLocaleString() + '</span> <strong style="color:#dc2626;">$0</strong></td></tr>';
-        }
-        if (b.noVino) return '<tr style="color:#aaa;text-decoration:line-through;"><td style="' + td + '">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + '">' + tipo + '</td><td style="' + td + 'text-align:center;">-</td><td style="' + td + '">No recibido</td><td style="' + td + 'text-align:right;">$0</td></tr>';
-        const sv: string[] = [];
-        if ((b.servicios?.cassetteUrgente || 0) > 0) sv.push('URGENTE');
-        if ((b.servicios?.corteBlancoIHQ || 0) > 0) sv.push('IHQ x' + b.servicios.corteBlancoIHQ);
-        if ((b.servicios?.corteBlanco || 0) > 0) sv.push('CB x' + b.servicios.corteBlanco);
-        if ((b.servicios?.giemsaPASMasson || 0) > 0) { const o = b.servicios?.giemsaOptions; const t = [o?.giemsa && 'Giemsa', o?.pas && 'PAS', o?.masson && 'Masson'].filter(Boolean); sv.push(t.length ? t.join('/') : 'Tinción'); }
-        if ((b.servicios?.profundizacion || 0) > 0) sv.push('Prof x' + b.servicios.profundizacion);
-        const ihq = tipo === 'IHQ' ? ((b.trozoPorCassette || []).reduce((s: number, v: number) => s + (v || 1), 0) || parseInt(b.cassettes) || 0) : 0;
-        const cant = tipo === 'IHQ' ? (parseInt(b.cassettes) || 0) + '/' + ihq + 'v' : tipo === 'PAP' ? (b.papQuantity || 1) + 'v' : tipo === 'CITO' ? (b.citologiaQuantity || 1) + 'v' : String(parseInt(b.cassettes) || 0);
-        return '<tr><td style="' + td + 'font-weight:600;">' + b.numero + '</td><td style="' + td + '">' + b.tejido + '</td><td style="' + td + 'font-weight:700;color:#1e40af;">' + tipo + '</td><td style="' + td + 'text-align:center;">' + cant + '</td><td style="' + td + 'font-size:11px;">' + (sv.length ? sv.join(', ') : '-') + '</td><td style="' + td + 'text-align:right;font-weight:700;">$' + calcularTotalBiopsia(b, r.preciosSnapshot).toLocaleString() + '</td></tr>';
-      })).join('');
-      return (tit ? '<h3 style="color:#1e40af;font-size:13px;margin:16px 0 6px;border-bottom:2px solid #dbeafe;padding-bottom:4px;">' + tit + ' (' + rm.length + ' rem.)</h3>' : '') +
-        '<table style="width:100%;border-collapse:collapse;">' +
-        '<tr style="background:#0f172a;"><th style="' + th + '">N°</th><th style="' + th + '">Material</th><th style="' + th + '">Tipo</th><th style="' + th + 'text-align:center;">Cant.</th><th style="' + th + '">Servicios</th><th style="' + th + 'text-align:right;">Subtotal</th></tr>' +
-        rows +
-        '<tr style="background:#0f172a;"><td colspan="5" style="padding:8px;text-align:right;font-weight:700;font-size:12px;color:#fff;">' + (tit ? 'Subtotal ' + tit : 'TOTAL') + '</td><td style="padding:8px;text-align:right;font-weight:700;font-size:15px;color:#fff;">$' + tot.toLocaleString() + '</td></tr></table>';
-    };
-
-    const rmF = centroFilter ? rmAll.filter(r => (r.hospital || '') === centroFilter) : rmAll;
+    const rmF = centroFilter ? rmAll.filter(r => centroFilter === 'Sin centro' ? !r.hospital : (r.hospital || '') === centroFilter) : rmAll;
     const totG = rmF.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
     const totP = rmF.reduce((s, r) => s + r.biopsias.length, 0);
 
-    let det = '';
-    if (isMulti) {
-      centros.forEach(c => det += seccion(rmAll.filter(r => (r.hospital || '') === c), c));
-      const sc = rmAll.filter(r => !r.hospital);
-      if (sc.length) det += seccion(sc, 'Sin centro');
-      det += '<div style="background:#0f172a;color:#fff;padding:12px 16px;border-radius:6px;margin-top:12px;text-align:right;"><b style="font-size:13px;margin-right:16px;">TOTAL GENERAL</b><b style="font-size:18px;">$' + totG.toLocaleString() + '</b></div>';
-    } else {
-      det = seccion(rmF);
-    }
+    // Mini-resumen por centro: solo cuando el médico tiene varios centros y no se filtró por uno específico
+    const centrosUnicos = [...new Set(rmF.map(r => r.hospital || 'Sin centro'))];
+    const isMulti = !centroFilter && centrosUnicos.length > 1;
+    const resumenPorCentro = isMulti ? (() => {
+      const td = 'padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;';
+      const filas = centrosUnicos.map(c => {
+        const rm = rmF.filter(r => (r.hospital || 'Sin centro') === c);
+        const sub = rm.reduce((s, r) => s + calcularTotalRemito(r.biopsias, (r as any).preciosSnapshot, r.estado, r), 0);
+        const pac = rm.reduce((s, r) => s + r.biopsias.length, 0);
+        return '<tr><td style="' + td + 'font-weight:600;color:#1e40af;">' + c + '</td><td style="' + td + 'text-align:center;color:#475569;">' + rm.length + '</td><td style="' + td + 'text-align:center;color:#475569;">' + pac + '</td><td style="' + td + 'text-align:right;font-weight:700;color:#0f172a;">$' + sub.toLocaleString() + '</td></tr>';
+      }).join('');
+      return '<div style="margin-bottom:20px;">' +
+        '<div style="font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Desglose por centro</div>' +
+        '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">' +
+        '<tr style="background:#f1f5f9;"><th style="padding:8px 10px;text-align:left;font-size:10px;color:#475569;text-transform:uppercase;">Centro</th><th style="padding:8px 10px;text-align:center;font-size:10px;color:#475569;text-transform:uppercase;">Remitos</th><th style="padding:8px 10px;text-align:center;font-size:10px;color:#475569;text-transform:uppercase;">Pacientes</th><th style="padding:8px 10px;text-align:right;font-size:10px;color:#475569;text-transform:uppercase;">Subtotal</th></tr>' +
+        filas +
+        '</table></div>';
+    })() : '';
+
+    const avisoPdf = isMulti
+      ? '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:20px;padding:14px 16px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;">📎 Adjuntamos un archivo PDF por cada centro con el detalle completo de remitos, biopsias y servicios facturados.</div>'
+      : '<div style="font-size:13px;color:#555;line-height:1.6;margin-bottom:20px;padding:14px 16px;background:#fefce8;border-left:3px solid #eab308;border-radius:4px;">📎 En el archivo PDF adjunto encontrará el detalle completo de remitos, biopsias y servicios facturados.</div>';
 
     const pie = ft ? '<div style="margin-top:20px;padding:14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;"><div style="font-size:10px;font-weight:700;color:#555;text-transform:uppercase;margin-bottom:6px;">Datos de pago</div><div style="font-size:12px;color:#1e293b;line-height:1.5;">' + ft.replace(/\n/g, '<br>') + '</div></div>' : '';
 
     return '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;">' +
-      '<div style="background:#0f172a;color:#fff;padding:20px;text-align:center;">' +
-      '<h2 style="margin:0;font-size:17px;">' + fn + '</h2>' +
-      (info ? '<p style="margin:4px 0 0;font-size:10px;opacity:0.7;">' + info + '</p>' : '') + '</div>' +
-      '<div style="padding:20px;">' +
-      (bt ? '<div style="font-size:13px;color:#333;line-height:1.6;margin-bottom:20px;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
-      '<table style="width:100%;margin-bottom:16px;"><tr><td><div style="font-size:16px;font-weight:700;color:#0f172a;">Facturación ' + mesActual + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
-      '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-top:3px;">Dr/a. ' + medico + '</div>' +
-      '<div style="font-size:11px;color:#888;margin-top:3px;">' + fa + ' · ' + rmF.length + ' rem. · ' + totP + ' pac.</div></td>' +
-      '<td style="text-align:right;vertical-align:top;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:24px;font-weight:800;color:#0f172a;">$' + totG.toLocaleString() + '</div></td></tr></table>' +
-      det + pie +
-      '<div style="text-align:center;padding:12px 0;margin-top:16px;color:#aaa;font-size:9px;border-top:1px solid #eee;">' + fa + ' · BiopsyTracker</div>' +
+      '<div style="background:#0f172a;color:#fff;padding:24px;text-align:center;">' +
+      '<h2 style="margin:0;font-size:18px;">' + fn + '</h2>' +
+      (info ? '<p style="margin:6px 0 0;font-size:11px;opacity:0.75;">' + info + '</p>' : '') + '</div>' +
+      '<div style="padding:28px;">' +
+      (bt ? '<div style="font-size:13px;color:#333;line-height:1.7;margin-bottom:24px;">' + bt.replace(/\n/g, '<br>') + '</div>' : '') +
+      '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:20px;">' +
+      '<div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Resumen del mes</div>' +
+      '<div style="font-size:18px;font-weight:700;color:#0f172a;margin-bottom:4px;">Facturación ' + mesActual + (centroFilter ? ' — ' + centroFilter : '') + '</div>' +
+      '<div style="font-size:13px;color:#1e40af;font-weight:600;margin-bottom:14px;">Dr/a. ' + medico + '</div>' +
+      '<table style="width:100%;border-top:1px solid #e2e8f0;padding-top:14px;margin-top:6px;"><tr>' +
+      '<td style="padding-top:14px;font-size:11px;color:#666;">' + rmF.length + ' remito(s) · ' + totP + ' paciente(s)</td>' +
+      '<td style="padding-top:14px;text-align:right;"><div style="font-size:9px;color:#888;text-transform:uppercase;">Total</div><div style="font-size:26px;font-weight:800;color:#0f172a;line-height:1;">$' + totG.toLocaleString() + '</div></td>' +
+      '</tr></table></div>' +
+      resumenPorCentro +
+      avisoPdf +
+      pie +
+      '<div style="text-align:center;padding:14px 0;margin-top:20px;color:#aaa;font-size:9px;border-top:1px solid #eee;">' + fa + ' · BiopsyTracker</div>' +
       '</div></div>';
   };
 
@@ -1628,6 +1694,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               { id: 'solicitudes', icon: Package, label: 'Solicitudes', desc: 'Tacos, profundizaciones y servicios adicionales', roles: ['admin', 'tecnico'] },
               { id: 'buscador-tacos', icon: Search, label: 'Buscar Taco', desc: 'Buscar cassette por número', roles: ['admin', 'tecnico'] },
               { id: 'facturacion', icon: DollarSign, label: 'Facturación', desc: 'Enviar detalle mensual a cada médico', roles: ['admin'] },
+              { id: 'actualizar-precios', icon: TrendingUp, label: 'Actualización de Precios', desc: 'Programar nuevos aranceles y avisar a los médicos', roles: ['admin'] },
               { id: 'analytics', icon: DollarSign, label: 'Cobros', desc: 'Quién pagó, quién debe y registro de pagos', roles: ['admin'] },
               { id: 'configuracion', icon: Settings, label: 'Configuración', desc: 'Precios, tejidos, datos del laboratorio y médicos', roles: ['admin'] }
             ].filter(item => item.roles.includes(userRole)).map(({ id, icon: Icon, label, desc }) => (
@@ -3271,18 +3338,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                                       const fromName = labConfig.nombre || 'Laboratorio';
                                       const mesEmail = (() => { const m = new Date().toLocaleDateString('es-AR', { month: 'long', year: 'numeric' }); return m.charAt(0).toUpperCase() + m.slice(1); })();
                                       const mesArchivo = mesEmail.replace(/\s+/g, '_');
-                                      const pdfFilename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}.pdf`;
                                       // Body = resumen ejecutivo. PDF adjunto = detalle completo (Chrome real via PDFShift).
+                                      // Si el médico tiene varios centros, mandamos un PDF por centro (más prolijo: el médico forwardea cada uno al hospital correspondiente).
                                       const emailHtml = generarHTMLEmailFacturacion(medico);
-                                      const detalleHtml = generarHTMLFacturacion(medico);
-                                      await sendEmail({
+                                      const remitosMed = remitos.filter(r => r.medico === medico);
+                                      const centrosMed = [...new Set(remitosMed.map(r => r.hospital || 'Sin centro'))];
+                                      const sendPayload: any = {
                                         toEmail: doctorEmail, toName: medico,
                                         subject: 'Facturación ' + mesEmail + ' - ' + fromName,
                                         messageHtml: emailHtml, fromName,
-                                        htmlForPdf: detalleHtml, pdfFilename,
-                                      });
+                                      };
+                                      if (centrosMed.length > 1) {
+                                        sendPayload.htmlsForPdf = centrosMed.map(c => ({
+                                          html: generarHTMLFacturacion(medico, c),
+                                          filename: `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}_${c.replace(/\s+/g, '_')}.pdf`,
+                                        }));
+                                      } else {
+                                        sendPayload.htmlForPdf = generarHTMLFacturacion(medico);
+                                        sendPayload.pdfFilename = `Facturacion_${mesArchivo}_${medico.replace(/\s+/g, '_')}.pdf`;
+                                      }
+                                      await sendEmail(sendPayload);
                                       registrarEmailEnviado(medico, doctorEmail);
-                                      alert('Email enviado a ' + doctorEmail + ' con el PDF adjunto.');
+                                      const adjuntosMsg = centrosMed.length > 1 ? `${centrosMed.length} PDFs (uno por centro)` : 'el PDF';
+                                      alert('Email enviado a ' + doctorEmail + ' con ' + adjuntosMsg + ' adjunto.');
                                     } catch (e: any) { alert('Error: ' + (e.message || e.text || 'Error')); }
                                   }} className={`${emailYaEnviado(medico) ? 'bg-gray-400 hover:bg-green-600' : 'bg-green-600 hover:bg-green-700'} text-white px-2 py-1 rounded text-xs font-semibold`} title={emailYaEnviado(medico) ? 'Ya enviado — click para reenviar' : 'Enviar email con PDF adjunto'}>
                                     {emailYaEnviado(medico) ? <><CheckCircle size={10} /> <span className="ml-0.5">Enviado</span></> : <Mail size={12} />}
@@ -3476,123 +3554,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 ) : null;
               })()}
 
-              {/* Sección de actualización de precios (colapsable) */}
+              {/* CTA al tab nuevo de actualización de precios */}
               <div className="px-5 pb-4">
-                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div style={{ background: '#0f172a' }} className="px-4 py-3 flex items-center justify-between cursor-pointer"
-                    onClick={() => {
-                      const el = document.getElementById('preciosSection');
-                      if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-                    }}>
+                <button
+                  onClick={() => setCurrentView('actualizar-precios')}
+                  className="w-full bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between hover:border-blue-400 hover:bg-blue-50/30 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 rounded-lg p-2.5"><DollarSign size={18} className="text-blue-700" /></div>
                     <div>
-                      <h3 className="text-sm font-bold text-white">Comunicar actualización de precios</h3>
-                      <p className="text-xs text-white/50">Enviar tabla de precios vigentes a todos los médicos</p>
-                    </div>
-                    <span className="text-white/60 text-xs">▼</span>
-                  </div>
-                  <div id="preciosSection" style={{ display: 'none' }}>
-                  <div className="p-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* Tabla de precios */}
-                      <div>
-                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Precios vigentes</div>
-                        <div className="border border-gray-200 rounded-lg overflow-hidden">
-                          <table className="w-full text-xs">
-                            <thead>
-                              <tr className="bg-gray-50">
-                                <th className="text-left py-1.5 px-3 text-gray-500 font-semibold">Servicio</th>
-                                <th className="text-right py-1.5 px-3 text-gray-500 font-semibold">Precio</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {[
-                                { name: 'Cassette Normal', price: configuracion.precioCassette },
-                                { name: 'Cassette Urgente (24hs)', price: configuracion.precioCassetteUrgente },
-                                { name: 'Profundización (cassette adicional)', price: configuracion.precioProfundizacion },
-                                { name: 'PAP', price: configuracion.precioPAP },
-                                { name: 'PAP Urgente', price: configuracion.precioPAPUrgente },
-                                { name: 'Citología', price: configuracion.precioCitologia },
-                                { name: 'Citología Urgente', price: configuracion.precioCitologiaUrgente },
-                                { name: 'Corte en Blanco', price: configuracion.precioCorteBlanco },
-                                { name: 'Corte en Blanco IHQ', price: configuracion.precioCorteBlancoIHQ },
-                                { name: 'Giemsa/PAS/Masson (por técnica)', price: configuracion.precioGiemsaPASMasson },
-                              ].map((item, i) => (
-                                <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                                  <td className="py-1.5 px-3 text-gray-700">{item.name}</td>
-                                  <td className="py-1.5 px-3 text-right font-bold text-gray-900">${item.price.toLocaleString()}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Mensaje personalizado */}
-                      <div className="flex flex-col">
-                        <div className="text-xs font-bold text-gray-500 uppercase mb-2">Mensaje para los médicos</div>
-                        <textarea
-                          id="preciosEmailMsg"
-                          defaultValue={`Estimado/a Doctor/a:\n\nLe comunicamos la actualización de aranceles vigentes a partir de ${new Date().toLocaleDateString('es-AR', { day: '2-digit', month: 'long', year: 'numeric' })}.\n\nA continuación encontrará el detalle de los nuevos valores.\n\nQuedamos a disposición ante cualquier consulta.\n\nSaludos cordiales,\n${labConfig.nombre || 'Laboratorio'}`}
-                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 resize-none"
-                          rows={8}
-                        />
-                        <button
-                          onClick={() => {
-                            const msg = (document.getElementById('preciosEmailMsg') as HTMLTextAreaElement)?.value || '';
-
-                            // Generar HTML profesional con logo y colores
-                            const preciosRows = [
-                              ['Cassette Normal', configuracion.precioCassette],
-                              ['Cassette Urgente (24hs)', configuracion.precioCassetteUrgente],
-                              ['Profundización (cassette adicional)', configuracion.precioProfundizacion],
-                              ['PAP', configuracion.precioPAP],
-                              ['PAP Urgente', configuracion.precioPAPUrgente],
-                              ['Citología', configuracion.precioCitologia],
-                              ['Citología Urgente', configuracion.precioCitologiaUrgente],
-                              ['Corte en Blanco', configuracion.precioCorteBlanco],
-                              ['Corte en Blanco IHQ', configuracion.precioCorteBlancoIHQ],
-                              ['Giemsa/PAS/Masson (por técnica)', configuracion.precioGiemsaPASMasson],
-                            ];
-
-                            const fullHTML = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;margin:0;padding:20px;background:#f8fafc;">' +
-                              '<div style="max-width:600px;margin:0 auto;">' +
-                              '<div style="background:linear-gradient(135deg,#0f172a 0%,#1e40af 100%);color:white;padding:28px;border-radius:12px;text-align:center;margin-bottom:24px;">' +
-                              (labConfig.logoUrl ? '<img src="' + labConfig.logoUrl + '" style="height:60px;margin-bottom:10px;" /><br>' : '') +
-                              '<h2 style="margin:0;font-size:20px;font-weight:700;">' + (labConfig.nombre || 'Laboratorio') + '</h2>' +
-                              '<p style="margin:6px 0 0;font-size:12px;opacity:0.7;">' + (labConfig.direccion || '') + ' | ' + (labConfig.telefono || '') + ' | ' + (labConfig.email || '') + '</p>' +
-                              '</div>' +
-                              '<div style="background:white;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:20px;">' +
-                              '<h3 style="margin:0 0 16px;color:#0f172a;font-size:16px;">Actualización de Aranceles</h3>' +
-                              '<div style="white-space:pre-line;font-size:14px;line-height:1.6;color:#374151;margin-bottom:20px;">' + msg + '</div>' +
-                              '</div>' +
-                              '<div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">' +
-                              '<table style="width:100%;border-collapse:collapse;">' +
-                              '<tr style="background:#0f172a;"><th style="padding:12px 16px;text-align:left;color:white;font-size:13px;">Servicio</th><th style="padding:12px 16px;text-align:right;color:white;font-size:13px;">Precio</th></tr>' +
-                              preciosRows.map(function(row, i) { return '<tr style="border-bottom:1px solid #f1f5f9;' + (i % 2 !== 0 ? 'background:#f8fafc;' : '') + '"><td style="padding:10px 16px;font-size:13px;color:#374151;">' + row[0] + '</td><td style="padding:10px 16px;text-align:right;font-weight:700;color:#0f172a;font-size:13px;">$' + Number(row[1]).toLocaleString() + '</td></tr>'; }).join('') +
-                              '</table></div>' +
-                              '<p style="text-align:center;color:#94a3b8;font-size:11px;margin-top:20px;">Powered by BiopsyTracker</p>' +
-                              '</div></body></html>';
-
-                            // Descargar HTML
-                            const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8;' });
-                            const link = document.createElement('a');
-                            link.href = URL.createObjectURL(blob);
-                            link.download = 'Actualizacion_Precios_' + new Date().toISOString().split('T')[0] + '.html';
-                            link.click();
-
-                            // Abrir modal de email
-                            setEmailModal({ open: true, medico: 'Todos los médicos', email: 'todos' });
-                            setEmailMessage(msg);
-                          }}
-                          className="mt-2 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2"
-                        >
-                          <Mail size={14} /> Enviar actualización de precios por email
-                        </button>
-                      </div>
+                      <div className="text-sm font-bold text-gray-900">Actualización de Precios</div>
+                      <div className="text-xs text-gray-500">{configuracion.preciosFuturos ? `Hay una actualización programada para el ${formatFechaEs(configuracion.preciosFuturos.fechaVigencia)}` : 'Programá nuevos aranceles y avisá a los médicos'}</div>
                     </div>
                   </div>
-                  </div>{/* cierre preciosSection */}
-                </div>
+                  <span className="text-blue-600 font-semibold text-sm">Ir →</span>
+                </button>
               </div>
 
                 {/* Modal de envío de email */}
@@ -3667,6 +3643,356 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
             );
           })()}
 
+          {currentView === 'actualizar-precios' && (() => {
+            const pending = configuracion.preciosFuturos;
+            const editing = draftPrecios !== null;
+
+            const fechaParaMensaje = (ymd: string) => `a partir del ${formatFechaEs(ymd)}`;
+            const buildDefaultMsg = (ymd: string) => `Estimado/a Doctor/a:\n\nLe comunicamos la actualización de aranceles vigentes ${fechaParaMensaje(ymd)}.\n\nA continuación encontrará el detalle de los nuevos valores.\n\nQuedamos a disposición ante cualquier consulta.\n\nSaludos cordiales,\n${labConfig.nombre || 'Laboratorio'}`;
+
+            const iniciarEdicion = () => {
+              const fecha = pending?.fechaVigencia || primerDiaHabilMesSiguiente();
+              const base: PreciosFuturos = pending
+                ? { ...pending }
+                : {
+                    fechaVigencia: fecha,
+                    precioCassette: configuracion.precioCassette,
+                    precioCassetteUrgente: configuracion.precioCassetteUrgente,
+                    precioProfundizacion: configuracion.precioProfundizacion,
+                    precioPAP: configuracion.precioPAP,
+                    precioPAPUrgente: configuracion.precioPAPUrgente,
+                    precioCitologia: configuracion.precioCitologia,
+                    precioCitologiaUrgente: configuracion.precioCitologiaUrgente,
+                    precioCorteBlanco: configuracion.precioCorteBlanco,
+                    precioCorteBlancoIHQ: configuracion.precioCorteBlancoIHQ,
+                    precioGiemsaPASMasson: configuracion.precioGiemsaPASMasson,
+                  };
+              setDraftPrecios(base);
+              setDraftMensaje(buildDefaultMsg(base.fechaVigencia));
+            };
+
+            const aplicarPorcentaje = (pct: number) => {
+              if (!draftPrecios) return;
+              const nuevo: any = { ...draftPrecios };
+              PRECIO_KEYS.forEach(k => {
+                nuevo[k] = Math.round((configuracion as any)[k] * (1 + pct / 100));
+              });
+              setDraftPrecios(nuevo);
+            };
+
+            const cambiarPrecio = (k: keyof PreciosFuturos, val: number) => {
+              if (!draftPrecios) return;
+              setDraftPrecios({ ...draftPrecios, [k]: Math.max(0, Math.round(val)) } as PreciosFuturos);
+            };
+
+            const cambiarFecha = (ymd: string) => {
+              if (!draftPrecios) return;
+              setDraftPrecios({ ...draftPrecios, fechaVigencia: ymd });
+              setDraftMensaje(buildDefaultMsg(ymd));
+            };
+
+            const cancelar = () => { setDraftPrecios(null); setDraftMensaje(''); };
+
+            const persistir = async (cfg: Configuracion) => {
+              setConfiguracion(cfg);
+              localStorage.setItem('adminConfig', JSON.stringify(cfg));
+              if (currentLabCode) {
+                try { await db.saveAdminConfig(currentLabCode, cfg); } catch (e) { console.error(e); }
+              }
+            };
+
+            const guardar = async () => {
+              if (!draftPrecios) return;
+              await persistir({ ...configuracion, preciosFuturos: draftPrecios });
+              const fechaGuardada = draftPrecios.fechaVigencia;
+              setDraftPrecios(null); setDraftMensaje('');
+              alert(`Actualización guardada. Los nuevos precios entrarán en vigencia el ${formatFechaEs(fechaGuardada)}.`);
+            };
+
+            // El logo se sirve via /api/lab-logo (decodifica el data URL guardado en Supabase).
+            // Email clients como Gmail/Outlook bloquean data: URLs en <img>, por eso necesitamos URL pública.
+            const buildLogoUrl = (): string => {
+              const url = labConfig.logoUrl || '';
+              if (!url.startsWith('data:') || !currentLabCode) return '';
+              return 'https://jclab.vercel.app/api/lab-logo?labCode=' + encodeURIComponent(currentLabCode);
+            };
+
+            const buildEmailHtml = (mensaje: string, precios: PreciosFuturos, logoUrl: string): string => {
+              const labName = labConfig.nombre || 'Laboratorio';
+              const labInfo = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
+              const filas = PRECIO_KEYS.map((k, i) => {
+                const valor = (precios as any)[k] as number;
+                return '<tr style="border-bottom:1px solid #f1f5f9;' + (i % 2 !== 0 ? 'background:#f8fafc;' : '') + '"><td style="padding:10px 14px;font-size:13px;color:#374151;">' + PRECIO_LABELS[k] + '</td><td style="padding:10px 14px;text-align:right;font-weight:700;color:#0f172a;font-size:13px;">$' + valor.toLocaleString() + '</td></tr>';
+              }).join('');
+              const logoTag = logoUrl
+                ? '<img src="' + logoUrl + '" alt="' + labName + '" style="max-height:60px;max-width:200px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" /><br>'
+                : '';
+              return '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f8fafc;">' +
+                '<div style="background:#0f172a;color:white;padding:24px;text-align:center;">' +
+                logoTag +
+                '<h2 style="margin:0;font-size:18px;font-weight:700;color:white;">' + labName + '</h2>' +
+                (labInfo ? '<p style="margin:6px 0 0;font-size:11px;color:#cbd5e1;">' + labInfo + '</p>' : '') + '</div>' +
+                '<div style="padding:28px;background:white;">' +
+                '<div style="white-space:pre-line;font-size:14px;line-height:1.7;color:#374151;margin-bottom:24px;">' + mensaje + '</div>' +
+                '<div style="background:#fefce8;border-left:3px solid #eab308;padding:14px 16px;border-radius:4px;margin-bottom:24px;">' +
+                '<div style="font-size:10px;color:#854d0e;text-transform:uppercase;font-weight:bold;letter-spacing:0.5px;margin-bottom:2px;">Vigente desde</div>' +
+                '<div style="font-size:16px;color:#0f172a;font-weight:bold;">' + formatFechaEs(precios.fechaVigencia) + '</div>' +
+                '</div>' +
+                '<h3 style="margin:0 0 12px;color:#0f172a;font-size:15px;">Nuevos aranceles</h3>' +
+                '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden;">' +
+                '<thead><tr style="background:#0f172a;"><th style="padding:10px 14px;text-align:left;color:white;font-size:12px;">Concepto</th><th style="padding:10px 14px;text-align:right;color:white;font-size:12px;">Precio</th></tr></thead>' +
+                '<tbody>' + filas + '</tbody></table>' +
+                '<div style="text-align:center;padding-top:20px;color:#94a3b8;font-size:11px;">Powered by BiopsyTracker</div>' +
+                '</div></div>';
+            };
+
+            const guardarYEnviar = async () => {
+              if (!draftPrecios) return;
+              const docs = JSON.parse(localStorage.getItem('registeredDoctors') || '[]');
+              const recipients = docs.filter((d: any) => d.email).map((d: any) => ({ email: d.email, name: (d.firstName || '') + ' ' + (d.lastName || '') }));
+              if (recipients.length === 0) {
+                alert('No hay médicos con email registrado.');
+                return;
+              }
+              if (!confirm(`¿Guardar la actualización (vigente desde ${formatFechaEs(draftPrecios.fechaVigencia)}) y enviar email a ${recipients.length} médico(s)?`)) return;
+
+              await persistir({ ...configuracion, preciosFuturos: draftPrecios });
+              const preciosSnapshot = { ...draftPrecios };
+              const mensajeSnapshot = draftMensaje;
+              setDraftPrecios(null); setDraftMensaje('');
+
+              try {
+                const { sendBulkEmail } = await import('../utils/emailService');
+                const fromName = labConfig.nombre || 'Laboratorio';
+                const subject = 'Actualización de Aranceles - ' + fromName;
+                const logoUrl = buildLogoUrl();
+                const messageHtml = buildEmailHtml(mensajeSnapshot, preciosSnapshot, logoUrl);
+                const results = await sendBulkEmail(recipients, { subject, messageHtml, fromName });
+                const ok = results.filter((r: any) => r.success).length;
+                const fail = results.length - ok;
+                let alertMsg = `Actualización guardada (vigente desde ${formatFechaEs(preciosSnapshot.fechaVigencia)}).\n\nEmail enviado a ${ok} de ${results.length} médico(s).`;
+                if (fail > 0) {
+                  const failed = results.filter((r: any) => !r.success).map((r: any) => r.email).join(', ');
+                  alertMsg += `\n\nFallaron ${fail}: ${failed}`;
+                }
+                alert(alertMsg);
+              } catch (e: any) {
+                alert('Actualización guardada, pero hubo un error enviando emails: ' + (e?.message || e));
+              }
+            };
+
+            const descartarPendiente = async () => {
+              if (!confirm('¿Descartar la actualización programada?\n\nLos precios actuales seguirán vigentes y no se aplicará ningún cambio.')) return;
+              const cfg = { ...configuracion };
+              delete cfg.preciosFuturos;
+              await persistir(cfg);
+            };
+
+            // ===== EDITOR =====
+            if (editing && draftPrecios) {
+              const totalActual = PRECIO_KEYS.reduce((s, k) => s + (configuracion as any)[k], 0);
+              const totalNuevo = PRECIO_KEYS.reduce((s, k) => s + (draftPrecios as any)[k], 0);
+              const variacion = totalActual > 0 ? Math.round(((totalNuevo - totalActual) / totalActual) * 1000) / 10 : 0;
+
+              return (
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">{pending ? 'Editar actualización programada' : 'Nueva actualización de precios'}</h2>
+                    <p className="text-sm text-gray-500 mt-1">Programá nuevos aranceles. Los precios actuales siguen rigiendo hasta la fecha de vigencia.</p>
+                  </div>
+
+                  {/* Fecha de vigencia */}
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 p-5">
+                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Fecha de vigencia</div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <input
+                        type="date"
+                        value={draftPrecios.fechaVigencia}
+                        min={todayYmd()}
+                        onChange={e => cambiarFecha(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-600">→ <span className="font-semibold text-blue-700">{formatFechaEs(draftPrecios.fechaVigencia)}</span></span>
+                      <button
+                        onClick={() => cambiarFecha(primerDiaHabilMesSiguiente())}
+                        className="text-xs text-blue-600 hover:underline ml-auto"
+                      >Usar 1° día hábil del mes siguiente</button>
+                    </div>
+                  </div>
+
+                  {/* Aumento porcentual rápido */}
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold text-green-800">Aplicar a todos:</span>
+                    {[5, 10, 15, 20, 25, 30].map(pct => (
+                      <button key={pct} onClick={() => aplicarPorcentaje(pct)}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold">+{pct}%</button>
+                    ))}
+                    <span className="text-xs text-green-700 ml-2">(parte de los precios actuales y aplica el porcentaje)</span>
+                  </div>
+
+                  {/* Tabla side-by-side */}
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Concepto</th>
+                          <th className="px-4 py-3 text-right">Precio actual</th>
+                          <th className="px-4 py-3 text-right">Precio nuevo</th>
+                          <th className="px-4 py-3 text-right">Variación</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRECIO_KEYS.map(k => {
+                          const actual = (configuracion as any)[k] as number;
+                          const nuevo = (draftPrecios as any)[k] as number;
+                          const diff = nuevo - actual;
+                          const pct = actual > 0 ? Math.round((diff / actual) * 1000) / 10 : 0;
+                          const colorClass = diff > 0 ? 'text-green-700' : diff < 0 ? 'text-red-700' : 'text-gray-500';
+                          return (
+                            <tr key={k} className="border-b border-gray-100">
+                              <td className="px-4 py-2.5 text-gray-800">{PRECIO_LABELS[k]}</td>
+                              <td className="px-4 py-2.5 text-right text-gray-600">${actual.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-right">
+                                <div className="relative inline-block">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">$</span>
+                                  <input
+                                    type="number" min={0} step={1}
+                                    value={nuevo}
+                                    onChange={e => cambiarPrecio(k, Number(e.target.value))}
+                                    className="w-32 pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-right text-sm focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </td>
+                              <td className={`px-4 py-2.5 text-right text-xs font-semibold ${colorClass}`}>
+                                {diff === 0 ? '—' : `${diff > 0 ? '+' : ''}$${diff.toLocaleString()} (${pct > 0 ? '+' : ''}${pct}%)`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="bg-gray-50 font-bold">
+                          <td className="px-4 py-2.5 text-gray-900">Suma de la lista</td>
+                          <td className="px-4 py-2.5 text-right text-gray-700">${totalActual.toLocaleString()}</td>
+                          <td className="px-4 py-2.5 text-right text-gray-900">${totalNuevo.toLocaleString()}</td>
+                          <td className={`px-4 py-2.5 text-right text-xs ${variacion > 0 ? 'text-green-700' : variacion < 0 ? 'text-red-700' : 'text-gray-500'}`}>
+                            {variacion === 0 ? '—' : `${variacion > 0 ? '+' : ''}${variacion}%`}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mensaje email */}
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 p-5">
+                    <div className="text-xs font-bold text-gray-500 uppercase mb-2">Mensaje del email</div>
+                    <textarea
+                      value={draftMensaje}
+                      onChange={e => setDraftMensaje(e.target.value)}
+                      rows={8}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 resize-none font-mono"
+                    />
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="flex gap-3 flex-wrap">
+                    <button onClick={cancelar} className="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50">Cancelar</button>
+                    <button onClick={guardar} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">Guardar (sin enviar email)</button>
+                    <button onClick={guardarYEnviar} className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold flex items-center gap-2">
+                      <Mail size={16} /> Guardar y enviar email a todos los médicos
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ===== ESTADO PENDIENTE =====
+            if (pending) {
+              return (
+                <div className="p-6 space-y-6">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Actualización de Precios</h2>
+                    <p className="text-sm text-gray-500 mt-1">Hay una actualización programada.</p>
+                  </div>
+
+                  <div className="bg-amber-50 border border-amber-300 rounded-2xl p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="bg-amber-200 rounded-lg p-2"><DollarSign size={20} className="text-amber-800" /></div>
+                      <div className="flex-1">
+                        <div className="text-sm font-bold text-amber-900">Actualización programada</div>
+                        <div className="text-base text-amber-800 mt-0.5">Los nuevos precios entran en vigencia el <span className="font-bold">{formatFechaEs(pending.fechaVigencia)}</span>.</div>
+                        <div className="text-xs text-amber-700 mt-1">Hasta esa fecha, los precios actuales se siguen aplicando a los remitos nuevos.</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Concepto</th>
+                          <th className="px-4 py-3 text-right">Actual</th>
+                          <th className="px-4 py-3 text-right">Próximo</th>
+                          <th className="px-4 py-3 text-right">Variación</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PRECIO_KEYS.map(k => {
+                          const actual = (configuracion as any)[k] as number;
+                          const proximo = (pending as any)[k] as number;
+                          const diff = proximo - actual;
+                          const pct = actual > 0 ? Math.round((diff / actual) * 1000) / 10 : 0;
+                          const colorClass = diff > 0 ? 'text-green-700' : diff < 0 ? 'text-red-700' : 'text-gray-500';
+                          return (
+                            <tr key={k} className="border-b border-gray-100">
+                              <td className="px-4 py-2.5 text-gray-800">{PRECIO_LABELS[k]}</td>
+                              <td className="px-4 py-2.5 text-right text-gray-600">${actual.toLocaleString()}</td>
+                              <td className="px-4 py-2.5 text-right text-gray-900 font-semibold">${proximo.toLocaleString()}</td>
+                              <td className={`px-4 py-2.5 text-right text-xs font-semibold ${colorClass}`}>
+                                {diff === 0 ? '—' : `${diff > 0 ? '+' : ''}$${diff.toLocaleString()} (${pct > 0 ? '+' : ''}${pct}%)`}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex gap-3 flex-wrap">
+                    <button onClick={iniciarEdicion} className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">Editar actualización</button>
+                    <button onClick={descartarPendiente} className="px-5 py-2.5 border border-red-300 text-red-700 rounded-lg font-semibold hover:bg-red-50">Descartar pendiente</button>
+                  </div>
+                </div>
+              );
+            }
+
+            // ===== IDLE =====
+            return (
+              <div className="p-6 space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Actualización de Precios</h2>
+                  <p className="text-sm text-gray-500 mt-1">Programá nuevos aranceles. Los nuevos precios entran en vigencia recién a partir de la fecha que elijas y solo se aplican a remitos nuevos.</p>
+                </div>
+
+                <div className="bg-white rounded-2xl shadow border border-gray-100 overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-2.5 text-xs font-bold text-gray-600 uppercase">Precios vigentes</div>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {PRECIO_KEYS.map(k => (
+                        <tr key={k} className="border-b border-gray-100">
+                          <td className="px-4 py-2.5 text-gray-800">{PRECIO_LABELS[k]}</td>
+                          <td className="px-4 py-2.5 text-right font-semibold text-gray-900">${((configuracion as any)[k] as number).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <button onClick={iniciarEdicion} className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-base flex items-center justify-center gap-3 shadow">
+                  <DollarSign size={20} /> Iniciar actualización de precios
+                </button>
+              </div>
+            );
+          })()}
+
           {currentView === 'configuracion' && (
             <div className="p-6 space-y-6">
               <div className="flex items-center justify-between">
@@ -3698,31 +4024,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 </div>
               </div>
 
-              {/* Configuración de Precios */}
+              {/* Configuración de Precios — vista de solo lectura. La edición vive en el tab "Actualización de Precios". */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center">
                   <DollarSign className="mr-2 text-green-600" size={20} />
-                  Configuración de Precios
+                  Precios vigentes
                 </h3>
-                
-                {/* Aumento porcentual */}
-                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl flex items-center gap-3 flex-wrap">
-                  <span className="text-sm font-semibold text-green-800">Aumentar todos los precios:</span>
-                  {[5, 10, 15, 20, 25, 30].map(pct => (
-                    <button key={pct} onClick={() => {
-                      if (!confirm(`¿Aumentar todos los precios un ${pct}%?`)) return;
-                      setConfiguracion(prev => {
-                        const updated = { ...prev };
-                        const keys = ['precioCassette', 'precioCassetteUrgente', 'precioProfundizacion', 'precioPAP', 'precioPAPUrgente', 'precioCitologia', 'precioCitologiaUrgente', 'precioCorteBlanco', 'precioCorteBlancoIHQ', 'precioGiemsaPASMasson'];
-                        keys.forEach(k => { (updated as any)[k] = Math.round((updated as any)[k] * (1 + pct / 100)); });
-                        return updated;
-                      });
-                    }}
-                      className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors">
-                      +{pct}%
-                    </button>
-                  ))}
-                </div>
+                <p className="text-xs text-gray-500 mb-4">Los cambios se programan desde <button onClick={() => setCurrentView('actualizar-precios')} className="text-blue-600 font-semibold hover:underline">Actualización de Precios</button>{configuracion.preciosFuturos ? <> · <span className="text-amber-700 font-semibold">Hay una actualización programada para el {formatFechaEs(configuracion.preciosFuturos.fechaVigencia)}</span></> : null}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Precios Normales */}
@@ -3741,14 +4049,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         ].map(({ label, key }) => (
                           <tr key={key} className="border-b border-gray-100">
                             <td className="px-4 py-2.5 font-medium text-gray-700">{label}</td>
-                            <td className="px-4 py-2.5 w-32">
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
-                                <input type="number" value={(configuracion as any)[key]} min="0"
-                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Math.round(Number(e.target.value)) }))} step="1"
-                                  className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-blue-500" />
-                              </div>
-                            </td>
+                            <td className="px-4 py-2.5 w-32 text-right font-bold text-gray-900">${((configuracion as any)[key] as number).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3767,14 +4068,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                         ].map(({ label, key }) => (
                           <tr key={key} className="border-b border-gray-100">
                             <td className="px-4 py-2.5 font-medium text-gray-700">{label}</td>
-                            <td className="px-4 py-2.5 w-32">
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs">$</span>
-                                <input type="number" value={(configuracion as any)[key]} min="0"
-                                  onChange={(e) => setConfiguracion(prev => ({ ...prev, [key]: Math.round(Number(e.target.value)) }))} step="1"
-                                  className="w-full pl-7 pr-2 py-1.5 border border-gray-200 rounded-lg text-sm text-right focus:ring-2 focus:ring-red-500" />
-                              </div>
-                            </td>
+                            <td className="px-4 py-2.5 w-32 text-right font-bold text-gray-900">${((configuracion as any)[key] as number).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
