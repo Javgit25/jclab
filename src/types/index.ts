@@ -52,6 +52,13 @@ export interface Solicitud {
   doctorEmail: string;
   labCode: string;
   notas?: string;                     // Notas del laboratorio
+  // Paciente histórico — anterior al uso de BiopsyTracker, no está en la base.
+  // Solo aplica a tacos / profundización / servicio adicional sobre material físico (no PAP/Cito).
+  historico?: boolean;
+  historicoFecha?: string;            // 'YYYY-MM' aproximada del estudio original
+  historicoTotalCassettes?: number;   // cantidad total de cassettes del estudio original
+  historicoCantSolicitada?: number;   // cuántos cassettes pide ahora (≤ total)
+  historicoIdentCassettes?: string;   // texto: "1, 3" o "A, C" — requerido si pide menos del total
 }
 
 export interface ProfileChange {
