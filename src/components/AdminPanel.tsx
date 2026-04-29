@@ -3709,32 +3709,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
               alert(`Actualización guardada. Los nuevos precios entrarán en vigencia el ${formatFechaEs(fechaGuardada)}.`);
             };
 
-            // Si labConfig.logoUrl es un data URL, lo extraemos para mandarlo como adjunto inline (cid).
-            // Email clients como Gmail/Outlook bloquean data: URLs en <img>, así que esta es la única forma confiable de mostrar el logo en el mail.
-            const buildLogoAttachment = (): { attachment: { filename: string; content: string; content_type?: string; content_id?: string } | null; cid: string } => {
+            // El logo se sirve via /api/lab-logo (decodifica el data URL guardado en Supabase).
+            // Email clients como Gmail/Outlook bloquean data: URLs en <img>, por eso necesitamos URL pública.
+            const buildLogoUrl = (): string => {
               const url = labConfig.logoUrl || '';
-              if (!url.startsWith('data:')) return { attachment: null, cid: '' };
-              const m = url.match(/^data:([^;]+);base64,(.+)$/);
-              if (!m) return { attachment: null, cid: '' };
-              const mime = m[1];
-              const content = m[2];
-              const ext = (mime.split('/')[1] || 'png').replace(/[^a-z0-9]/gi, '');
-              const cid = 'logo';
-              return {
-                attachment: { filename: 'logo.' + ext, content, content_type: mime, content_id: cid },
-                cid,
-              };
+              if (!url.startsWith('data:') || !currentLabCode) return '';
+              return 'https://jclab.vercel.app/api/lab-logo?labCode=' + encodeURIComponent(currentLabCode);
             };
 
-            const buildEmailHtml = (mensaje: string, precios: PreciosFuturos, logoCid: string): string => {
+            const buildEmailHtml = (mensaje: string, precios: PreciosFuturos, logoUrl: string): string => {
               const labName = labConfig.nombre || 'Laboratorio';
               const labInfo = [labConfig.direccion, labConfig.telefono, labConfig.email].filter(Boolean).join(' | ');
               const filas = PRECIO_KEYS.map((k, i) => {
                 const valor = (precios as any)[k] as number;
                 return '<tr style="border-bottom:1px solid #f1f5f9;' + (i % 2 !== 0 ? 'background:#f8fafc;' : '') + '"><td style="padding:10px 14px;font-size:13px;color:#374151;">' + PRECIO_LABELS[k] + '</td><td style="padding:10px 14px;text-align:right;font-weight:700;color:#0f172a;font-size:13px;">$' + valor.toLocaleString() + '</td></tr>';
               }).join('');
-              const logoTag = logoCid
-                ? '<img src="cid:' + logoCid + '" alt="' + labName + '" style="max-height:60px;max-width:200px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" /><br>'
+              const logoTag = logoUrl
+                ? '<img src="' + logoUrl + '" alt="' + labName + '" style="max-height:60px;max-width:200px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto;" /><br>'
                 : '';
               return '<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;background:#f8fafc;">' +
                 '<div style="background:#0f172a;color:white;padding:24px;text-align:center;">' +
@@ -3774,10 +3765,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onGoBack }) => {
                 const { sendBulkEmail } = await import('../utils/emailService');
                 const fromName = labConfig.nombre || 'Laboratorio';
                 const subject = 'Actualización de Aranceles - ' + fromName;
-                const { attachment: logoAtt, cid: logoCid } = buildLogoAttachment();
-                const messageHtml = buildEmailHtml(mensajeSnapshot, preciosSnapshot, logoCid);
-                const attachments = logoAtt ? [logoAtt] : undefined;
-                const results = await sendBulkEmail(recipients, { subject, messageHtml, fromName, attachments });
+                const logoUrl = buildLogoUrl();
+                const messageHtml = buildEmailHtml(mensajeSnapshot, preciosSnapshot, logoUrl);
+                const results = await sendBulkEmail(recipients, { subject, messageHtml, fromName });
                 const ok = results.filter((r: any) => r.success).length;
                 const fail = results.length - ok;
                 let alertMsg = `Actualización guardada (vigente desde ${formatFechaEs(preciosSnapshot.fechaVigencia)}).\n\nEmail enviado a ${ok} de ${results.length} médico(s).`;
