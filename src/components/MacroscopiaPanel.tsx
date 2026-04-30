@@ -9,8 +9,10 @@ interface MacroscopiaPanelProps {
 }
 
 const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }) => {
+  const savedEmailKey = 'macroLastEmail_' + labCode;
+  const savedEmail = (() => { try { return localStorage.getItem(savedEmailKey) || ''; } catch { return ''; } })();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [doctorName, setDoctorName] = useState('');
@@ -51,6 +53,7 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
       setDoctorName(`${doc.firstName} ${doc.lastName}`);
       setIsLoggedIn(true);
       setLoginError('');
+      try { localStorage.setItem(savedEmailKey, email.toLowerCase().trim()); } catch {}
       loadTranscripciones(email.toLowerCase().trim());
     } catch { setLoginError('Error de conexión'); }
   };
@@ -141,7 +144,17 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151', display: 'block', marginBottom: '4px' }}>Email</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 600, color: '#374151' }}>Email</label>
+                {savedEmail && email === savedEmail && (
+                  <button type="button" onClick={() => {
+                    try { localStorage.removeItem(savedEmailKey); } catch {}
+                    setEmail(''); setPassword(''); setLoginError('');
+                  }} style={{ fontSize: '11px', color: '#2563eb', background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}>
+                    Cambiar usuario
+                  </button>
+                )}
+              </div>
               <input type="email" value={email} onChange={e => { setEmail(e.target.value); setLoginError(''); }}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 placeholder="tu@email.com"
@@ -152,6 +165,7 @@ const MacroscopiaPanel: React.FC<MacroscopiaPanelProps> = ({ labCode, onGoBack }
               <input type="password" value={password} onChange={e => { setPassword(e.target.value); setLoginError(''); }}
                 onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 placeholder="Tu contraseña"
+                autoFocus={!!savedEmail}
                 style={{ width: '100%', padding: '12px', border: '1px solid #d1d5db', borderRadius: '10px', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
             {loginError && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0, textAlign: 'center' }}>{loginError}</p>}
